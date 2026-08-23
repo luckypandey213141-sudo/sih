@@ -44,7 +44,6 @@
           error.textContent = data.error || 'Sign-in failed';
         }
       } catch (err) {
-        // Fallback for offline demo
         if (document.getElementById('username').value === 'admin' && document.getElementById('password').value === 'SafeWay-Demo-2026') {
           location.replace('/admin/index.html');
         } else {
