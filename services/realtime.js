@@ -277,10 +277,49 @@ export function recordSensorReading(sensorId, data) {
   saveLocalState(updated);
 }
 
+// In-memory predictive route registry for zero-cost crowd balancing
+const activeRouteRegistry = new Map();
+
+/**
+ * Register an active user route to predict doorway congestion (Zero-Cost Software Routing)
+ */
+export function registerActiveRoute(userId, exitId, zoneId) {
+  if (!exitId) return;
+  const now = Date.now();
+  activeRouteRegistry.set(userId, { exitId, zoneId, timestamp: now });
+
+  // Prune expired entries (> 2 minutes)
+  for (const [uid, item] of activeRouteRegistry.entries()) {
+    if (now - item.timestamp > 120000) {
+      activeRouteRegistry.delete(uid);
+    }
+  }
+
+  const exitCounts = {};
+  for (const item of activeRouteRegistry.values()) {
+    exitCounts[item.exitId] = (exitCounts[item.exitId] || 0) + 1;
+  }
+
+  const updatedCrowds = { ...currentLiveState.crowds };
+  for (const [exit, count] of Object.entries(exitCounts)) {
+    if (count >= 15) {
+      updatedCrowds[exit] = "High";
+    } else if (count >= 5) {
+      updatedCrowds[exit] = "Medium";
+    }
+  }
+
+  saveLocalState({
+    ...currentLiveState,
+    crowds: updatedCrowds
+  });
+}
+
 /**
  * Reset all building hazards, blockages, and alarms to normal
  */
 export function resetAllToNormal() {
+  activeRouteRegistry.clear();
   saveLocalState({
     ...INITIAL_STATE,
     lastUpdated: new Date().toISOString()
@@ -298,3 +337,4 @@ export function getConnectionStatus() {
     color: "emerald"
   };
 }
+
