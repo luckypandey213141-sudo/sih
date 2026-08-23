@@ -205,8 +205,6 @@ const MAP_PLANS = [{
   floor: 1,
   rooms: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
 }];
-
-// Room to Floor Plan Auto-Switch Mapping (from desktop app)
 const ROOM_TO_MAP_PLAN = {
   "Lab 1": "ramanujan-basement",
   "Lab 2": "ramanujan-basement",
@@ -512,68 +510,6 @@ const ROOM_ROUTE_TARGETS = {
     "Stairs 1": [220, 170]
   }
 };
-const CAMPUS_OUTDOOR_LANDMARKS = [{
-  id: "gate-1",
-  name: "College Main Gate",
-  point: [445, 510],
-  type: "gate"
-}, {
-  id: "gate-2",
-  name: "Gate No. 2 (East)",
-  point: [960, 75],
-  type: "gate"
-}, {
-  id: "safe-playground",
-  name: "Playground Safe Assembly",
-  point: [535, 65],
-  type: "safe"
-}, {
-  id: "safe-backyard",
-  name: "Back Yard Safe Assembly",
-  point: [90, 145],
-  type: "safe"
-}, {
-  id: "junc-central",
-  name: "Central T-Junction",
-  point: [430, 365],
-  type: "junction"
-}, {
-  id: "door-bhabha",
-  name: "Bhabha Block Door",
-  point: [185, 360],
-  type: "door",
-  mapId: "bhabha-ground"
-}, {
-  id: "door-ramanujan",
-  name: "Ramanujan Block Door",
-  point: [358, 195],
-  type: "door",
-  mapId: "ramanujan-ground"
-}, {
-  id: "door-kalpana",
-  name: "Kalpana Block Door",
-  point: [540, 195],
-  type: "door",
-  mapId: "kalpana-ground"
-}, {
-  id: "door-raman",
-  name: "Raman Block Door",
-  point: [780, 195],
-  type: "door",
-  mapId: "raman-ground"
-}, {
-  id: "door-arya-w",
-  name: "Aryabhatta West Door",
-  point: [574, 288],
-  type: "door",
-  mapId: "aryabhatta-ground"
-}, {
-  id: "door-arya-s",
-  name: "Aryabhatta South Door",
-  point: [690, 375],
-  type: "door",
-  mapId: "aryabhatta-ground"
-}];
 function buildIndoorRoutePath(planId, roomName) {
   const template = INDOOR_ROUTE_TEMPLATES[planId];
   const targetMap = ROOM_ROUTE_TARGETS[planId] || {};
@@ -697,6 +633,7 @@ function Icon({
   }));
 }
 function MobileApp() {
+  const [bData, setBData] = useState(() => SafeWay.INITIAL_BUILDING_DATA);
   const [liveState, setLiveState] = useState(() => ({
     emergencyActive: false,
     hazards: {},
@@ -710,13 +647,15 @@ function MobileApp() {
   // Map & Navigation States
   const [selectedMapId, setSelectedMapId] = useState("campus");
   const [selectedDestinationRoom, setSelectedDestinationRoom] = useState("");
-  const [currentOriginLocation, setCurrentOriginLocation] = useState("College Main Gate");
+  const [userLocationNodeId, setUserLocationNodeId] = useState("ent-main");
+  const [destinationNodeId, setDestinationNodeId] = useState("admin");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Motion & PDR states
   const [tracker, setTracker] = useState(() => SafeWay?.MotionTracker ? new SafeWay.MotionTracker() : null);
   const [stepCount, setStepCount] = useState(0);
+  const [traveledDistance, setTraveledDistance] = useState(0);
   const [compassHeading, setCompassHeading] = useState(0);
   const [isMotionTracking, setIsMotionTracking] = useState(false);
   const [autoWalkActive, setAutoWalkActive] = useState(false);
@@ -744,7 +683,15 @@ function MobileApp() {
   useEffect(() => {
     if (!tracker) return;
     const unsub = tracker.subscribe(e => {
-      if (e.type === 'STEP') setStepCount(e.stepCount);else if (e.type === 'ORIENTATION') setCompassHeading(e.heading);else if (e.type === 'RESET') setStepCount(0);
+      if (e.type === 'STEP') {
+        setStepCount(e.stepCount);
+        setTraveledDistance(e.distance);
+      } else if (e.type === 'ORIENTATION') {
+        setCompassHeading(e.heading);
+      } else if (e.type === 'RESET') {
+        setStepCount(0);
+        setTraveledDistance(0);
+      }
     });
     return () => unsub();
   }, [tracker]);
@@ -764,6 +711,33 @@ function MobileApp() {
     setTimeout(() => setStatusNotification(""), 3500);
   };
   const isEmergency = liveState.emergencyActive;
+  const userNode = bData.nodes.find(n => n.id === userLocationNodeId) || bData.nodes[0];
+
+  // Campus Dijkstra Graph Path calculation (Previous reliable logic)
+  const effectiveEdges = bData.edges.map(e => ({
+    ...e,
+    blocked: liveState.blockedEdges[e.id] !== undefined ? liveState.blockedEdges[e.id] : e.blocked
+  }));
+  const effectiveExits = bData.exits.map(ex => ({
+    ...ex,
+    isOpen: liveState.exits[ex.id]?.isOpen !== false,
+    crowdLevel: liveState.crowds[ex.id] || ex.crowdLevel
+  }));
+  const crowdInput = {
+    exits: liveState.crowds,
+    edges: liveState.corridorCrowds,
+    zones: liveState.crowds
+  };
+  const normalRoute = !isEmergency ? SafeWay.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
+    isEmergency: false,
+    accessibilityMode
+  }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
+  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
+    isEmergency: true,
+    accessibilityMode,
+    nearestEmergencyDestination: true
+  }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
+  const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
   // Master Room Selection handler (Automatic Map-Switching matching desktop version!)
   const handleSelectRoomDestination = roomName => {
@@ -790,11 +764,28 @@ function MobileApp() {
     speakText(`Switched map to ${plan?.group} ${plan?.label}`);
   };
 
-  // Compute indoor path & guidance instructions
+  // Compute indoor path
   const indoorRoute = useMemo(() => {
     if (selectedMapId === "campus" || !selectedDestinationRoom) return null;
     return buildIndoorRoutePath(selectedMapId, selectedDestinationRoom);
   }, [selectedMapId, selectedDestinationRoom]);
+
+  // Live Position coordinates
+  const liveUserCoords = useMemo(() => {
+    try {
+      if (selectedMapId === "campus") {
+        if (activeCampusRoute?.pathNodes?.length > 1 && traveledDistance > 0) {
+          const pts = activeCampusRoute.pathNodes.map(n => [n.x, n.y]);
+          const pt = SafeWay?.interpolatePositionOnRoute?.(pts, traveledDistance * 6);
+          if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
+        }
+        return [userNode?.x || 440, userNode?.y || 565];
+      }
+      return indoorRoute?.entry || [500, 400];
+    } catch (e) {
+      return [userNode?.x || 440, userNode?.y || 565];
+    }
+  }, [selectedMapId, activeCampusRoute, traveledDistance, userNode, indoorRoute]);
   const toggleSensors = async () => {
     if (!tracker) return;
     if (isMotionTracking) {
@@ -813,8 +804,8 @@ function MobileApp() {
   const triggerSosDistress = () => {
     SafeWay.sendDistressSignal({
       userId: "mobile-user-1",
-      locationName: `${currentOriginLocation} (${activeMapPlan.label})`,
-      nodeId: "mobile-node",
+      locationName: `${userNode?.name || "Campus"} (${activeMapPlan.label})`,
+      nodeId: userNode?.id || "mobile-node",
       floor: activeMapPlan.floor || 1,
       zone: activeMapPlan.group
     });
@@ -822,6 +813,8 @@ function MobileApp() {
     notify("🆘 Trapped Distress Beacon Sent!");
     speakText("Distress beacon transmitted to emergency operations console.");
   };
+  const campusNodes = bData.nodes.filter(n => n.floor === 1);
+  const campusEdges = bData.edges.filter(e => e.floor === 1);
   return /*#__PURE__*/React.createElement("div", {
     className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl"
   }, /*#__PURE__*/React.createElement("header", {
@@ -869,9 +862,20 @@ function MobileApp() {
     className: "w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-black text-xs"
   }, "1F"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-bold text-slate-400 block"
-  }, "1. CURRENT POSITION"), /*#__PURE__*/React.createElement("span", {
-    className: "text-xs font-black text-white"
-  }, currentOriginLocation))), /*#__PURE__*/React.createElement("button", {
+  }, "1. CURRENT POSITION"), /*#__PURE__*/React.createElement("select", {
+    value: userLocationNodeId,
+    onChange: e => {
+      setUserLocationNodeId(e.target.value);
+      if (tracker) tracker.resetToOrigin();
+      const n = bData.nodes.find(node => node.id === e.target.value);
+      notify(`📍 Origin: ${n?.name || e.target.value}`);
+    },
+    className: "bg-transparent text-xs font-black text-white outline-none cursor-pointer"
+  }, campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
+    key: n.id,
+    value: n.id,
+    className: "bg-slate-900 text-white"
+  }, "\uD83D\uDCCD ", n.name))))), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsQrModalOpen(true);
       setScannerActive(true);
@@ -891,7 +895,24 @@ function MobileApp() {
   }, MAP_PLANS.map(p => /*#__PURE__*/React.createElement("option", {
     key: p.id,
     value: p.id
-  }, p.group, " \u2014 ", p.label)))), /*#__PURE__*/React.createElement("div", {
+  }, p.group, " \u2014 ", p.label)))), selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1.5"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-black text-slate-400 block"
+  }, "3. CAMPUS DESTINATION / ENTER BLOCK:"), /*#__PURE__*/React.createElement("select", {
+    value: destinationNodeId,
+    onChange: e => {
+      setDestinationNodeId(e.target.value);
+      const n = bData.nodes.find(node => node.id === e.target.value);
+      notify(`🎯 Destination: ${n?.name || e.target.value}`);
+    },
+    className: "w-full bg-slate-900 border border-amber-500/50 text-amber-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-amber-400"
+  }, /*#__PURE__*/React.createElement("optgroup", {
+    label: "Campus Blocks & Destinations"
+  }, campusNodes.filter(n => ['room', 'entrance', 'exit'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
+    key: n.id,
+    value: n.id
+  }, "\uD83D\uDCCD ", n.name))))) : /*#__PURE__*/React.createElement("div", {
     className: "space-y-1.5"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] font-black text-slate-400 block"
@@ -901,10 +922,10 @@ function MobileApp() {
     className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400"
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\uD83C\uDFAF Select Destination Room (All Campus)"), Object.keys(ROOM_TO_MAP_PLAN).map(room => /*#__PURE__*/React.createElement("option", {
+  }, "\uD83C\uDFAF Select Destination Room"), (activeMapPlan.rooms || Object.keys(ROOM_TO_MAP_PLAN)).map(room => /*#__PURE__*/React.createElement("option", {
     key: room,
     value: room
-  }, "\uD83D\uDCCD ", room, " (", ROOM_TO_MAP_PLAN[room], ")")))), selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD ", room, " (", ROOM_TO_MAP_PLAN[room] || activeMapPlan.label, ")")))), selectedMapId !== "campus" && selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-black text-indigo-300 flex items-center justify-between"
@@ -928,63 +949,7 @@ function MobileApp() {
     width: "1000",
     height: "650",
     preserveAspectRatio: "xMidYMid meet"
-  }), selectedMapId === "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("path", {
-    d: "M 445 510 L 445 365",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 430 365 L 185 365",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 430 365 L 360 365 L 360 205 L 160 205 L 160 135 L 132 135",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 417 215 L 417 78",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 430 365 L 445 340 L 540 205 L 670 205 L 780 205 L 920 205 L 920 135 L 960 135 L 960 75",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 668 205 L 668 78",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("path", {
-    d: "M 445 340 L 540 340 L 550 375 L 775 375 L 920 375 L 920 205",
-    fill: "none",
-    stroke: "#facc15",
-    strokeWidth: "8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    opacity: "0.9"
-  })), /*#__PURE__*/React.createElement("g", {
+  }), selectedMapId === "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("g", {
     transform: "translate(535,65)",
     onClick: () => notify("Playground Safe Area"),
     style: {
@@ -1020,7 +985,74 @@ function MobileApp() {
     fill: "#ffffff",
     fontSize: "9",
     fontWeight: "900"
-  }, "BACK YARD"))), selectedMapId !== "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+  }, "BACK YARD")), /*#__PURE__*/React.createElement("g", {
+    id: "campus-edges"
+  }, campusEdges.map(edge => {
+    const u = bData.nodes.find(n => n.id === edge.from);
+    const v = bData.nodes.find(n => n.id === edge.to);
+    if (!u || !v) return null;
+    return /*#__PURE__*/React.createElement("line", {
+      key: edge.id,
+      x1: u.x,
+      y1: u.y,
+      x2: v.x,
+      y2: v.y,
+      stroke: "transparent",
+      strokeWidth: "8"
+    });
+  })), activeCampusRoute?.pathNodes?.length > 1 && /*#__PURE__*/React.createElement("g", {
+    id: "active-campus-route"
+  }, activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
+    const nextNode = activeCampusRoute.pathNodes[idx + 1];
+    return /*#__PURE__*/React.createElement("g", {
+      key: `route-seg-${idx}`
+    }, /*#__PURE__*/React.createElement("line", {
+      x1: node.x,
+      y1: node.y,
+      x2: nextNode.x,
+      y2: nextNode.y,
+      stroke: isEmergency ? "#10b981" : "#6366f1",
+      strokeWidth: "9",
+      strokeLinecap: "round",
+      opacity: "0.9"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: node.x,
+      y1: node.y,
+      x2: nextNode.x,
+      y2: nextNode.y,
+      stroke: "#ffffff",
+      strokeWidth: "3.5",
+      strokeDasharray: "8 6",
+      strokeLinecap: "round",
+      className: "route-glow-dash"
+    }));
+  })), /*#__PURE__*/React.createElement("g", {
+    id: "campus-nodes"
+  }, campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
+    const isUserHere = userLocationNodeId === node.id;
+    const isDest = destinationNodeId === node.id;
+    return /*#__PURE__*/React.createElement("g", {
+      key: node.id,
+      transform: `translate(${node.x}, ${node.y})`,
+      onClick: () => {
+        setDestinationNodeId(node.id);
+        notify(`🎯 Selected: ${node.name}`);
+      },
+      style: {
+        cursor: "pointer"
+      }
+    }, /*#__PURE__*/React.createElement("circle", {
+      r: isUserHere || isDest ? "16" : "9",
+      fill: isUserHere ? "#0284c7" : isDest ? "#059669" : "#1e293b",
+      stroke: isUserHere ? "#ffffff" : isDest ? "#ffffff" : "#64748b",
+      strokeWidth: isUserHere || isDest ? "3" : "1.5"
+    }), isDest && /*#__PURE__*/React.createElement("circle", {
+      r: "24",
+      fill: "#059669",
+      fillOpacity: "0.3",
+      className: "mobile-radar-pulse"
+    }));
+  }))), selectedMapId !== "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
     x: "20",
     y: "10",
     width: "960",
@@ -1106,7 +1138,46 @@ function MobileApp() {
     fontSize: "11",
     fontWeight: "900",
     letterSpacing: "1"
-  }, "DESTINATION: ", selectedDestinationRoom.toUpperCase()))))), /*#__PURE__*/React.createElement("div", {
+  }, "DESTINATION: ", selectedDestinationRoom.toUpperCase())))), /*#__PURE__*/React.createElement("g", {
+    transform: `translate(${liveUserCoords[0]}, ${liveUserCoords[1]})`
+  }, /*#__PURE__*/React.createElement("circle", {
+    r: "36",
+    fill: "#0ea5e9",
+    fillOpacity: "0.3",
+    className: "mobile-radar-pulse"
+  }), /*#__PURE__*/React.createElement("circle", {
+    r: "14",
+    fill: "#0284c7",
+    stroke: "#ffffff",
+    strokeWidth: "4"
+  }), /*#__PURE__*/React.createElement("g", {
+    transform: `rotate(${compassHeading || 0})`
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "0,-26 -7,-11 7,-11",
+    fill: "#ef4444",
+    stroke: "#ffffff",
+    strokeWidth: "1.5"
+  })), /*#__PURE__*/React.createElement("circle", {
+    r: "4",
+    fill: "#ffffff"
+  }), /*#__PURE__*/React.createElement("g", {
+    transform: "translate(0, 26)"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "-46",
+    y: "-9",
+    width: "92",
+    height: "18",
+    rx: "8",
+    fill: "#0284c7",
+    stroke: "#ffffff",
+    strokeWidth: "1.5"
+  }), /*#__PURE__*/React.createElement("text", {
+    y: "4",
+    textAnchor: "middle",
+    fill: "#ffffff",
+    fontSize: "8",
+    fontWeight: "900"
+  }, stepCount > 0 ? `👣 ${stepCount} STEPS` : "YOU ARE HERE")))), /*#__PURE__*/React.createElement("div", {
     className: "absolute top-5 left-5 bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 shadow-xl flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC63 ", /*#__PURE__*/React.createElement("b", null, stepCount), " steps"), /*#__PURE__*/React.createElement("span", {
     className: "text-slate-600"
@@ -1188,7 +1259,7 @@ function MobileApp() {
     className: "text-xs text-slate-300"
   }, "Transmitting your location to the Campus Security Command Center:"), /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
-  }, "\uD83D\uDCCD ", currentOriginLocation, " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD ", userNode?.name || "Campus", " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
