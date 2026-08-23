@@ -4,7 +4,6 @@
   "description": "SafeWay V3 — Smart Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
   "type": "module",
   "scripts": {
-    "build": "echo Production build complete",
     "start": "node local_server.js",
     "test": "node tests/test_pathfinder.js"
   },

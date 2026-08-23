@@ -1,5 +1,5 @@
 {
-  "framework": null,
+  "version": 2,
   "cleanUrls": true,
   "rewrites": [
     { "source": "/login", "destination": "/admin/login.html" },
