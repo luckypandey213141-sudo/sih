@@ -450,6 +450,7 @@ const INDOOR_ROUTE_TEMPLATES = {
 // Complete Campus & Indoor Sub-Locations Hierarchy
 const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   group: "🏫 Campus Outdoor Gates & Grounds",
+  mapId: "campus",
   items: [{
     key: "campus:ent-main",
     name: "College Main Gate",
@@ -495,6 +496,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }]
 }, {
   group: "📐 Ramanujan Block — Ground Floor",
+  mapId: "ramanujan-ground",
   items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2"].map(r => ({
     key: `ramanujan-ground:${r}`,
     name: `Ramanujan Ground — ${r}`,
@@ -504,6 +506,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "📐 Ramanujan Block — First Floor",
+  mapId: "ramanujan-first",
   items: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"].map(r => ({
     key: `ramanujan-first:${r}`,
     name: `Ramanujan 1F — ${r}`,
@@ -513,6 +516,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "📐 Ramanujan Block — Basement",
+  mapId: "ramanujan-basement",
   items: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"].map(r => ({
     key: `ramanujan-basement:${r}`,
     name: `Ramanujan Basement — ${r}`,
@@ -522,6 +526,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "⚛️ Bhabha Block — Ground Floor",
+  mapId: "bhabha-ground",
   items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2"].map(r => ({
     key: `bhabha-ground:${r}`,
     name: `Bhabha Ground — ${r}`,
@@ -531,6 +536,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "⚛️ Bhabha Block — First Floor",
+  mapId: "bhabha-first",
   items: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Stairs"].map(r => ({
     key: `bhabha-first:${r}`,
     name: `Bhabha 1F — ${r}`,
@@ -540,6 +546,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "⚛️ Bhabha Block — Basement",
+  mapId: "bhabha-basement",
   items: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate"].map(r => ({
     key: `bhabha-basement:${r}`,
     name: `Bhabha Basement — ${r}`,
@@ -549,6 +556,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🚀 Kalpana Chawla Block — Ground Floor",
+  mapId: "kalpana-ground",
   items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs"].map(r => ({
     key: `kalpana-ground:${r}`,
     name: `Kalpana Ground — ${r}`,
@@ -558,6 +566,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🚀 Kalpana Chawla Block — First Floor",
+  mapId: "kalpana-first",
   items: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store"].map(r => ({
     key: `kalpana-first:${r}`,
     name: `Kalpana 1F — ${r}`,
@@ -567,6 +576,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🚀 Kalpana Chawla Block — Basement",
+  mapId: "kalpana-basement",
   items: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift"].map(r => ({
     key: `kalpana-basement:${r}`,
     name: `Kalpana Basement — ${r}`,
@@ -576,6 +586,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🔬 Raman Block — Ground Floor",
+  mapId: "raman-ground",
   items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs"].map(r => ({
     key: `raman-ground:${r}`,
     name: `Raman Ground — ${r}`,
@@ -585,6 +596,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🔬 Raman Block — First Floor",
+  mapId: "raman-first",
   items: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Lift", "Stairs"].map(r => ({
     key: `raman-first:${r}`,
     name: `Raman 1F — ${r}`,
@@ -594,6 +606,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🔭 Aryabhatta Block — Ground Floor",
+  mapId: "aryabhatta-ground",
   items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2"].map(r => ({
     key: `aryabhatta-ground:${r}`,
     name: `Aryabhatta Ground — ${r}`,
@@ -603,6 +616,7 @@ const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   }))
 }, {
   group: "🔭 Aryabhatta Block — Basement",
+  mapId: "aryabhatta-basement",
   items: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Lift", "Stairs 1"].map(r => ({
     key: `aryabhatta-basement:${r}`,
     name: `Aryabhatta Basement — ${r}`,
@@ -745,11 +759,10 @@ function MobileApp() {
     distressSignals: {}
   }));
 
-  // Selected Origin & Destination location keys (Map auto-derives from active origin or destination!)
+  // Selected Origin & Destination location keys
   const [originLocationKey, setOriginLocationKey] = useState("campus:ent-main");
+  const [destinationLocationKey, setDestinationLocationKey] = useState("campus:playground");
   const [selectedMapId, setSelectedMapId] = useState("campus");
-  const [selectedDestinationRoom, setSelectedDestinationRoom] = useState("");
-  const [destinationNodeId, setDestinationNodeId] = useState("admin");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -826,17 +839,39 @@ function MobileApp() {
     return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[0];
   }, [originLocationKey]);
 
-  // Handler for Origin Selection (auto-switches map directly based on where you are!)
+  // Find active destination location object
+  const activeDestLocation = useMemo(() => {
+    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+      const found = group.items.find(i => i.key === destinationLocationKey);
+      if (found) return found;
+    }
+    return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[2];
+  }, [destinationLocationKey]);
+
+  // Handler for Origin Selection (auto-switches map directly!)
   const handleOriginChange = key => {
     setOriginLocationKey(key);
     for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
       const item = group.items.find(i => i.key === key);
       if (item) {
         if (item.mapId) setSelectedMapId(item.mapId);
-        if (item.room) setSelectedDestinationRoom(item.room);
         if (tracker) tracker.resetToOrigin();
-        notify(`📍 Location: ${item.name}`);
+        notify(`📍 Origin: ${item.name}`);
         speakText(`Current position: ${item.name}`);
+        break;
+      }
+    }
+  };
+
+  // Handler for Destination Selection (auto-switches map directly!)
+  const handleDestinationChange = key => {
+    setDestinationLocationKey(key);
+    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+      const item = group.items.find(i => i.key === key);
+      if (item) {
+        if (item.mapId) setSelectedMapId(item.mapId);
+        notify(`🎯 Target: ${item.name}`);
+        speakText(`Route plotted to ${item.name}`);
         break;
       }
     }
@@ -935,7 +970,8 @@ function MobileApp() {
     zones: liveState.crowds
   };
   const campusOriginNodeId = activeOriginLocation.nodeId || "ent-main";
-  const normalRoute = !isEmergency ? SafeWay.findShortestPath(campusOriginNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
+  const campusDestNodeId = activeDestLocation.nodeId || "playground";
+  const normalRoute = !isEmergency ? SafeWay.findShortestPath(campusOriginNodeId, campusDestNodeId, bData.nodes, effectiveEdges, {
     isEmergency: false,
     accessibilityMode
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
@@ -946,27 +982,11 @@ function MobileApp() {
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
   const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-  // Master Room Selection handler
-  const handleSelectRoomDestination = roomName => {
-    setSelectedDestinationRoom(roomName);
-    if (!roomName) return;
-    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
-      const found = group.items.find(i => i.room === roomName);
-      if (found && found.mapId) {
-        setSelectedMapId(found.mapId);
-        const plan = MAP_PLANS.find(p => p.id === found.mapId);
-        notify(`🎯 ${roomName} in ${plan?.label || found.mapId}`);
-        speakText(`Route plotted to ${roomName}. Opened ${plan?.group} ${plan?.label}.`);
-        return;
-      }
-    }
-  };
-
-  // Compute indoor path
+  // Compute indoor path for destination room
   const indoorRoute = useMemo(() => {
-    if (selectedMapId === "campus" || !selectedDestinationRoom) return null;
-    return buildIndoorRoutePath(selectedMapId, selectedDestinationRoom);
-  }, [selectedMapId, selectedDestinationRoom]);
+    if (selectedMapId === "campus" || !activeDestLocation?.room) return null;
+    return buildIndoorRoutePath(selectedMapId, activeDestLocation.room);
+  }, [selectedMapId, activeDestLocation]);
 
   // Live Position coordinates
   const liveUserCoords = useMemo(() => {
@@ -1081,55 +1101,38 @@ function MobileApp() {
       setScannerActive(true);
     },
     className: "px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition shrink-0"
-  }, "\uD83D\uDCF7 QR Scan")), selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] font-bold text-slate-400 block"
-  }, "2. TARGET DESTINATION:"), /*#__PURE__*/React.createElement("select", {
-    value: destinationNodeId,
-    onChange: e => {
-      setDestinationNodeId(e.target.value);
-      const n = bData.nodes.find(node => node.id === e.target.value);
-      notify(`🎯 Destination: ${n?.name || e.target.value}`);
-    },
-    className: "w-full bg-slate-900 border border-amber-500/50 text-amber-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-amber-400 shadow-md"
-  }, /*#__PURE__*/React.createElement("optgroup", {
-    label: "Campus Blocks & Destinations"
-  }, campusNodes.filter(n => ['room', 'entrance', 'exit'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
-    key: n.id,
-    value: n.id
-  }, "\uD83D\uDCCD ", n.name))))) : /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1"
+  }, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border border-emerald-500/50 rounded-2xl p-2.5 shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-[10px] font-bold text-slate-400"
-  }, /*#__PURE__*/React.createElement("span", null, "2. SELECT ROOM / FACILITY:"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleOriginChange("campus:ent-main"),
+    className: "flex items-center justify-between pb-1"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-black text-emerald-400 flex items-center gap-1"
+  }, "\uD83C\uDFAF 2. TARGET DESTINATION (CAMPUS & ROOMS):"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSelectedMapId("campus"),
     className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
   }, "\u2039 Campus View")), /*#__PURE__*/React.createElement("select", {
-    value: selectedDestinationRoom,
-    onChange: e => handleSelectRoomDestination(e.target.value),
-    className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400 shadow-md"
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "\uD83C\uDFAF Select Destination Room"), ALL_CAMPUS_LOCATIONS_HIERARCHY.filter(g => g.items.some(i => i.room)).map(group => /*#__PURE__*/React.createElement("optgroup", {
+    value: destinationLocationKey,
+    onChange: e => handleDestinationChange(e.target.value),
+    className: "w-full bg-slate-950 border border-slate-700 text-emerald-300 text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400"
+  }, ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => /*#__PURE__*/React.createElement("optgroup", {
     key: group.group,
     label: group.group,
     className: "bg-slate-900 text-indigo-300 font-bold"
   }, group.items.map(item => /*#__PURE__*/React.createElement("option", {
     key: item.key,
-    value: item.room,
+    value: item.key,
     className: "bg-slate-950 text-white font-medium"
-  }, "\uD83D\uDCCD ", item.name)))))), selectedMapId !== "campus" && selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFAF ", item.name)))))), selectedMapId !== "campus" && activeDestLocation?.room && /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-black text-indigo-300 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "Route to ", selectedDestinationRoom), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, "Route to ", activeDestLocation.room), /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] text-emerald-400 font-mono"
   }, "Map: ", activeMapPlan.group, " \u2014 ", activeMapPlan.label)), /*#__PURE__*/React.createElement("div", {
     className: "text-[11px] text-amber-300 font-bold"
   }, "Nearest Entry/Exit: ", indoorRoute?.entryLabel || "Main Door"), /*#__PURE__*/React.createElement("ol", {
     className: "text-[11px] text-slate-300 space-y-0.5 list-decimal pl-4 pt-1 font-medium"
-  }, /*#__PURE__*/React.createElement("li", null, "Enter ", activeMapPlan.group, "."), /*#__PURE__*/React.createElement("li", null, "Go to ", activeMapPlan.label, " using the marked stairs or accessible lift."), /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed pathway shown on the plan to ", selectedDestinationRoom, ".")))), /*#__PURE__*/React.createElement("main", {
+  }, /*#__PURE__*/React.createElement("li", null, "Enter ", activeMapPlan.group, "."), /*#__PURE__*/React.createElement("li", null, "Go to ", activeMapPlan.label, " using the marked stairs or accessible lift."), /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed pathway shown on the plan to ", activeDestLocation.room, ".")))), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[340px]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center"
@@ -1224,13 +1227,12 @@ function MobileApp() {
     id: "campus-nodes"
   }, campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
     const isUserHere = campusOriginNodeId === node.id;
-    const isDest = destinationNodeId === node.id;
+    const isDest = campusDestNodeId === node.id;
     return /*#__PURE__*/React.createElement("g", {
       key: node.id,
       transform: `translate(${node.x}, ${node.y})`,
       onClick: () => {
-        setDestinationNodeId(node.id);
-        notify(`🎯 Selected: ${node.name}`);
+        handleDestinationChange(`campus:${node.id}`);
       },
       style: {
         cursor: "pointer"
@@ -1332,7 +1334,7 @@ function MobileApp() {
     fontSize: "11",
     fontWeight: "900",
     letterSpacing: "1"
-  }, "DESTINATION: ", selectedDestinationRoom.toUpperCase())))), /*#__PURE__*/React.createElement("g", {
+  }, "DESTINATION: ", (activeDestLocation?.room || "").toUpperCase())))), /*#__PURE__*/React.createElement("g", {
     transform: `translate(${liveUserCoords[0]}, ${liveUserCoords[1]})`
   }, /*#__PURE__*/React.createElement("circle", {
     r: "36",
