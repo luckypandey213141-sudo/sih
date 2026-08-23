@@ -37,6 +37,7 @@ const INITIAL_STATE = {
     allowElevatorsInFire: false,
     accessibleEvacuationStrategy: "refuge_zone"
   },
+  distressSignals: {},
   sensors: {
     "esp32-zone-b": {
       sensorId: "esp32-zone-b",
@@ -312,6 +313,46 @@ export function registerActiveRoute(userId, exitId, zoneId) {
   saveLocalState({
     ...currentLiveState,
     crowds: updatedCrowds
+  });
+}
+
+/**
+ * Transmit an Emergency SOS Trapped Beacon to the Security Operations Console
+ */
+export function sendDistressSignal(signal) {
+  const id = signal.id || `sos-${Date.now()}`;
+  const record = {
+    id,
+    userId: signal.userId || "mobile-user-1",
+    locationName: signal.locationName || "Unknown Location",
+    nodeId: signal.nodeId || "ent-main",
+    floor: signal.floor || 1,
+    zone: signal.zone || "Campus",
+    timestamp: new Date().toLocaleTimeString(),
+    status: "ACTIVE"
+  };
+
+  const updatedSignals = {
+    ...(currentLiveState.distressSignals || {}),
+    [id]: record
+  };
+
+  saveLocalState({
+    ...currentLiveState,
+    distressSignals: updatedSignals
+  });
+  return id;
+}
+
+/**
+ * Clear a resolved SOS beacon from the console
+ */
+export function clearDistressSignal(id) {
+  const updatedSignals = { ...(currentLiveState.distressSignals || {}) };
+  delete updatedSignals[id];
+  saveLocalState({
+    ...currentLiveState,
+    distressSignals: updatedSignals
   });
 }
 
