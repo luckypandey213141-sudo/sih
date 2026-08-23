@@ -4,7 +4,39 @@
  */
 
 export const QR_LOCATION_DICTIONARY = {
-  // Floor 1 Checkpoints
+  // Main Campus Exterior Checkpoints
+  "SW-CAMPUS-GATE1": { nodeId: "ent-main", name: "Main Entrance Gate", floor: 1, zone: "zone-a" },
+  "SW-CAMPUS-GATE2": { nodeId: "gate-2-destination", name: "Gate No. 2 (East)", floor: 1, zone: "zone-b" },
+  "SW-CAMPUS-SAFE1": { nodeId: "assembly-a", name: "Playground Assembly Area", floor: 1, zone: "zone-b" },
+  "SW-CAMPUS-SAFE2": { nodeId: "assembly-b", name: "Back Yard Assembly Area", floor: 1, zone: "zone-a" },
+  "SW-CAMPUS-BHABHA": { nodeId: "lobby", name: "Bhabha Block Entry", floor: 1, zone: "zone-a" },
+  "SW-CAMPUS-RAMAN": { nodeId: "admin", name: "Ramanujan Block Entry", floor: 1, zone: "zone-a" },
+  "SW-CAMPUS-KALPANA": { nodeId: "lab-101", name: "Kalpana Block Entry", floor: 1, zone: "zone-b" },
+  "SW-CAMPUS-RAMANB": { nodeId: "auditorium", name: "Raman Block Entry", floor: 1, zone: "zone-c" },
+  "SW-CAMPUS-ARYA": { nodeId: "reception", name: "Aryabhatta Block Entry", floor: 1, zone: "zone-a" },
+  "SW-CAMPUS-CAFE": { nodeId: "cafeteria", name: "Central Cafeteria", floor: 1, zone: "zone-c" },
+
+  // Ramanujan Block (Ground Floor) Checkpoints
+  "SW-RAM-G-ENT1": { nodeId: "ent-main", name: "Ramanujan Main Entrance", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-ENT2": { nodeId: "exit-1", name: "Ramanujan East Fire Exit", floor: 1, zone: "zone-b" },
+  "SW-RAM-G-ENT3": { nodeId: "exit-2", name: "Ramanujan South Exit", floor: 1, zone: "zone-c" },
+  "SW-RAM-G-LIFT": { nodeId: "lift-1", name: "Ramanujan Lift Lobby", floor: 1, zone: "zone-c" },
+  "SW-RAM-G-COURT": { nodeId: "playground", name: "Badminton Court", floor: 1, zone: "zone-c" },
+  "SW-RAM-G-R1": { nodeId: "room-201", name: "Classroom R1", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R2": { nodeId: "room-202", name: "Classroom R2", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R3": { nodeId: "room-203", name: "Classroom R3", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R4": { nodeId: "room-204", name: "Classroom R4", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R6": { nodeId: "lab-101", name: "Classroom R6", floor: 1, zone: "zone-b" },
+  "SW-RAM-G-R7": { nodeId: "lab-102", name: "Classroom R7", floor: 1, zone: "zone-b" },
+  "SW-RAM-G-R8": { nodeId: "admin", name: "Classroom R8", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R9": { nodeId: "reception", name: "Classroom R9", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R10": { nodeId: "lobby", name: "Classroom R10", floor: 1, zone: "zone-a" },
+  "SW-RAM-G-R11": { nodeId: "study-lounge", name: "Classroom R11", floor: 1, zone: "zone-e" },
+  "SW-RAM-G-R12": { nodeId: "boardroom", name: "Classroom R12", floor: 1, zone: "zone-e" },
+  "SW-RAM-G-W1": { nodeId: "restroom-1", name: "Washroom W1 (East)", floor: 1, zone: "zone-c" },
+  "SW-RAM-G-W2": { nodeId: "restroom-2", name: "Washroom W2 (West)", floor: 1, zone: "zone-e" },
+
+  // Standard Facility Checkpoints
   "SW-ENT-MAIN": { nodeId: "ent-main", name: "Main Entrance (1F)", floor: 1, zone: "zone-a" },
   "SW-ENT-NORTH": { nodeId: "ent-north", name: "North Entrance (1F)", floor: 1, zone: "zone-a" },
   "SW-LOBBY": { nodeId: "lobby", name: "Grand Lobby (1F)", floor: 1, zone: "zone-a" },
@@ -18,8 +50,6 @@ export const QR_LOCATION_DICTIONARY = {
   "SW-STAIRA1": { nodeId: "stair-a-1", name: "Stairwell A (1F)", floor: 1, zone: "zone-b" },
   "SW-STAIRB1": { nodeId: "stair-b-1", name: "Stairwell B (1F)", floor: 1, zone: "zone-a" },
   "SW-RESTROOM1": { nodeId: "restroom-1", name: "Restrooms 1F", floor: 1, zone: "zone-c" },
-
-  // Floor 2 Checkpoints
   "SW-ROOM201": { nodeId: "room-201", name: "Room 201 Lecture Hall (2F)", floor: 2, zone: "zone-d" },
   "SW-ROOM202": { nodeId: "room-202", name: "Room 202 Computer Lab (2F)", floor: 2, zone: "zone-d" },
   "SW-ROOM203": { nodeId: "room-203", name: "Room 203 Conference (2F)", floor: 2, zone: "zone-d" },
