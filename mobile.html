@@ -206,151 +206,6 @@ const MAP_PLANS = [{
   floor: 1,
   rooms: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
 }];
-const ROOM_TO_MAP_PLAN = {
-  "Lab 1": "ramanujan-basement",
-  "Lab 2": "ramanujan-basement",
-  "Lab 3": "ramanujan-basement",
-  "Lab 4": "ramanujan-basement",
-  "Lab 5": "ramanujan-basement",
-  "Lab 6": "ramanujan-basement",
-  "R1": "ramanujan-ground",
-  "R2": "ramanujan-ground",
-  "R3": "ramanujan-ground",
-  "R4": "ramanujan-ground",
-  "R6": "ramanujan-ground",
-  "R7": "ramanujan-ground",
-  "R8": "ramanujan-ground",
-  "R9": "ramanujan-ground",
-  "R10": "ramanujan-ground",
-  "R11": "ramanujan-ground",
-  "R12": "ramanujan-ground",
-  "Badminton Court": "ramanujan-ground",
-  "Drawing Lab": "ramanujan-first",
-  "LT 1": "ramanujan-first",
-  "LT 2": "ramanujan-first",
-  "LT 3": "ramanujan-first",
-  "LT 4": "ramanujan-first",
-  "Lecture Hall 1": "bhabha-ground",
-  "Lecture Hall 2": "bhabha-ground",
-  "Reception": "bhabha-ground",
-  "Registrar": "bhabha-ground",
-  "Director Office": "bhabha-ground",
-  "Admission Cell": "bhabha-ground",
-  "Sitting Hall": "bhabha-ground",
-  "HOD ME": "bhabha-first",
-  "Faculty Cabins": "bhabha-first",
-  "ECE Lab": "bhabha-first",
-  "Digital Library": "bhabha-basement",
-  "Library": "bhabha-basement",
-  "Main Library": "bhabha-basement",
-  "CCPD 1": "kalpana-ground",
-  "CCPD 2": "kalpana-ground",
-  "Computer Lab 1": "kalpana-ground",
-  "HOD CSE": "kalpana-ground",
-  "Training Hall 1": "kalpana-first",
-  "Training Hall 2": "kalpana-first",
-  "Class Room 1": "kalpana-first",
-  "Class Room 2": "kalpana-first",
-  "Class Room 3": "kalpana-first",
-  "Class Room 4": "kalpana-first",
-  "Fluid Mechanics Lab": "kalpana-basement",
-  "Automobile Lab": "kalpana-basement",
-  "Store Room": "kalpana-basement",
-  "Samvaad Club": "raman-ground",
-  "Kalakrit Club": "raman-ground",
-  "Medical Room": "raman-ground",
-  "Auditorium Hall": "raman-first",
-  "Large Room": "aryabhatta-ground",
-  "Room 1": "aryabhatta-ground",
-  "Room 2": "aryabhatta-ground",
-  "Room 3": "aryabhatta-ground",
-  "Room 4": "aryabhatta-ground",
-  "Room 5": "aryabhatta-ground",
-  "Temple": "aryabhatta-ground",
-  "Classroom 1": "aryabhatta-basement",
-  "Classroom 2": "aryabhatta-basement",
-  "Classroom 3": "aryabhatta-basement"
-};
-const INDOOR_ROUTE_TEMPLATES = {
-  "ramanujan-basement": {
-    entry: [220, 275],
-    corridorY: 300,
-    hubX: 500,
-    entryLabel: "LIFT ENTRY"
-  },
-  "ramanujan-ground": {
-    entry: [250, 590],
-    corridorY: 455,
-    hubX: 500,
-    entryLabel: "ENTRY / EXIT 1"
-  },
-  "ramanujan-first": {
-    entry: [920, 325],
-    corridorY: 325,
-    hubX: 520,
-    entryLabel: "ENTRY / EXIT"
-  },
-  "kalpana-basement": {
-    entry: [500, 590],
-    corridorY: 290,
-    hubX: 500,
-    entryLabel: "MAIN ENTRY"
-  },
-  "kalpana-ground": {
-    entry: [500, 590],
-    corridorY: 400,
-    hubX: 500,
-    entryLabel: "SOUTH ENTRY"
-  },
-  "kalpana-first": {
-    entry: [145, 325],
-    corridorY: 325,
-    hubX: 500,
-    entryLabel: "ENTRY / EXIT"
-  },
-  "raman-ground": {
-    entry: [650, 590],
-    corridorY: 350,
-    hubX: 500,
-    entryLabel: "ENTRY / EXIT 1"
-  },
-  "raman-first": {
-    entry: [330, 190],
-    corridorY: 270,
-    hubX: 520,
-    entryLabel: "ENTRY / EXIT 1"
-  },
-  "aryabhatta-basement": {
-    entry: [320, 540],
-    corridorY: 330,
-    hubX: 500,
-    entryLabel: "STAIR / LIFT ENTRY"
-  },
-  "aryabhatta-ground": {
-    entry: [500, 590],
-    corridorY: 390,
-    hubX: 500,
-    entryLabel: "MAIN ENTRY"
-  },
-  "bhabha-basement": {
-    entry: [410, 590],
-    corridorY: 335,
-    hubX: 500,
-    entryLabel: "ENTRY GATE"
-  },
-  "bhabha-ground": {
-    entry: [500, 590],
-    corridorY: 420,
-    hubX: 500,
-    entryLabel: "MAIN ENTRY"
-  },
-  "bhabha-first": {
-    entry: [500, 590],
-    corridorY: 300,
-    hubX: 500,
-    entryLabel: "ENTRY / EXIT 1"
-  }
-};
 const ROOM_ROUTE_TARGETS = {
   "ramanujan-basement": {
     "Lab 1": [600, 275],
@@ -511,6 +366,251 @@ const ROOM_ROUTE_TARGETS = {
     "Stairs 1": [220, 170]
   }
 };
+const INDOOR_ROUTE_TEMPLATES = {
+  "ramanujan-basement": {
+    entry: [220, 275],
+    corridorY: 300,
+    hubX: 500,
+    entryLabel: "LIFT ENTRY"
+  },
+  "ramanujan-ground": {
+    entry: [250, 590],
+    corridorY: 455,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "ramanujan-first": {
+    entry: [920, 325],
+    corridorY: 325,
+    hubX: 520,
+    entryLabel: "ENTRY / EXIT"
+  },
+  "kalpana-basement": {
+    entry: [500, 590],
+    corridorY: 290,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "kalpana-ground": {
+    entry: [500, 590],
+    corridorY: 400,
+    hubX: 500,
+    entryLabel: "SOUTH ENTRY"
+  },
+  "kalpana-first": {
+    entry: [145, 325],
+    corridorY: 325,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT"
+  },
+  "raman-ground": {
+    entry: [650, 590],
+    corridorY: 350,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "raman-first": {
+    entry: [330, 190],
+    corridorY: 270,
+    hubX: 520,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "aryabhatta-basement": {
+    entry: [320, 540],
+    corridorY: 330,
+    hubX: 500,
+    entryLabel: "STAIR / LIFT ENTRY"
+  },
+  "aryabhatta-ground": {
+    entry: [500, 590],
+    corridorY: 390,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "bhabha-basement": {
+    entry: [410, 590],
+    corridorY: 335,
+    hubX: 500,
+    entryLabel: "ENTRY GATE"
+  },
+  "bhabha-ground": {
+    entry: [500, 590],
+    corridorY: 420,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "bhabha-first": {
+    entry: [500, 590],
+    corridorY: 300,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  }
+};
+
+// Complete Campus & Indoor Sub-Locations Hierarchy
+const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
+  group: "🏫 Campus Outdoor Gates & Grounds",
+  items: [{
+    key: "campus:ent-main",
+    name: "College Main Gate",
+    mapId: "campus",
+    nodeId: "ent-main",
+    point: [440, 565]
+  }, {
+    key: "campus:gate-2-destination",
+    name: "Gate No. 2 (East)",
+    mapId: "campus",
+    nodeId: "gate-2-destination",
+    point: [972, 140]
+  }, {
+    key: "campus:playground",
+    name: "Playground Safe Assembly",
+    mapId: "campus",
+    nodeId: "playground",
+    point: [410, 105]
+  }, {
+    key: "campus:ent-north",
+    name: "Back Yard Safe Assembly",
+    mapId: "campus",
+    nodeId: "ent-north",
+    point: [155, 225]
+  }, {
+    key: "campus:reception",
+    name: "Gauri Cafe & ATM",
+    mapId: "campus",
+    nodeId: "reception",
+    point: [440, 290]
+  }, {
+    key: "campus:auditorium",
+    name: "Garden, Pond & Mandir",
+    mapId: "campus",
+    nodeId: "auditorium",
+    point: [760, 490]
+  }, {
+    key: "campus:lift-1",
+    name: "Campus Central Junction",
+    mapId: "campus",
+    nodeId: "lift-1",
+    point: [440, 347]
+  }]
+}, {
+  group: "📐 Ramanujan Block — Ground Floor",
+  items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2"].map(r => ({
+    key: `ramanujan-ground:${r}`,
+    name: `Ramanujan Ground — ${r}`,
+    mapId: "ramanujan-ground",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || [350, 455]
+  }))
+}, {
+  group: "📐 Ramanujan Block — First Floor",
+  items: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"].map(r => ({
+    key: `ramanujan-first:${r}`,
+    name: `Ramanujan 1F — ${r}`,
+    mapId: "ramanujan-first",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || [500, 325]
+  }))
+}, {
+  group: "📐 Ramanujan Block — Basement",
+  items: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"].map(r => ({
+    key: `ramanujan-basement:${r}`,
+    name: `Ramanujan Basement — ${r}`,
+    mapId: "ramanujan-basement",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || [600, 275]
+  }))
+}, {
+  group: "⚛️ Bhabha Block — Ground Floor",
+  items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2"].map(r => ({
+    key: `bhabha-ground:${r}`,
+    name: `Bhabha Ground — ${r}`,
+    mapId: "bhabha-ground",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || [300, 320]
+  }))
+}, {
+  group: "⚛️ Bhabha Block — First Floor",
+  items: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Stairs"].map(r => ({
+    key: `bhabha-first:${r}`,
+    name: `Bhabha 1F — ${r}`,
+    mapId: "bhabha-first",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || [300, 300]
+  }))
+}, {
+  group: "⚛️ Bhabha Block — Basement",
+  items: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate"].map(r => ({
+    key: `bhabha-basement:${r}`,
+    name: `Bhabha Basement — ${r}`,
+    mapId: "bhabha-basement",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || [300, 335]
+  }))
+}, {
+  group: "🚀 Kalpana Chawla Block — Ground Floor",
+  items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs"].map(r => ({
+    key: `kalpana-ground:${r}`,
+    name: `Kalpana Ground — ${r}`,
+    mapId: "kalpana-ground",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || [640, 220]
+  }))
+}, {
+  group: "🚀 Kalpana Chawla Block — First Floor",
+  items: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store"].map(r => ({
+    key: `kalpana-first:${r}`,
+    name: `Kalpana 1F — ${r}`,
+    mapId: "kalpana-first",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || [300, 325]
+  }))
+}, {
+  group: "🚀 Kalpana Chawla Block — Basement",
+  items: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift"].map(r => ({
+    key: `kalpana-basement:${r}`,
+    name: `Kalpana Basement — ${r}`,
+    mapId: "kalpana-basement",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || [320, 290]
+  }))
+}, {
+  group: "🔬 Raman Block — Ground Floor",
+  items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs"].map(r => ({
+    key: `raman-ground:${r}`,
+    name: `Raman Ground — ${r}`,
+    mapId: "raman-ground",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["raman-ground"][r] || [380, 350]
+  }))
+}, {
+  group: "🔬 Raman Block — First Floor",
+  items: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Lift", "Stairs"].map(r => ({
+    key: `raman-first:${r}`,
+    name: `Raman 1F — ${r}`,
+    mapId: "raman-first",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["raman-first"][r] || [500, 270]
+  }))
+}, {
+  group: "🔭 Aryabhatta Block — Ground Floor",
+  items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2"].map(r => ({
+    key: `aryabhatta-ground:${r}`,
+    name: `Aryabhatta Ground — ${r}`,
+    mapId: "aryabhatta-ground",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || [440, 290]
+  }))
+}, {
+  group: "🔭 Aryabhatta Block — Basement",
+  items: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Lift", "Stairs 1"].map(r => ({
+    key: `aryabhatta-basement:${r}`,
+    name: `Aryabhatta Basement — ${r}`,
+    mapId: "aryabhatta-basement",
+    room: r,
+    point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || [300, 330]
+  }))
+}];
 function buildIndoorRoutePath(planId, roomName) {
   const template = INDOOR_ROUTE_TEMPLATES[planId];
   const targetMap = ROOM_ROUTE_TARGETS[planId] || {};
@@ -645,10 +745,10 @@ function MobileApp() {
     distressSignals: {}
   }));
 
-  // Map & Navigation States
+  // Selected Origin & Destination location keys
+  const [originLocationKey, setOriginLocationKey] = useState("campus:ent-main");
   const [selectedMapId, setSelectedMapId] = useState("campus");
   const [selectedDestinationRoom, setSelectedDestinationRoom] = useState("");
-  const [userLocationNodeId, setUserLocationNodeId] = useState("ent-main");
   const [destinationNodeId, setDestinationNodeId] = useState("admin");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -665,7 +765,6 @@ function MobileApp() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
   const [qrInputText, setQrInputText] = useState("");
-  const [quickCheckpointKey, setQuickCheckpointKey] = useState("");
   const [cameraError, setCameraError] = useState("");
 
   // SOS state
@@ -717,7 +816,31 @@ function MobileApp() {
     setTimeout(() => setStatusNotification(""), 3500);
   };
   const isEmergency = liveState.emergencyActive;
-  const userNode = bData.nodes.find(n => n.id === userLocationNodeId) || bData.nodes[0];
+
+  // Find active origin location object
+  const activeOriginLocation = useMemo(() => {
+    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+      const found = group.items.find(i => i.key === originLocationKey);
+      if (found) return found;
+    }
+    return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[0];
+  }, [originLocationKey]);
+
+  // Handler for Origin Selection (auto-switches map & position!)
+  const handleOriginChange = key => {
+    setOriginLocationKey(key);
+    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+      const item = group.items.find(i => i.key === key);
+      if (item) {
+        if (item.mapId) setSelectedMapId(item.mapId);
+        if (item.room) setSelectedDestinationRoom(item.room);
+        if (tracker) tracker.resetToOrigin();
+        notify(`📍 Origin: ${item.name}`);
+        speakText(`Current position: ${item.name}`);
+        break;
+      }
+    }
+  };
 
   // QR Code Location Resolution Handler
   const applyQrResolution = resolved => {
@@ -725,13 +848,18 @@ function MobileApp() {
       notify("⚠️ Unrecognized QR Code");
       return;
     }
-    if (resolved.nodeId) setUserLocationNodeId(resolved.nodeId);
-    if (resolved.mapId) setSelectedMapId(resolved.mapId);
-    if (resolved.room) setSelectedDestinationRoom(resolved.room);
+    if (resolved.mapId && resolved.room) {
+      const key = `${resolved.mapId}:${resolved.room}`;
+      setOriginLocationKey(key);
+      setSelectedMapId(resolved.mapId);
+    } else if (resolved.nodeId) {
+      setOriginLocationKey(`campus:${resolved.nodeId}`);
+      setSelectedMapId("campus");
+    }
     if (tracker) tracker.resetToOrigin();
     setIsQrModalOpen(false);
     setScannerActive(false);
-    notify(`📍 Scanned: ${resolved.name || resolved.nodeId}!`);
+    notify(`📍 Scanned: ${resolved.name || "Waypoint"}!`);
     speakText(`Position verified at ${resolved.name || "Waypoint"}`);
   };
   const handleManualQrSubmit = e => {
@@ -746,7 +874,7 @@ function MobileApp() {
     }
   };
 
-  // Real Camera Scanner Lifecycle using Html5Qrcode library
+  // Real Camera Scanner Lifecycle
   useEffect(() => {
     let html5QrCode = null;
     if (isQrModalOpen && scannerActive) {
@@ -773,9 +901,7 @@ function MobileApp() {
             html5QrCode.stop().catch(() => {});
             setScannerActive(false);
             setIsQrModalOpen(false);
-          }, errorMessage => {
-            // Ignore standard frame scan misses
-          }).catch(err => {
+          }, () => {}).catch(err => {
             console.error("Camera start failed:", err);
             setCameraError(err?.message || "Camera permission denied or device not found");
           });
@@ -808,11 +934,12 @@ function MobileApp() {
     edges: liveState.corridorCrowds,
     zones: liveState.crowds
   };
-  const normalRoute = !isEmergency ? SafeWay.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
+  const campusOriginNodeId = activeOriginLocation.nodeId || "ent-main";
+  const normalRoute = !isEmergency ? SafeWay.findShortestPath(campusOriginNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
     isEmergency: false,
     accessibilityMode
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
-  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
+  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(campusOriginNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
     isEmergency: true,
     accessibilityMode,
     nearestEmergencyDestination: true
@@ -823,15 +950,15 @@ function MobileApp() {
   const handleSelectRoomDestination = roomName => {
     setSelectedDestinationRoom(roomName);
     if (!roomName) return;
-    const targetMapId = ROOM_TO_MAP_PLAN[roomName];
-    if (targetMapId) {
-      setSelectedMapId(targetMapId);
-      const plan = MAP_PLANS.find(p => p.id === targetMapId);
-      notify(`🎯 ${roomName} in ${plan?.label || targetMapId}`);
-      speakText(`Route plotted to ${roomName}. Opened ${plan?.group} ${plan?.label}.`);
-    } else {
-      notify(`🎯 Target: ${roomName}`);
-      speakText(`Target: ${roomName}`);
+    for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+      const found = group.items.find(i => i.room === roomName);
+      if (found && found.mapId) {
+        setSelectedMapId(found.mapId);
+        const plan = MAP_PLANS.find(p => p.id === found.mapId);
+        notify(`🎯 ${roomName} in ${plan?.label || found.mapId}`);
+        speakText(`Route plotted to ${roomName}. Opened ${plan?.group} ${plan?.label}.`);
+        return;
+      }
     }
   };
 
@@ -859,13 +986,13 @@ function MobileApp() {
           const pt = SafeWay?.interpolatePositionOnRoute?.(pts, traveledDistance * 6);
           if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
         }
-        return [userNode?.x || 440, userNode?.y || 565];
+        return activeOriginLocation?.point || [440, 565];
       }
-      return indoorRoute?.entry || [500, 400];
+      return activeOriginLocation?.mapId === selectedMapId ? activeOriginLocation.point : indoorRoute?.entry || [500, 400];
     } catch (e) {
-      return [userNode?.x || 440, userNode?.y || 565];
+      return [440, 565];
     }
-  }, [selectedMapId, activeCampusRoute, traveledDistance, userNode, indoorRoute]);
+  }, [selectedMapId, activeCampusRoute, traveledDistance, activeOriginLocation, indoorRoute]);
   const toggleSensors = async () => {
     if (!tracker) return;
     if (isMotionTracking) {
@@ -884,8 +1011,8 @@ function MobileApp() {
   const triggerSosDistress = () => {
     SafeWay.sendDistressSignal({
       userId: "mobile-user-1",
-      locationName: `${userNode?.name || "Campus"} (${activeMapPlan.label})`,
-      nodeId: userNode?.id || "mobile-node",
+      locationName: `${activeOriginLocation?.name || "Campus"} (${activeMapPlan.label})`,
+      nodeId: "mobile-node",
       floor: activeMapPlan.floor || 1,
       zone: activeMapPlan.group
     });
@@ -938,31 +1065,32 @@ function MobileApp() {
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2"
+    className: "flex items-center gap-2 flex-1 min-w-0 pr-2"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-black text-xs"
-  }, "1F"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    className: "w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-black text-xs shrink-0"
+  }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-bold text-slate-400 block"
-  }, "1. CURRENT POSITION"), /*#__PURE__*/React.createElement("select", {
-    value: userLocationNodeId,
-    onChange: e => {
-      setUserLocationNodeId(e.target.value);
-      if (tracker) tracker.resetToOrigin();
-      const n = bData.nodes.find(node => node.id === e.target.value);
-      notify(`📍 Origin: ${n?.name || e.target.value}`);
-    },
-    className: "bg-transparent text-xs font-black text-white outline-none cursor-pointer"
-  }, campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
-    key: n.id,
-    value: n.id,
-    className: "bg-slate-900 text-white"
-  }, "\uD83D\uDCCD ", n.name))))), /*#__PURE__*/React.createElement("button", {
+  }, "1. CURRENT POSITION (CAMPUS & ROOMS):"), /*#__PURE__*/React.createElement("select", {
+    value: originLocationKey,
+    onChange: e => handleOriginChange(e.target.value),
+    className: "w-full bg-transparent text-xs font-black text-white outline-none cursor-pointer truncate"
+  }, ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => /*#__PURE__*/React.createElement("optgroup", {
+    key: group.group,
+    label: group.group,
+    className: "bg-slate-900 text-indigo-300 font-bold"
+  }, group.items.map(item => /*#__PURE__*/React.createElement("option", {
+    key: item.key,
+    value: item.key,
+    className: "bg-slate-950 text-white font-medium"
+  }, "\uD83D\uDCCD ", item.name))))))), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsQrModalOpen(true);
       setScannerActive(true);
     },
-    className: "px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition"
-  }, "\uD83D\uDCF7 QR Check-In")), /*#__PURE__*/React.createElement("div", {
+    className: "px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition shrink-0"
+  }, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("div", {
     className: "space-y-1.5"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between text-[11px] font-black text-slate-400"
@@ -1003,10 +1131,15 @@ function MobileApp() {
     className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400"
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\uD83C\uDFAF Select Destination Room"), (activeMapPlan.rooms || Object.keys(ROOM_TO_MAP_PLAN)).map(room => /*#__PURE__*/React.createElement("option", {
-    key: room,
-    value: room
-  }, "\uD83D\uDCCD ", room, " (", ROOM_TO_MAP_PLAN[room] || activeMapPlan.label, ")")))), selectedMapId !== "campus" && selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFAF Select Destination Room"), ALL_CAMPUS_LOCATIONS_HIERARCHY.filter(g => g.mapId).map(group => /*#__PURE__*/React.createElement("optgroup", {
+    key: group.group,
+    label: group.group,
+    className: "bg-slate-900 text-indigo-300 font-bold"
+  }, group.items.map(item => /*#__PURE__*/React.createElement("option", {
+    key: item.key,
+    value: item.room,
+    className: "bg-slate-950 text-white font-medium"
+  }, "\uD83D\uDCCD ", item.name)))))), selectedMapId !== "campus" && selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-black text-indigo-300 flex items-center justify-between"
@@ -1110,7 +1243,7 @@ function MobileApp() {
   })), /*#__PURE__*/React.createElement("g", {
     id: "campus-nodes"
   }, campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
-    const isUserHere = userLocationNodeId === node.id;
+    const isUserHere = campusOriginNodeId === node.id;
     const isDest = destinationNodeId === node.id;
     return /*#__PURE__*/React.createElement("g", {
       key: node.id,
@@ -1375,7 +1508,7 @@ function MobileApp() {
     className: "text-xs text-slate-300"
   }, "Transmitting your location to the Campus Security Command Center:"), /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
-  }, "\uD83D\uDCCD ", userNode?.name || "Campus", " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD ", activeOriginLocation?.name || "Campus", " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
