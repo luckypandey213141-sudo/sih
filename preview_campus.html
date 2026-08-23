@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeWay V3 — Outdoor Campus Proposed Routes & 13 QR Waypoints</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Outfit', sans-serif; background: #020617; color: #f8fafc; }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center justify-start space-y-6">
+
+  <!-- Header Banner -->
+  <header class="max-w-5xl w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-3xl shadow-2xl">
+    <div>
+      <h1 class="text-xl font-black text-white flex items-center gap-2">
+        🏛️ Outdoor Campus Route Alignment
+        <span class="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 px-3 py-1 rounded-full font-black">
+          13 QR Waypoints & Yellow Pathways
+        </span>
+      </h1>
+      <p class="text-xs text-slate-400 mt-1">
+        Generated strictly matching your hand-drawn sketch with all previous lines cleared.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/mobile.html" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition">
+        📱 Open Mobile App
+      </a>
+      <a href="/index.html" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 transition">
+        🖥️ Desktop App
+      </a>
+    </div>
+  </header>
+
+  <!-- Side-by-Side Comparison Container -->
+  <main class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- 1. User Hand-Drawn Reference Sketch -->
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h2 class="text-sm font-black text-amber-400 flex items-center gap-2">
+          ✏️ 1. Your Hand-Drawn Sketch (Reference)
+        </h2>
+        <span class="text-[10px] text-slate-500 font-mono">Original User Input</span>
+      </div>
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-black flex items-center justify-center min-h-[380px]">
+        <img src="/assets/college-campus-layout.jpeg" alt="Campus Layout" class="w-full h-auto object-contain" />
+      </div>
+      <p class="text-[11px] text-slate-400">
+        Yellow strokes mark circulation arteries; black circles mark the 13 required QR placement points.
+      </p>
+    </div>
+
+    <!-- 2. Clean Vector Generated Output with Yellow Routes & 13 QR Pins -->
+    <div class="bg-slate-900 border-2 border-indigo-500/50 rounded-3xl p-4 shadow-xl flex flex-col space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+        <h2 class="text-sm font-black text-emerald-400 flex items-center gap-2">
+          🎯 2. Clean Vector Map with Yellow Routes & 13 QR Pins
+        </h2>
+        <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono font-bold">Generated Output</span>
+      </div>
+
+      <div class="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center min-h-[380px]">
+        <svg viewBox="0 0 1000 600" class="w-full h-auto">
+          <!-- Clean Base Architectural Campus Map -->
+          <image href="/assets/college-campus-layout.jpeg" x="0" y="0" width="1000" height="600" preserveAspectRatio="none" opacity="0.85" />
+
+          <!-- Semi-transparent overlay to soften background -->
+          <rect x="0" y="0" width="1000" height="600" fill="#ffffff" fill-opacity="0.12" />
+
+          <!-- EXACT YELLOW CIRCULATION PATHWAYS (USER DRAWN) -->
+          <g>
+            <!-- 1. Main Gate to Central Junction -->
+            <path d="M 445 510 L 445 365" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 445 510 L 445 365" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 2. Central Junction to Bhabha South -->
+            <path d="M 430 365 L 185 365" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 430 365 L 185 365" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 3. Central Junction North-West Corridor to Ramanujan & Back Yard -->
+            <path d="M 430 365 L 360 365 L 360 205 L 160 205 L 160 135 L 132 135" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 430 365 L 360 365 L 360 205 L 160 205 L 160 135 L 132 135" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 4. Central Passage North to Playground 1 -->
+            <path d="M 417 215 L 417 78" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 417 215 L 417 78" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 5. East Arterial Corridor past Kalpana & Raman to Gate 2 -->
+            <path d="M 430 365 L 445 340 L 540 205 L 670 205 L 780 205 L 920 205 L 920 135 L 960 135 L 960 75" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 430 365 L 445 340 L 540 205 L 670 205 L 780 205 L 920 205 L 920 135 L 960 135 L 960 75" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 6. Passage North between Kalpana & Raman to Playground 2 -->
+            <path d="M 668 205 L 668 78" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 668 205 L 668 78" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- 7. Loop around Aryabhatta Block to join East road -->
+            <path d="M 445 340 L 540 340 L 550 375 L 775 375 L 920 375 L 920 205" fill="none" stroke="#ca8a04" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            <path d="M 445 340 L 540 340 L 550 375 L 775 375 L 920 375 L 920 205" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+
+          <!-- 13 EXACT BLACK-RINGED QR WAYPOINT PINS -->
+          <!-- QR 1: Main Gate [445, 510] -->
+          <g transform="translate(445, 510)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#dc2626" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">1</text>
+            <g transform="translate(0, -26)">
+              <rect x="-60" y="-9" width="120" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-1: Main Gate</text>
+            </g>
+          </g>
+
+          <!-- QR 2: Central T-Junction [430, 365] -->
+          <g transform="translate(430, 365)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">2</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-2: Central Junction</text>
+            </g>
+          </g>
+
+          <!-- QR 3: Gauri Cafe Corner [438, 280] -->
+          <g transform="translate(438, 280)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">3</text>
+            <g transform="translate(0, -26)">
+              <rect x="-60" y="-9" width="120" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-3: Gauri Cafe</text>
+            </g>
+          </g>
+
+          <!-- QR 4: Bhabha South Entrance [185, 360] -->
+          <g transform="translate(185, 360)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">4</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-4: Bhabha South</text>
+            </g>
+          </g>
+
+          <!-- QR 5: Ramanujan South Entrance [358, 195] -->
+          <g transform="translate(358, 195)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">5</text>
+            <g transform="translate(0, 26)">
+              <rect x="-70" y="-9" width="140" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-5: Ramanujan Door</text>
+            </g>
+          </g>
+
+          <!-- QR 6: Back Yard Safe Area [132, 130] -->
+          <g transform="translate(132, 130)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#059669" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">6</text>
+            <g transform="translate(0, -26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-6: Back Yard Safe</text>
+            </g>
+          </g>
+
+          <!-- QR 7: Playground Entry 1 [417, 78] -->
+          <g transform="translate(417, 78)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#059669" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">7</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-7: Playground 1</text>
+            </g>
+          </g>
+
+          <!-- QR 8: Kalpana South Entrance [540, 195] -->
+          <g transform="translate(540, 195)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">8</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-8: Kalpana Door</text>
+            </g>
+          </g>
+
+          <!-- QR 9: Playground Entry 2 [668, 78] -->
+          <g transform="translate(668, 78)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#059669" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">9</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-9: Playground 2</text>
+            </g>
+          </g>
+
+          <!-- QR 10: Raman South Entrance [780, 195] -->
+          <g transform="translate(780, 195)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">10</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-10: Raman Door</text>
+            </g>
+          </g>
+
+          <!-- QR 11: Aryabhatta West Stairs [574, 288] -->
+          <g transform="translate(574, 288)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">11</text>
+            <g transform="translate(0, -26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-11: Arya West</text>
+            </g>
+          </g>
+
+          <!-- QR 12: Aryabhatta South Door [690, 375] -->
+          <g transform="translate(690, 375)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#2563eb" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">12</text>
+            <g transform="translate(0, 26)">
+              <rect x="-65" y="-9" width="130" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-12: Arya South</text>
+            </g>
+          </g>
+
+          <!-- QR 13: Gate No. 2 [960, 75] -->
+          <g transform="translate(960, 75)">
+            <circle r="18" fill="#ffffff" stroke="#000000" stroke-width="4" />
+            <circle r="11" fill="#dc2626" stroke="#000000" stroke-width="2" />
+            <text y="4" text-anchor="middle" fill="#ffffff" font-size="10" font-weight="900">13</text>
+            <g transform="translate(0, 26)">
+              <rect x="-60" y="-9" width="120" height="18" rx="6" fill="#0f172a" stroke="#000000" stroke-width="1.5" />
+              <text y="4" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="800">QR-13: Gate No. 2</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <p class="text-[11px] text-slate-400">
+        All 13 black pins & all 7 yellow pathway branches are strictly aligned with your drawing.
+      </p>
+    </div>
+  </main>
+
+  <!-- Complete Table -->
+  <section class="max-w-5xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+    <h3 class="text-sm font-black text-white flex items-center gap-2">
+      📋 Complete 13 QR Waypoint Pin Registry
+    </h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 font-mono">
+            <th class="py-2.5 px-3">Pin #</th>
+            <th class="py-2.5 px-3">QR Code</th>
+            <th class="py-2.5 px-3">Location Name</th>
+            <th class="py-2.5 px-3">Type</th>
+            <th class="py-2.5 px-3">Description on Your Drawing</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800 font-medium text-slate-300">
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-red-400">1</td><td class="py-2 px-3 font-mono">SW-CAMPUS-GATE1</td><td class="py-2 px-3 font-bold text-white">Main Gate</td><td class="py-2 px-3">🚪 Entry / Exit Gate</td><td class="py-2 px-3 text-slate-400">Bottom center main entrance archway</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">2</td><td class="py-2 px-3 font-mono">SW-CAMPUS-JUNC1</td><td class="py-2 px-3 font-bold text-white">Central T-Junction</td><td class="py-2 px-3">➕ 4-Way Junction</td><td class="py-2 px-3 text-slate-400">South of Gauri Cafe & ATM along vertical spine</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">3</td><td class="py-2 px-3 font-mono">SW-CAMPUS-JUNC2</td><td class="py-2 px-3 font-bold text-white">Gauri Cafe Corner</td><td class="py-2 px-3">➕ Pathway Turn</td><td class="py-2 px-3 text-slate-400">East corner beside ATM, facing Black Stone circle</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">4</td><td class="py-2 px-3 font-mono">SW-CAMPUS-BHABHA</td><td class="py-2 px-3 font-bold text-white">Bhabha South Door</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">South doorway of Bhabha Block (facing Parking)</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">5</td><td class="py-2 px-3 font-mono">SW-CAMPUS-RAMAN</td><td class="py-2 px-3 font-bold text-white">Ramanujan South Door</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">South entrance door of Ramanujan Block</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-emerald-400">6</td><td class="py-2 px-3 font-mono">SW-CAMPUS-SAFE2</td><td class="py-2 px-3 font-bold text-white">Back Yard Safe Area</td><td class="py-2 px-3">🟢 Safe Assembly</td><td class="py-2 px-3 text-slate-400">West open grass ground assembly haven</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-emerald-400">7</td><td class="py-2 px-3 font-mono">SW-CAMPUS-SAFE1A</td><td class="py-2 px-3 font-bold text-white">Playground Entry 1</td><td class="py-2 px-3">🟢 Safe Assembly</td><td class="py-2 px-3 text-slate-400">Passage between Ramanujan & Kalpana Blocks</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">8</td><td class="py-2 px-3 font-mono">SW-CAMPUS-KALPANA</td><td class="py-2 px-3 font-bold text-white">Kalpana South Door</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">South entrance door of Kalpana Chawla Block</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-emerald-400">9</td><td class="py-2 px-3 font-mono">SW-CAMPUS-SAFE1B</td><td class="py-2 px-3 font-bold text-white">Playground Entry 2</td><td class="py-2 px-3">🟢 Safe Assembly</td><td class="py-2 px-3 text-slate-400">Passage between Kalpana & Raman Blocks</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">10</td><td class="py-2 px-3 font-mono">SW-CAMPUS-RAMANB</td><td class="py-2 px-3 font-bold text-white">Raman South Door</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">South entrance door of Raman Block</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">11</td><td class="py-2 px-3 font-mono">SW-CAMPUS-ARYA-W</td><td class="py-2 px-3 font-bold text-white">Aryabhatta West Stairs</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">West entrance & stairs near Sitting Area</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-indigo-400">12</td><td class="py-2 px-3 font-mono">SW-CAMPUS-ARYA-S</td><td class="py-2 px-3 font-bold text-white">Aryabhatta South Door</td><td class="py-2 px-3">🏫 Block Entrance</td><td class="py-2 px-3 text-slate-400">South corridor door facing the Garden</td></tr>
+          <tr class="hover:bg-slate-800/50"><td class="py-2 px-3 font-bold text-red-400">13</td><td class="py-2 px-3 font-mono">SW-CAMPUS-GATE2</td><td class="py-2 px-3 font-bold text-white">Gate No. 2</td><td class="py-2 px-3">🚪 Entry / Exit Gate</td><td class="py-2 px-3 text-slate-400">East perimeter emergency exit gate next to Generator</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</body>
+</html>

@@ -61,6 +61,8 @@
     .route-glow-dash {
       animation: dashMove 0.8s linear infinite;
     }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between select-none">
@@ -105,6 +107,488 @@
   useEffect,
   useMemo
 } = React;
+const MAP_PLANS = [{
+  id: "campus",
+  group: "Campus",
+  label: "Main College Campus Map",
+  src: "/assets/college-campus-layout.jpeg",
+  floor: 1
+}, {
+  id: "ramanujan-basement",
+  group: "Ramanujan Block",
+  label: "Basement",
+  src: "/assets/college-maps/ramanujan-basement.png",
+  floor: 0,
+  rooms: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2", "Exit"]
+}, {
+  id: "ramanujan-ground",
+  group: "Ramanujan Block",
+  label: "Ground Floor",
+  src: "/assets/college-maps/ramanujan-ground.png",
+  floor: 1,
+  rooms: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "W1", "W2", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2", "Entry / Exit 3"]
+}, {
+  id: "ramanujan-first",
+  group: "Ramanujan Block",
+  label: "First Floor",
+  src: "/assets/college-maps/ramanujan-first.png",
+  floor: 2,
+  rooms: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit"]
+}, {
+  id: "bhabha-basement",
+  group: "Bhabha Block",
+  label: "Basement",
+  src: "/assets/college-maps/bhabha-basement.png",
+  floor: 0,
+  rooms: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate", "Exit"]
+}, {
+  id: "bhabha-ground",
+  group: "Bhabha Block",
+  label: "Ground Floor",
+  src: "/assets/college-maps/bhabha-ground.png",
+  floor: 1,
+  rooms: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Stairs 1", "Stairs 2", "Entry"]
+}, {
+  id: "bhabha-first",
+  group: "Bhabha Block",
+  label: "First Floor",
+  src: "/assets/college-maps/bhabha-first.png",
+  floor: 2,
+  rooms: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Boys W/C", "Girls W/C", "Stairs", "Entry / Exit 1", "Entry / Exit 2"]
+}, {
+  id: "kalpana-basement",
+  group: "Kalpana Block",
+  label: "Basement",
+  src: "/assets/college-maps/kalpana-basement.png",
+  floor: 0,
+  rooms: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift", "Stair 1", "Stair 2", "Entry / Exit"]
+}, {
+  id: "kalpana-ground",
+  group: "Kalpana Block",
+  label: "Ground Floor",
+  src: "/assets/college-maps/kalpana-ground.png",
+  floor: 1,
+  rooms: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry", "Emergency Exit"]
+}, {
+  id: "kalpana-first",
+  group: "Kalpana Block",
+  label: "First Floor",
+  src: "/assets/college-maps/kalpana-first.png",
+  floor: 2,
+  rooms: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store", "Boys W/C", "Girls W/C", "Entry / Exit", "Emergency Exit"]
+}, {
+  id: "raman-ground",
+  group: "Raman Block",
+  label: "Ground Floor",
+  src: "/assets/college-maps/raman-ground.png",
+  floor: 1,
+  rooms: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"]
+}, {
+  id: "raman-first",
+  group: "Raman Block",
+  label: "First Floor",
+  src: "/assets/college-maps/raman-first.png",
+  floor: 2,
+  rooms: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"]
+}, {
+  id: "aryabhatta-basement",
+  group: "Aryabhatta Block",
+  label: "Basement",
+  src: "/assets/college-maps/aryabhatta-basement.png",
+  floor: 0,
+  rooms: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Room", "Lift", "Stairs 1", "Stairs 2"]
+}, {
+  id: "aryabhatta-ground",
+  group: "Aryabhatta Block",
+  label: "Ground Floor",
+  src: "/assets/college-maps/aryabhatta-ground.png",
+  floor: 1,
+  rooms: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
+}];
+
+// Room to Floor Plan Auto-Switch Mapping (from desktop app)
+const ROOM_TO_MAP_PLAN = {
+  "Lab 1": "ramanujan-basement",
+  "Lab 2": "ramanujan-basement",
+  "Lab 3": "ramanujan-basement",
+  "Lab 4": "ramanujan-basement",
+  "Lab 5": "ramanujan-basement",
+  "Lab 6": "ramanujan-basement",
+  "R1": "ramanujan-ground",
+  "R2": "ramanujan-ground",
+  "R3": "ramanujan-ground",
+  "R4": "ramanujan-ground",
+  "R6": "ramanujan-ground",
+  "R7": "ramanujan-ground",
+  "R8": "ramanujan-ground",
+  "R9": "ramanujan-ground",
+  "R10": "ramanujan-ground",
+  "R11": "ramanujan-ground",
+  "R12": "ramanujan-ground",
+  "Badminton Court": "ramanujan-ground",
+  "Drawing Lab": "ramanujan-first",
+  "LT 1": "ramanujan-first",
+  "LT 2": "ramanujan-first",
+  "LT 3": "ramanujan-first",
+  "LT 4": "ramanujan-first",
+  "Lecture Hall 1": "bhabha-ground",
+  "Lecture Hall 2": "bhabha-ground",
+  "Reception": "bhabha-ground",
+  "Registrar": "bhabha-ground",
+  "Director Office": "bhabha-ground",
+  "Admission Cell": "bhabha-ground",
+  "Sitting Hall": "bhabha-ground",
+  "HOD ME": "bhabha-first",
+  "Faculty Cabins": "bhabha-first",
+  "ECE Lab": "bhabha-first",
+  "Digital Library": "bhabha-basement",
+  "Library": "bhabha-basement",
+  "Main Library": "bhabha-basement",
+  "CCPD 1": "kalpana-ground",
+  "CCPD 2": "kalpana-ground",
+  "Computer Lab 1": "kalpana-ground",
+  "HOD CSE": "kalpana-ground",
+  "Training Hall 1": "kalpana-first",
+  "Training Hall 2": "kalpana-first",
+  "Class Room 1": "kalpana-first",
+  "Class Room 2": "kalpana-first",
+  "Class Room 3": "kalpana-first",
+  "Class Room 4": "kalpana-first",
+  "Fluid Mechanics Lab": "kalpana-basement",
+  "Automobile Lab": "kalpana-basement",
+  "Store Room": "kalpana-basement",
+  "Samvaad Club": "raman-ground",
+  "Kalakrit Club": "raman-ground",
+  "Medical Room": "raman-ground",
+  "Auditorium Hall": "raman-first",
+  "Large Room": "aryabhatta-ground",
+  "Room 1": "aryabhatta-ground",
+  "Room 2": "aryabhatta-ground",
+  "Room 3": "aryabhatta-ground",
+  "Room 4": "aryabhatta-ground",
+  "Room 5": "aryabhatta-ground",
+  "Temple": "aryabhatta-ground",
+  "Classroom 1": "aryabhatta-basement",
+  "Classroom 2": "aryabhatta-basement",
+  "Classroom 3": "aryabhatta-basement"
+};
+const INDOOR_ROUTE_TEMPLATES = {
+  "ramanujan-basement": {
+    entry: [220, 275],
+    corridorY: 300,
+    hubX: 500,
+    entryLabel: "LIFT ENTRY"
+  },
+  "ramanujan-ground": {
+    entry: [250, 590],
+    corridorY: 455,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "ramanujan-first": {
+    entry: [920, 325],
+    corridorY: 325,
+    hubX: 520,
+    entryLabel: "ENTRY / EXIT"
+  },
+  "kalpana-basement": {
+    entry: [500, 590],
+    corridorY: 290,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "kalpana-ground": {
+    entry: [500, 590],
+    corridorY: 400,
+    hubX: 500,
+    entryLabel: "SOUTH ENTRY"
+  },
+  "kalpana-first": {
+    entry: [145, 325],
+    corridorY: 325,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT"
+  },
+  "raman-ground": {
+    entry: [650, 590],
+    corridorY: 350,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "raman-first": {
+    entry: [330, 190],
+    corridorY: 270,
+    hubX: 520,
+    entryLabel: "ENTRY / EXIT 1"
+  },
+  "aryabhatta-basement": {
+    entry: [320, 540],
+    corridorY: 330,
+    hubX: 500,
+    entryLabel: "STAIR / LIFT ENTRY"
+  },
+  "aryabhatta-ground": {
+    entry: [500, 590],
+    corridorY: 390,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "bhabha-basement": {
+    entry: [410, 590],
+    corridorY: 335,
+    hubX: 500,
+    entryLabel: "ENTRY GATE"
+  },
+  "bhabha-ground": {
+    entry: [500, 590],
+    corridorY: 420,
+    hubX: 500,
+    entryLabel: "MAIN ENTRY"
+  },
+  "bhabha-first": {
+    entry: [500, 590],
+    corridorY: 300,
+    hubX: 500,
+    entryLabel: "ENTRY / EXIT 1"
+  }
+};
+const ROOM_ROUTE_TARGETS = {
+  "ramanujan-basement": {
+    "Lab 1": [600, 275],
+    "Lab 2": [680, 275],
+    "Lab 3": [760, 275],
+    "Lab 4": [600, 430],
+    "Lab 5": [680, 430],
+    "Lab 6": [760, 430],
+    "Lift": [220, 275],
+    "Stairs 1": [550, 260],
+    "Stairs 2": [720, 260],
+    "Exit": [740, 430]
+  },
+  "ramanujan-ground": {
+    "R1": [350, 455],
+    "R2": [450, 455],
+    "R3": [550, 455],
+    "R4": [650, 455],
+    "R6": [220, 350],
+    "R7": [405, 250],
+    "R8": [220, 300],
+    "R9": [330, 250],
+    "R10": [480, 250],
+    "R11": [565, 250],
+    "R12": [650, 250],
+    "W1": [820, 250],
+    "W2": [205, 250],
+    "Badminton Court": [500, 390],
+    "Lift": [190, 235],
+    "Entry / Exit 1": [250, 590],
+    "Entry / Exit 2": [920, 300],
+    "Entry / Exit 3": [760, 590]
+  },
+  "ramanujan-first": {
+    "Drawing Lab": [500, 325],
+    "LT 1": [260, 400],
+    "LT 2": [420, 400],
+    "LT 3": [580, 400],
+    "LT 4": [740, 400],
+    "Boys W/C": [840, 260],
+    "Girls W/C": [840, 380],
+    "Lift": [190, 235],
+    "Stairs": [800, 235],
+    "Entry / Exit": [920, 325]
+  },
+  "bhabha-ground": {
+    "Lecture Hall 1": [300, 320],
+    "Lecture Hall 2": [720, 320],
+    "Reception": [330, 420],
+    "Registrar": [700, 420],
+    "Director Office": [300, 500],
+    "Admission Cell": [720, 500],
+    "Sitting Hall": [620, 500],
+    "Drinking Water": [740, 260],
+    "Boys W/C": [300, 220],
+    "Girls W/C": [740, 220],
+    "Stairs 1": [295, 175],
+    "Stairs 2": [755, 175],
+    "Entry": [500, 590]
+  },
+  "bhabha-first": {
+    "HOD ME": [300, 300],
+    "LT 1": [420, 300],
+    "LT 2": [580, 300],
+    "LT 3": [740, 300],
+    "Faculty Cabins": [400, 450],
+    "ECE Lab": [650, 450],
+    "Stairs": [755, 175],
+    "Entry / Exit 1": [500, 590]
+  },
+  "bhabha-basement": {
+    "Digital Library": [300, 335],
+    "Library": [500, 335],
+    "Main Library": [700, 335],
+    "Lobby / Corridor": [500, 420],
+    "Entry Gate": [410, 590],
+    "Exit": [720, 590]
+  },
+  "kalpana-ground": {
+    "LT 1": [640, 220],
+    "LT 2": [235, 400],
+    "LT 3": [370, 400],
+    "CCPD 1": [355, 400],
+    "CCPD 2": [610, 400],
+    "Computer Lab 1": [720, 400],
+    "HOD CSE": [475, 440],
+    "Boys W/C": [300, 220],
+    "Girls W/C": [840, 220],
+    "Lift": [190, 220],
+    "Stairs": [385, 220],
+    "Entry": [500, 590],
+    "Emergency Exit": [500, 120]
+  },
+  "kalpana-first": {
+    "Training Hall 1": [300, 325],
+    "Training Hall 2": [450, 325],
+    "Class Room 1": [600, 325],
+    "Class Room 2": [750, 325],
+    "Class Room 3": [300, 450],
+    "Class Room 4": [600, 450],
+    "Entry / Exit": [145, 325],
+    "Emergency Exit": [175, 300]
+  },
+  "kalpana-basement": {
+    "Fluid Mechanics Lab": [320, 290],
+    "Computer Lab 1": [480, 290],
+    "Computer Lab 2": [640, 290],
+    "Automobile Lab": [400, 450],
+    "Store Room": [700, 450],
+    "Lift": [190, 205],
+    "Entry / Exit": [500, 590]
+  },
+  "raman-ground": {
+    "Lecture Hall 1": [380, 350],
+    "Lecture Hall 2": [500, 385],
+    "Samvaad Club": [585, 350],
+    "Kalakrit Club": [300, 385],
+    "Medical Room": [650, 385],
+    "Drinking Water": [850, 410],
+    "Boys W/C": [220, 300],
+    "Girls W/C": [805, 300],
+    "Lift": [155, 345],
+    "Stairs": [755, 260],
+    "Entry / Exit 1": [650, 590],
+    "Entry / Exit 2": [920, 300]
+  },
+  "raman-first": {
+    "Auditorium Hall": [500, 270],
+    "Lecture Hall": [750, 270],
+    "Drinking Water": [850, 410],
+    "Lift": [155, 345],
+    "Stairs": [755, 260],
+    "Entry / Exit 1": [330, 190]
+  },
+  "aryabhatta-ground": {
+    "Large Room": [440, 290],
+    "Room 1": [260, 390],
+    "Room 2": [350, 390],
+    "Room 3": [440, 390],
+    "Room 4": [300, 300],
+    "Room 5": [385, 300],
+    "Lab": [650, 290],
+    "Temple": [720, 440],
+    "Boys Washroom": [330, 230],
+    "Girls Washroom": [660, 230],
+    "Lift": [420, 315],
+    "Stairs 1": [430, 505],
+    "Stairs 2": [650, 505],
+    "Entry / Exit": [500, 590]
+  },
+  "aryabhatta-basement": {
+    "Classroom 1": [300, 330],
+    "Classroom 2": [450, 330],
+    "Classroom 3": [600, 330],
+    "Lab 1": [350, 480],
+    "Lab 2": [550, 480],
+    "Lift": [320, 540],
+    "Stairs 1": [220, 170]
+  }
+};
+const CAMPUS_OUTDOOR_LANDMARKS = [{
+  id: "gate-1",
+  name: "College Main Gate",
+  point: [445, 510],
+  type: "gate"
+}, {
+  id: "gate-2",
+  name: "Gate No. 2 (East)",
+  point: [960, 75],
+  type: "gate"
+}, {
+  id: "safe-playground",
+  name: "Playground Safe Assembly",
+  point: [535, 65],
+  type: "safe"
+}, {
+  id: "safe-backyard",
+  name: "Back Yard Safe Assembly",
+  point: [90, 145],
+  type: "safe"
+}, {
+  id: "junc-central",
+  name: "Central T-Junction",
+  point: [430, 365],
+  type: "junction"
+}, {
+  id: "door-bhabha",
+  name: "Bhabha Block Door",
+  point: [185, 360],
+  type: "door",
+  mapId: "bhabha-ground"
+}, {
+  id: "door-ramanujan",
+  name: "Ramanujan Block Door",
+  point: [358, 195],
+  type: "door",
+  mapId: "ramanujan-ground"
+}, {
+  id: "door-kalpana",
+  name: "Kalpana Block Door",
+  point: [540, 195],
+  type: "door",
+  mapId: "kalpana-ground"
+}, {
+  id: "door-raman",
+  name: "Raman Block Door",
+  point: [780, 195],
+  type: "door",
+  mapId: "raman-ground"
+}, {
+  id: "door-arya-w",
+  name: "Aryabhatta West Door",
+  point: [574, 288],
+  type: "door",
+  mapId: "aryabhatta-ground"
+}, {
+  id: "door-arya-s",
+  name: "Aryabhatta South Door",
+  point: [690, 375],
+  type: "door",
+  mapId: "aryabhatta-ground"
+}];
+function buildIndoorRoutePath(planId, roomName) {
+  const template = INDOOR_ROUTE_TEMPLATES[planId];
+  const targetMap = ROOM_ROUTE_TARGETS[planId] || {};
+  const target = targetMap[roomName];
+  if (!template || !target) return null;
+  const start = template.entry;
+  const points = [start, [start[0], template.corridorY], [template.hubX, template.corridorY], [target[0], template.corridorY], target];
+  return {
+    entry: start,
+    entryLabel: template.entryLabel || "ENTRY",
+    target: target,
+    points: points,
+    d: `M ${points.map(p => p.join(" ")).join(" L ")}`
+  };
+}
 let audioCtx = null;
 function playSiren() {
   try {
@@ -178,19 +662,6 @@ function Icon({
       width: "7",
       height: "7"
     })),
-    accessibility: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
-      cx: "16",
-      cy: "4",
-      r: "1"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "m18 19 1-7-6 1"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "m5 8 3-3 5.5 3-2.36 3.5"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M4.24 14.5a5 5 0 0 0 6.88 6"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M13.76 17.5a5 5 0 0 0-6.88-6"
-    })),
     sos: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
       cx: "12",
       cy: "12",
@@ -206,44 +677,9 @@ function Icon({
       x2: "12.01",
       y2: "16"
     })),
-    compass: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
-      cx: "12",
-      cy: "12",
-      r: "10"
-    }), /*#__PURE__*/React.createElement("polygon", {
-      points: "16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"
-    })),
-    shield: /*#__PURE__*/React.createElement("path", {
-      d: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-    }),
-    "volume-2": /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("polygon", {
-      points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-    }), /*#__PURE__*/React.createElement("path", {
-      d: "M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
-    })),
-    "volume-x": /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("polygon", {
-      points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
-    }), /*#__PURE__*/React.createElement("line", {
-      x1: "23",
-      y1: "9",
-      x2: "17",
-      y2: "15"
-    }), /*#__PURE__*/React.createElement("line", {
-      x1: "17",
-      y1: "9",
-      x2: "23",
-      y2: "15"
-    })),
     check: /*#__PURE__*/React.createElement("polyline", {
       points: "20 6 9 17 4 12"
-    }),
-    "map-pin": /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("path", {
-      d: "M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
-    }), /*#__PURE__*/React.createElement("circle", {
-      cx: "12",
-      cy: "10",
-      r: "3"
-    }))
+    })
   };
   return /*#__PURE__*/React.createElement("svg", {
     xmlns: "http://www.w3.org/2000/svg",
@@ -261,7 +697,6 @@ function Icon({
   }));
 }
 function MobileApp() {
-  const [bData, setBData] = useState(() => SafeWay.INITIAL_BUILDING_DATA);
   const [liveState, setLiveState] = useState(() => ({
     emergencyActive: false,
     hazards: {},
@@ -269,36 +704,32 @@ function MobileApp() {
     corridorCrowds: {},
     exits: {},
     blockedEdges: {},
-    emergencyPolicies: {
-      allowElevatorsInFire: false,
-      accessibleEvacuationStrategy: "refuge_zone"
-    },
-    distressSignals: {},
-    sensors: {}
+    distressSignals: {}
   }));
-  const [userLocationNodeId, setUserLocationNodeId] = useState("ent-main");
-  const [destinationNodeId, setDestinationNodeId] = useState("lobby");
+
+  // Map & Navigation States
+  const [selectedMapId, setSelectedMapId] = useState("campus");
+  const [selectedDestinationRoom, setSelectedDestinationRoom] = useState("");
+  const [currentOriginLocation, setCurrentOriginLocation] = useState("College Main Gate");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Pedestrian Dead Reckoning & Motion States
+  // Motion & PDR states
   const [tracker, setTracker] = useState(() => SafeWay?.MotionTracker ? new SafeWay.MotionTracker() : null);
   const [stepCount, setStepCount] = useState(0);
-  const [traveledDistance, setTraveledDistance] = useState(0);
   const [compassHeading, setCompassHeading] = useState(0);
   const [isMotionTracking, setIsMotionTracking] = useState(false);
   const [autoWalkActive, setAutoWalkActive] = useState(false);
 
-  // Modal & Action States
+  // Modals & Status
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
-  const [qrInputText, setQrInputText] = useState("");
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
   const [sosSent, setSosSent] = useState(false);
-  const [activeStepIdx, setActiveStepIdx] = useState(0);
   const [statusNotification, setStatusNotification] = useState("");
+  const activeMapPlan = MAP_PLANS.find(p => p.id === selectedMapId) || MAP_PLANS[0];
 
-  // Connect to SafeWay Realtime Data
+  // Subscribe Realtime Sync
   useEffect(() => {
     const unsub = SafeWay.subscribeToRealtimeData(state => setLiveState(state));
     return () => {
@@ -306,174 +737,64 @@ function MobileApp() {
     };
   }, []);
 
-  // Connect Motion Tracker
+  // Motion Tracker subscribe
   useEffect(() => {
-    if (!tracker && SafeWay?.MotionTracker) {
-      setTracker(new SafeWay.MotionTracker());
-    }
+    if (!tracker && SafeWay?.MotionTracker) setTracker(new SafeWay.MotionTracker());
   }, [tracker]);
   useEffect(() => {
     if (!tracker) return;
     const unsub = tracker.subscribe(e => {
-      if (e.type === 'STEP') {
-        setStepCount(e.stepCount);
-        setTraveledDistance(e.distance);
-      } else if (e.type === 'ORIENTATION') {
-        setCompassHeading(e.heading);
-      } else if (e.type === 'RESET') {
-        setStepCount(0);
-        setTraveledDistance(0);
-      }
+      if (e.type === 'STEP') setStepCount(e.stepCount);else if (e.type === 'ORIENTATION') setCompassHeading(e.heading);else if (e.type === 'RESET') setStepCount(0);
     });
     return () => unsub();
   }, [tracker]);
 
-  // Presentation Auto-Walk Simulator
+  // Auto-Walk presentation
   useEffect(() => {
     let timer = null;
     if (autoWalkActive && tracker) {
-      timer = setInterval(() => {
-        tracker.simulateStep(0.85);
-      }, 850);
+      timer = setInterval(() => tracker.simulateStep(0.85), 850);
     }
     return () => {
       if (timer) clearInterval(timer);
     };
   }, [autoWalkActive, tracker]);
-
-  // Sound & Speech Cues on Emergency
-  useEffect(() => {
-    let sirenTimer = null;
-    if (liveState?.emergencyActive && soundEnabled) {
-      speakText("Emergency Evacuation Active. Follow the green route to safety.");
-      playSiren();
-      sirenTimer = setInterval(playSiren, 900);
-    }
-    return () => {
-      if (sirenTimer) clearInterval(sirenTimer);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    };
-  }, [liveState?.emergencyActive, soundEnabled]);
   const notify = msg => {
     setStatusNotification(msg);
     setTimeout(() => setStatusNotification(""), 3500);
   };
-
-  // HTML5 Camera QR Code Scanner lifecycle
-  useEffect(() => {
-    let html5QrCode = null;
-    let timeoutId = null;
-    if (isQrModalOpen && scannerActive && typeof window.Html5Qrcode !== 'undefined') {
-      timeoutId = setTimeout(() => {
-        const el = document.getElementById('mobile-qr-reader-video');
-        if (el) {
-          html5QrCode = new window.Html5Qrcode('mobile-qr-reader-video');
-          html5QrCode.start({
-            facingMode: 'environment'
-          }, {
-            fps: 10,
-            qrbox: {
-              width: 220,
-              height: 220
-            }
-          }, decodedText => {
-            const res = SafeWay?.resolveQrCode(decodedText);
-            if (res && res.nodeId) {
-              setUserLocationNodeId(res.nodeId);
-              if (tracker) tracker.resetToOrigin();
-              setIsQrModalOpen(false);
-              setScannerActive(false);
-              notify("📍 Location set: " + (res.name || res.nodeId));
-              speakText("Location updated to " + (res.name || res.nodeId));
-            }
-          }, () => {}).catch(err => {
-            console.warn('[Html5Qrcode] Camera error:', err);
-          });
-        }
-      }, 150);
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (html5QrCode) {
-        html5QrCode.stop().catch(() => {}).then(() => {
-          try {
-            html5QrCode.clear();
-          } catch (e) {}
-        });
-      }
-    };
-  }, [isQrModalOpen, scannerActive, tracker]);
   const isEmergency = liveState.emergencyActive;
-  const userNode = bData.nodes.find(n => n.id === userLocationNodeId) || bData.nodes[0];
 
-  // Route computation
-  const effectiveEdges = bData.edges.map(e => ({
-    ...e,
-    blocked: liveState.blockedEdges[e.id] !== undefined ? liveState.blockedEdges[e.id] : e.blocked
-  }));
-  const effectiveExits = bData.exits.map(ex => ({
-    ...ex,
-    isOpen: liveState.exits[ex.id]?.isOpen !== false,
-    crowdLevel: liveState.crowds[ex.id] || ex.crowdLevel
-  }));
-  const crowdInput = {
-    exits: liveState.crowds,
-    edges: liveState.corridorCrowds,
-    zones: liveState.crowds
+  // Master Room Selection handler (Automatic Map-Switching matching desktop version!)
+  const handleSelectRoomDestination = roomName => {
+    setSelectedDestinationRoom(roomName);
+    if (!roomName) return;
+    const targetMapId = ROOM_TO_MAP_PLAN[roomName];
+    if (targetMapId) {
+      setSelectedMapId(targetMapId);
+      const plan = MAP_PLANS.find(p => p.id === targetMapId);
+      notify(`🎯 ${roomName} in ${plan?.label || targetMapId}`);
+      speakText(`Route plotted to ${roomName}. Opened ${plan?.group} ${plan?.label}.`);
+    } else {
+      notify(`🎯 Target: ${roomName}`);
+      speakText(`Target: ${roomName}`);
+    }
   };
-  const normalRoute = !isEmergency ? SafeWay.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
-    isEmergency: false,
-    accessibilityMode
-  }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
-  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
-    isEmergency: true,
-    accessibilityMode,
-    nearestEmergencyDestination: true
-  }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
-  const activeRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-  // Register software-defined route for crowd balancing
-  useEffect(() => {
-    if (isEmergency && evacuationResult?.recommendedExit?.id) {
-      SafeWay?.registerActiveRoute('mobile-user-1', evacuationResult.recommendedExit.id, userNode?.zone);
-    }
-  }, [isEmergency, evacuationResult?.recommendedExit?.id, userNode?.zone]);
-  const defaultCoord = [userNode?.x || 500, userNode?.y || 580];
-  const routePoints = activeRoute?.pathNodes && activeRoute.pathNodes.length > 0 ? activeRoute.pathNodes.map(n => [n.x || 500, n.y || 580]) : [defaultCoord];
-  const liveUserCoords = useMemo(() => {
-    try {
-      if (routePoints && routePoints.length > 1 && traveledDistance > 0) {
-        const pt = SafeWay?.interpolatePositionOnRoute?.(routePoints, traveledDistance * 6);
-        if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
-      }
-      return routePoints[0] || defaultCoord;
-    } catch (e) {
-      return defaultCoord;
-    }
-  }, [routePoints, traveledDistance, defaultCoord]);
-  const stepsList = activeRoute?.steps || [];
-  const currentStep = stepsList[activeStepIdx] || stepsList[0] || {
-    title: "Follow Guidance Path",
-    description: "Proceed straight along the marked green line."
-  };
-  const handleManualOriginChange = (nodeId, name) => {
-    setUserLocationNodeId(nodeId);
+  // Switch Map Plan manually
+  const handleSelectMap = mapId => {
+    setSelectedMapId(mapId);
     if (tracker) tracker.resetToOrigin();
-    notify("📍 Starting point: " + name);
-    speakText("Starting point set to " + name);
+    const plan = MAP_PLANS.find(p => p.id === mapId);
+    notify(`🗺️ Viewing ${plan?.group} — ${plan?.label}`);
+    speakText(`Switched map to ${plan?.group} ${plan?.label}`);
   };
-  const handleQrSubmit = e => {
-    if (e) e.preventDefault();
-    const res = SafeWay?.resolveQrCode(qrInputText);
-    if (res && res.nodeId) {
-      setUserLocationNodeId(res.nodeId);
-      if (tracker) tracker.resetToOrigin();
-      setIsQrModalOpen(false);
-      setQrInputText("");
-      notify("📍 Location set: " + (res.name || res.nodeId));
-      speakText("Location updated to " + (res.name || res.nodeId));
-    }
-  };
+
+  // Compute indoor path & guidance instructions
+  const indoorRoute = useMemo(() => {
+    if (selectedMapId === "campus" || !selectedDestinationRoom) return null;
+    return buildIndoorRoutePath(selectedMapId, selectedDestinationRoom);
+  }, [selectedMapId, selectedDestinationRoom]);
   const toggleSensors = async () => {
     if (!tracker) return;
     if (isMotionTracking) {
@@ -492,10 +813,10 @@ function MobileApp() {
   const triggerSosDistress = () => {
     SafeWay.sendDistressSignal({
       userId: "mobile-user-1",
-      locationName: userNode.name,
-      nodeId: userNode.id,
-      floor: userNode.floor || 1,
-      zone: userNode.zone || "Campus"
+      locationName: `${currentOriginLocation} (${activeMapPlan.label})`,
+      nodeId: "mobile-node",
+      floor: activeMapPlan.floor || 1,
+      zone: activeMapPlan.group
     });
     setSosSent(true);
     notify("🆘 Trapped Distress Beacon Sent!");
@@ -514,13 +835,13 @@ function MobileApp() {
     className: "w-4 h-4 text-white"
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
     className: "text-xs font-black text-white flex items-center gap-1.5"
-  }, "SafeWay V3", /*#__PURE__*/React.createElement("span", {
+  }, "SafeWay V3 Mobile", /*#__PURE__*/React.createElement("span", {
     className: `text-[9px] font-black px-2 py-0.5 rounded-full ${isEmergency ? "bg-red-500/30 text-red-300 border border-red-500/40" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`
   }, isEmergency ? "🚨 EVACUATION" : "🟢 ACTIVE")), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] text-slate-400 font-medium truncate max-w-[140px]"
-  }, "At: ", /*#__PURE__*/React.createElement("b", {
+  }, activeMapPlan.group, " \u2022 ", /*#__PURE__*/React.createElement("b", {
     className: "text-indigo-300"
-  }, userNode.name)))), /*#__PURE__*/React.createElement("div", {
+  }, activeMapPlan.label)))), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-1.5"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setSoundEnabled(!soundEnabled),
@@ -532,276 +853,264 @@ function MobileApp() {
   })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setAccessibilityMode(!accessibilityMode),
     className: `px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 ${accessibilityMode ? "bg-emerald-600 text-white border-emerald-400" : "bg-slate-800 text-slate-300 border-slate-700"}`,
-    title: "Step-Free Wheelchair Mode"
+    title: "Step-Free Mode"
   }, /*#__PURE__*/React.createElement("span", null, "\u267F")), /*#__PURE__*/React.createElement("a", {
     href: "/index.html",
     className: "px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-xl border border-slate-700 transition"
   }, "\uD83D\uDDA5\uFE0F PC"))), statusNotification && /*#__PURE__*/React.createElement("div", {
     className: "fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white font-black text-xs px-4 py-2 rounded-full shadow-2xl border border-indigo-400 animate-bounce"
   }, statusNotification), /*#__PURE__*/React.createElement("div", {
-    className: "px-3.5 pt-3 space-y-2"
+    className: "px-3.5 pt-2.5 space-y-2.5"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-800 p-2.5 rounded-2xl space-y-1 shadow-md"
+    className: "bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-[11px]"
+    className: "flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "font-black text-emerald-400 flex items-center gap-1"
-  }, "\uD83D\uDCCD Start From (Your Location):"), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-slate-400 font-mono"
-  }, "Manual & QR Sync")), /*#__PURE__*/React.createElement("select", {
-    value: userLocationNodeId,
-    onChange: e => {
-      const node = bData.nodes.find(n => n.id === e.target.value);
-      handleManualOriginChange(e.target.value, node?.name || e.target.value);
-    },
-    className: "w-full bg-slate-950 border border-emerald-500/40 text-emerald-300 text-xs font-bold rounded-xl p-2 outline-none focus:border-emerald-400"
-  }, /*#__PURE__*/React.createElement("optgroup", {
-    label: "Ground Floor (1F)"
-  }, bData.nodes.filter(n => n.floor === 1).map(n => /*#__PURE__*/React.createElement("option", {
-    key: n.id,
-    value: n.id
-  }, "\uD83D\uDCCD ", n.name, " (Floor 1)"))), /*#__PURE__*/React.createElement("optgroup", {
-    label: "Upper Level (2F)"
-  }, bData.nodes.filter(n => n.floor === 2).map(n => /*#__PURE__*/React.createElement("option", {
-    key: n.id,
-    value: n.id
-  }, "\uD83D\uDCCD ", n.name, " (Floor 2)"))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1.5 overflow-x-auto pb-1 text-[10px] font-bold scrollbar-none"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "text-slate-500 shrink-0 text-[10px]"
-  }, "Quick:"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("ent-main", "Main Gate"),
-    className: "px-2.5 py-1 bg-slate-900 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 rounded-xl border border-slate-800 shrink-0"
-  }, "\uD83D\uDEAA Gate 1"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("room-204", "Room 204 (2F)"),
-    className: "px-2.5 py-1 bg-slate-900 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 rounded-xl border border-slate-800 shrink-0"
-  }, "\uD83C\uDFEB Room 204"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("lab-101", "Physics Lab"),
-    className: "px-2.5 py-1 bg-slate-900 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 rounded-xl border border-slate-800 shrink-0"
-  }, "\uD83D\uDD2C Physics Lab"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("stair-a-1", "Staircase A"),
-    className: "px-2.5 py-1 bg-slate-900 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 rounded-xl border border-slate-800 shrink-0"
-  }, "\uD83E\uDE9C Stair A"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("cafeteria", "Cafeteria"),
-    className: "px-2.5 py-1 bg-slate-900 hover:bg-indigo-600/30 text-slate-300 hover:text-indigo-300 rounded-xl border border-slate-800 shrink-0"
-  }, "\u2615 Canteen")), isEmergency && evacuationResult ? /*#__PURE__*/React.createElement("div", {
-    className: "bg-gradient-to-r from-red-950 via-red-900 to-slate-900 border border-red-500/60 p-3.5 rounded-2xl shadow-xl space-y-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-xs font-black text-red-300"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "flex items-center gap-1.5"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "siren",
-    className: "w-4 h-4 text-red-400 animate-bounce"
-  }), "EMERGENCY EVACUATION"), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] font-mono bg-red-950 px-2 py-0.5 rounded-full border border-red-500/40"
-  }, activeRoute?.totalDistance, "m (~", Math.ceil((activeRoute?.totalDistance || 30) / 1.2), "s)")), /*#__PURE__*/React.createElement("div", {
-    className: "text-sm font-black text-white leading-tight"
-  }, evacuationResult.isRefugeRoute ? `Proceed to ${evacuationResult.refugeNode?.name || "Floor 2 Safe Refuge"}` : `Evacuate to ${evacuationResult.recommendedExit?.name || evacuationResult.recommendedAssembly?.name || "Safe Assembly Area"}`), /*#__PURE__*/React.createElement("p", {
-    className: "text-[11px] text-slate-300 leading-snug"
-  }, evacuationResult.safetyGuidance || "Follow the illuminated green safety path.")) : /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl space-y-1 shadow-md"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-xs"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "font-black text-indigo-400 text-[11px]"
-  }, "\uD83C\uDFAF Destination:"), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-indigo-300 font-mono"
-  }, activeRoute?.totalDistance, "m distance")), /*#__PURE__*/React.createElement("select", {
-    value: destinationNodeId,
-    onChange: e => setDestinationNodeId(e.target.value),
-    className: "w-full bg-slate-950 border border-indigo-500/40 text-indigo-200 text-xs font-bold rounded-xl p-2 outline-none focus:border-indigo-400"
-  }, /*#__PURE__*/React.createElement("optgroup", {
-    label: "College Campus & Blocks"
-  }, bData.nodes.filter(n => ['room', 'entrance', 'assembly'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
-    key: n.id,
-    value: n.id
-  }, "\uD83C\uDFAF ", n.name, " (Floor ", n.floor, ")")))))), /*#__PURE__*/React.createElement("div", {
-    className: "px-3.5 pt-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-indigo-500/30 p-2.5 rounded-2xl flex items-center justify-between gap-3 shadow-lg"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2.5"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-black shrink-0"
-  }, activeStepIdx + 1), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-0.5"
-  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-black text-xs"
+  }, "1F"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] font-bold text-slate-400 block"
+  }, "1. CURRENT POSITION"), /*#__PURE__*/React.createElement("span", {
     className: "text-xs font-black text-white"
-  }, currentStep.title), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] text-slate-400 line-clamp-1"
-  }, currentStep.description))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1"
-  }, /*#__PURE__*/React.createElement("button", {
-    disabled: activeStepIdx === 0,
-    onClick: () => setActiveStepIdx(prev => Math.max(0, prev - 1)),
-    className: "px-2 py-1 bg-slate-800 disabled:opacity-30 rounded-lg text-xs font-bold"
-  }, "\u2039"), /*#__PURE__*/React.createElement("button", {
-    disabled: activeStepIdx >= stepsList.length - 1,
-    onClick: () => setActiveStepIdx(prev => Math.min(stepsList.length - 1, prev + 1)),
-    className: "px-2 py-1 bg-indigo-600 disabled:opacity-30 rounded-lg text-xs font-bold text-white"
-  }, "\u203A")))), /*#__PURE__*/React.createElement("main", {
-    className: "flex-1 px-3.5 py-2.5 flex flex-col justify-center relative min-h-[320px]"
+  }, currentOriginLocation))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setIsQrModalOpen(true);
+      setScannerActive(true);
+    },
+    className: "px-2 py-1 bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold rounded-lg"
+  }, "[QR Scan]")), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-[11px] font-black text-slate-400"
+  }, /*#__PURE__*/React.createElement("span", null, "2. SELECT CAMPUS MAP / BLOCK FLOOR:"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleSelectMap("campus"),
+    className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
+  }, "\u2039 Campus Map")), /*#__PURE__*/React.createElement("select", {
+    value: selectedMapId,
+    onChange: e => handleSelectMap(e.target.value),
+    className: "w-full bg-slate-900 border border-slate-800 text-white text-xs font-bold rounded-xl p-2.5 outline-none focus:border-indigo-500"
+  }, MAP_PLANS.map(p => /*#__PURE__*/React.createElement("option", {
+    key: p.id,
+    value: p.id
+  }, p.group, " \u2014 ", p.label)))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1.5"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-black text-slate-400 block"
+  }, "3. SELECT ROOM / FACILITY:"), /*#__PURE__*/React.createElement("select", {
+    value: selectedDestinationRoom,
+    onChange: e => handleSelectRoomDestination(e.target.value),
+    className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\uD83C\uDFAF Select Destination Room (All Campus)"), Object.keys(ROOM_TO_MAP_PLAN).map(room => /*#__PURE__*/React.createElement("option", {
+    key: room,
+    value: room
+  }, "\uD83D\uDCCD ", room, " (", ROOM_TO_MAP_PLAN[room], ")")))), selectedDestinationRoom && /*#__PURE__*/React.createElement("div", {
+    className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-black text-indigo-300 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("span", null, "Route to ", selectedDestinationRoom), /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] text-emerald-400 font-mono"
+  }, "Map: ", activeMapPlan.group, " \u2014 ", activeMapPlan.label)), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-amber-300 font-bold"
+  }, "Nearest Entry/Exit: ", indoorRoute?.entryLabel || "Main Door"), /*#__PURE__*/React.createElement("ol", {
+    className: "text-[11px] text-slate-300 space-y-0.5 list-decimal pl-4 pt-1 font-medium"
+  }, /*#__PURE__*/React.createElement("li", null, "Enter ", activeMapPlan.group, "."), /*#__PURE__*/React.createElement("li", null, "Go to ", activeMapPlan.label, " using the marked stairs or accessible lift."), /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed pathway shown on the plan to ", selectedDestinationRoom, ".")))), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[340px]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center"
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 1000 650",
-    className: "w-full h-full max-h-[350px] rounded-2xl bg-slate-950 border border-slate-800"
+    className: "w-full h-full max-h-[350px] rounded-2xl bg-white border border-slate-800"
   }, /*#__PURE__*/React.createElement("image", {
-    href: "/assets/college-campus-layout.jpeg",
+    href: activeMapPlan.src || "/assets/college-campus-layout.jpeg",
     x: "0",
     y: "0",
     width: "1000",
     height: "650",
-    preserveAspectRatio: "xMidYMid meet",
-    opacity: "0.85"
-  }), /*#__PURE__*/React.createElement("g", {
-    transform: "translate(535,65)",
-    onClick: () => handleManualOriginChange("assembly-a", "Playground Safe Area"),
-    style: {
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    r: "28",
-    fill: "#059669",
-    fillOpacity: "0.9",
-    stroke: "#ffffff",
-    strokeWidth: "2.5"
-  }), /*#__PURE__*/React.createElement("text", {
-    y: "4",
-    textAnchor: "middle",
-    fill: "#ffffff",
-    fontSize: "9",
-    fontWeight: "900"
-  }, "SAFE AREA")), /*#__PURE__*/React.createElement("g", {
-    transform: "translate(90,145)",
-    onClick: () => handleManualOriginChange("assembly-b", "Back Yard Safe Area"),
-    style: {
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    r: "28",
-    fill: "#059669",
-    fillOpacity: "0.9",
-    stroke: "#ffffff",
-    strokeWidth: "2.5"
-  }), /*#__PURE__*/React.createElement("text", {
-    y: "4",
-    textAnchor: "middle",
-    fill: "#ffffff",
-    fontSize: "9",
-    fontWeight: "900"
-  }, "SAFE AREA")), bData.zones.map(zone => {
-    const h = liveState.hazards[zone.id] || "none";
-    if (h === "none") return null;
-    const zNodes = bData.nodes.filter(n => zone.nodeIds.includes(n.id));
-    if (zNodes.length === 0) return null;
-    const minX = Math.min(...zNodes.map(n => n.x)) - 30;
-    const maxX = Math.max(...zNodes.map(n => n.x)) + 30;
-    const minY = Math.min(...zNodes.map(n => n.y)) - 30;
-    const maxY = Math.max(...zNodes.map(n => n.y)) + 30;
-    return /*#__PURE__*/React.createElement("g", {
-      key: zone.id,
-      className: "animate-pulse"
-    }, /*#__PURE__*/React.createElement("rect", {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-      rx: "16",
-      fill: "rgba(239,68,68,0.4)",
-      stroke: "#ef4444",
-      strokeWidth: "3",
-      strokeDasharray: "6 3"
-    }), /*#__PURE__*/React.createElement("text", {
-      x: (minX + maxX) / 2,
-      y: (minY + maxY) / 2,
-      textAnchor: "middle",
-      fill: "#ffffff",
-      fontSize: "12",
-      fontWeight: "900"
-    }, "\uD83D\uDD25 FIRE HAZARD"));
-  }), bData.nodes.map(node => /*#__PURE__*/React.createElement("g", {
-    key: node.id,
-    transform: `translate(${node.x}, ${node.y})`,
-    onClick: () => handleManualOriginChange(node.id, node.name),
-    style: {
-      cursor: "pointer"
-    }
-  }, /*#__PURE__*/React.createElement("circle", {
-    r: "14",
-    fill: "#1e293b",
-    fillOpacity: "0.8",
-    stroke: "#475569",
-    strokeWidth: "1.5"
-  }), /*#__PURE__*/React.createElement("circle", {
-    r: "4",
-    fill: "#94a3b8"
-  }))), routePoints.length > 1 && /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("polyline", {
-    points: routePoints.map(p => p.join(",")).join(" "),
+    preserveAspectRatio: "xMidYMid meet"
+  }), selectedMapId === "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("path", {
+    d: "M 445 510 L 445 365",
     fill: "none",
-    stroke: isEmergency ? "#10b981" : "#6366f1",
-    strokeWidth: "10",
+    stroke: "#facc15",
+    strokeWidth: "8",
     strokeLinecap: "round",
     strokeLinejoin: "round",
     opacity: "0.9"
-  }), /*#__PURE__*/React.createElement("polyline", {
-    points: routePoints.map(p => p.join(",")).join(" "),
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 430 365 L 185 365",
     fill: "none",
-    stroke: "#ffffff",
-    strokeWidth: "3.5",
-    strokeDasharray: "9 6",
+    stroke: "#facc15",
+    strokeWidth: "8",
     strokeLinecap: "round",
     strokeLinejoin: "round",
-    className: "route-glow-dash"
+    opacity: "0.9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 430 365 L 360 365 L 360 205 L 160 205 L 160 135 L 132 135",
+    fill: "none",
+    stroke: "#facc15",
+    strokeWidth: "8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 417 215 L 417 78",
+    fill: "none",
+    stroke: "#facc15",
+    strokeWidth: "8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 430 365 L 445 340 L 540 205 L 670 205 L 780 205 L 920 205 L 920 135 L 960 135 L 960 75",
+    fill: "none",
+    stroke: "#facc15",
+    strokeWidth: "8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 668 205 L 668 78",
+    fill: "none",
+    stroke: "#facc15",
+    strokeWidth: "8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.9"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: "M 445 340 L 540 340 L 550 375 L 775 375 L 920 375 L 920 205",
+    fill: "none",
+    stroke: "#facc15",
+    strokeWidth: "8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.9"
   })), /*#__PURE__*/React.createElement("g", {
-    transform: `translate(${liveUserCoords[0]}, ${liveUserCoords[1]})`
+    transform: "translate(535,65)",
+    onClick: () => notify("Playground Safe Area"),
+    style: {
+      cursor: "pointer"
+    }
   }, /*#__PURE__*/React.createElement("circle", {
-    r: "36",
-    fill: "#0ea5e9",
-    fillOpacity: "0.3",
-    className: "mobile-radar-pulse"
-  }), /*#__PURE__*/React.createElement("circle", {
-    r: "14",
-    fill: "#0284c7",
+    r: "28",
+    fill: "#059669",
+    fillOpacity: "0.9",
     stroke: "#ffffff",
-    strokeWidth: "4"
-  }), /*#__PURE__*/React.createElement("g", {
-    transform: `rotate(${compassHeading || 0})`
-  }, /*#__PURE__*/React.createElement("polygon", {
-    points: "0,-26 -7,-11 7,-11",
-    fill: "#ef4444",
-    stroke: "#ffffff",
-    strokeWidth: "1.5"
-  })), /*#__PURE__*/React.createElement("circle", {
-    r: "4",
-    fill: "#ffffff"
-  }), /*#__PURE__*/React.createElement("g", {
-    transform: "translate(0, 26)"
-  }, /*#__PURE__*/React.createElement("rect", {
-    x: "-44",
-    y: "-9",
-    width: "88",
-    height: "18",
-    rx: "8",
-    fill: "#0284c7",
-    stroke: "#ffffff",
-    strokeWidth: "1.5"
+    strokeWidth: "2.5"
   }), /*#__PURE__*/React.createElement("text", {
     y: "4",
     textAnchor: "middle",
     fill: "#ffffff",
-    fontSize: "8",
+    fontSize: "9",
     fontWeight: "900"
-  }, stepCount > 0 ? `👣 ${stepCount} STEPS` : "YOU ARE HERE")))), /*#__PURE__*/React.createElement("div", {
+  }, "PLAYGROUND")), /*#__PURE__*/React.createElement("g", {
+    transform: "translate(90,145)",
+    onClick: () => notify("Back Yard Safe Area"),
+    style: {
+      cursor: "pointer"
+    }
+  }, /*#__PURE__*/React.createElement("circle", {
+    r: "28",
+    fill: "#059669",
+    fillOpacity: "0.9",
+    stroke: "#ffffff",
+    strokeWidth: "2.5"
+  }), /*#__PURE__*/React.createElement("text", {
+    y: "4",
+    textAnchor: "middle",
+    fill: "#ffffff",
+    fontSize: "9",
+    fontWeight: "900"
+  }, "BACK YARD"))), selectedMapId !== "campus" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("rect", {
+    x: "20",
+    y: "10",
+    width: "960",
+    height: "38",
+    rx: "10",
+    fill: "#0f172a"
+  }), /*#__PURE__*/React.createElement("text", {
+    x: "500",
+    y: "34",
+    textAnchor: "middle",
+    fill: "#ffffff",
+    fontSize: "15",
+    fontWeight: "900"
+  }, activeMapPlan.group, " \u2014 ", activeMapPlan.label), indoorRoute && /*#__PURE__*/React.createElement("g", null, /*#__PURE__*/React.createElement("path", {
+    d: indoorRoute.d,
+    fill: "none",
+    stroke: "#ffffff",
+    strokeWidth: "11",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    opacity: "0.95"
+  }), /*#__PURE__*/React.createElement("path", {
+    d: indoorRoute.d,
+    fill: "none",
+    stroke: "#2563eb",
+    strokeWidth: "6",
+    strokeDasharray: "12 8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className: "route-glow-dash"
+  }), /*#__PURE__*/React.createElement("g", {
+    transform: `translate(${indoorRoute.entry[0]}, ${indoorRoute.entry[1]})`
+  }, /*#__PURE__*/React.createElement("circle", {
+    r: "18",
+    fill: "#f59e0b",
+    stroke: "#ffffff",
+    strokeWidth: "3"
+  }), /*#__PURE__*/React.createElement("text", {
+    y: "4",
+    textAnchor: "middle",
+    fill: "#111827",
+    fontSize: "10",
+    fontWeight: "900"
+  }, "GATE"), /*#__PURE__*/React.createElement("g", {
+    transform: "translate(0, 24)"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "-65",
+    y: "-10",
+    width: "130",
+    height: "20",
+    rx: "7",
+    fill: "#78350f",
+    stroke: "#ffffff",
+    strokeWidth: "1"
+  }), /*#__PURE__*/React.createElement("text", {
+    y: "4",
+    textAnchor: "middle",
+    fill: "#ffffff",
+    fontSize: "8.5",
+    fontWeight: "900"
+  }, indoorRoute.entryLabel))), /*#__PURE__*/React.createElement("g", {
+    transform: `translate(${indoorRoute.target[0]}, ${indoorRoute.target[1]})`
+  }, /*#__PURE__*/React.createElement("polygon", {
+    points: "0,-18 -14,14 14,14",
+    fill: "#2563eb",
+    stroke: "#ffffff",
+    strokeWidth: "2.5"
+  })), /*#__PURE__*/React.createElement("g", {
+    transform: "translate(500, 615)"
+  }, /*#__PURE__*/React.createElement("rect", {
+    x: "-140",
+    y: "-15",
+    width: "280",
+    height: "30",
+    rx: "10",
+    fill: "#059669",
+    stroke: "#ffffff",
+    strokeWidth: "2"
+  }), /*#__PURE__*/React.createElement("text", {
+    y: "5",
+    textAnchor: "middle",
+    fill: "#ffffff",
+    fontSize: "11",
+    fontWeight: "900",
+    letterSpacing: "1"
+  }, "DESTINATION: ", selectedDestinationRoom.toUpperCase()))))), /*#__PURE__*/React.createElement("div", {
     className: "absolute top-5 left-5 bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 shadow-xl flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC63 ", /*#__PURE__*/React.createElement("b", null, stepCount), " steps"), /*#__PURE__*/React.createElement("span", {
     className: "text-slate-600"
-  }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCCF ", /*#__PURE__*/React.createElement("b", null, traveledDistance.toFixed(1)), "m"), /*#__PURE__*/React.createElement("span", {
-    className: "text-slate-600"
-  }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83E\uDDED ", /*#__PURE__*/React.createElement("b", null, compassHeading, "\xB0"))), /*#__PURE__*/React.createElement("div", {
-    className: "absolute bottom-5 right-5 bg-slate-950/90 border border-indigo-500/40 px-2.5 py-1 rounded-xl text-[9px] font-bold text-indigo-300 shadow-lg"
-  }, "\uD83D\uDC46 Tap any node on map to set start"))), /*#__PURE__*/React.createElement("footer", {
+  }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83E\uDDED ", /*#__PURE__*/React.createElement("b", null, compassHeading, "\xB0"))))), /*#__PURE__*/React.createElement("footer", {
     className: "p-3 bg-slate-900 border-t border-slate-800 sticky bottom-0 z-30 space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-4 gap-1.5"
@@ -865,41 +1174,7 @@ function MobileApp() {
     className: "w-full rounded-xl overflow-hidden"
   }), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] text-slate-400 mt-1"
-  }, "Point at wall code sticker (e.g. SW-ROOM204)"))), /*#__PURE__*/React.createElement("form", {
-    onSubmit: handleQrSubmit,
-    className: "space-y-2 pt-2 border-t border-slate-800"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "text-[11px] font-bold text-slate-400 block"
-  }, "Or Type Waypoint Code:"), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-2"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "e.g. SW-ROOM204",
-    value: qrInputText,
-    onChange: e => setQrInputText(e.target.value),
-    className: "flex-1 bg-slate-950 border border-slate-700 rounded-2xl p-2.5 text-xs text-white font-mono uppercase"
-  }), /*#__PURE__*/React.createElement("button", {
-    type: "submit",
-    className: "px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold"
-  }, "Set"))), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1.5 pt-2 border-t border-slate-800"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-[11px] font-bold text-slate-400"
-  }, "1-Tap Location Presets:"), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 gap-1.5 text-[10px]"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("ent-main", "Main Entrance"),
-    className: "p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500 rounded-xl text-left font-bold truncate"
-  }, "\uD83D\uDEAA Main Gate"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("room-204", "Room 204 (2F)"),
-    className: "p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500 rounded-xl text-left font-bold truncate"
-  }, "\uD83C\uDFEB Room 204 (2F)"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("lab-101", "Physics Lab (1F)"),
-    className: "p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500 rounded-xl text-left font-bold truncate"
-  }, "\uD83D\uDD2C Physics Lab"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleManualOriginChange("stair-a-1", "Staircase A"),
-    className: "p-2 bg-slate-950 border border-slate-800 hover:border-indigo-500 rounded-xl text-left font-bold truncate"
-  }, "\uD83E\uDE9C Staircase A"))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, "Point at wall code sticker"))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center"
@@ -913,7 +1188,7 @@ function MobileApp() {
     className: "text-xs text-slate-300"
   }, "Transmitting your location to the Campus Security Command Center:"), /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
-  }, "\uD83D\uDCCD ", userNode.name, " (Floor ", userNode.floor, ")")), sosSent ? /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD ", currentOriginLocation, " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
