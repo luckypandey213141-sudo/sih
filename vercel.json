@@ -3,6 +3,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/login", "destination": "/admin/login.html" },
+    { "source": "/mobile", "destination": "/mobile.html" },
+    { "source": "/mobile/", "destination": "/mobile.html" },
     { "source": "/admin", "destination": "/admin/index.html" },
     { "source": "/admin/", "destination": "/admin/index.html" }
   ],

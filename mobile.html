@@ -36,7 +36,7 @@
     }
   </script>
 
-  <!-- React 18 Production UMD (Fast & Lightweight) -->
+  <!-- React 18 Production UMD -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 
@@ -81,7 +81,7 @@
     } from './services/realtime.js';
     import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js';
 
-    window.SafeWayData = {
+    const SafeWay = {
       INITIAL_BUILDING_DATA,
       findShortestPath,
       findSafestEvacuationPath,
@@ -97,11 +97,10 @@
       MotionTracker,
       interpolatePositionOnRoute
     };
-    window.dispatchEvent(new CustomEvent('safeway-ready'));
-  </script>
+    window.SafeWayData = SafeWay;
 
-  <script>
-const {
+    // Run React component inside the same module scope
+    const {
   useState,
   useEffect,
   useMemo
@@ -265,7 +264,7 @@ function MobileApp() {
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Pedestrian Dead Reckoning & Motion States
-  const [tracker, setTracker] = useState(() => window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null);
+  const [tracker, setTracker] = useState(() => SafeWay?.MotionTracker ? new SafeWay.MotionTracker() : null);
   const [stepCount, setStepCount] = useState(0);
   const [traveledDistance, setTraveledDistance] = useState(0);
   const [compassHeading, setCompassHeading] = useState(0);
@@ -285,9 +284,9 @@ function MobileApp() {
   useEffect(() => {
     let unsub = null;
     const initialize = () => {
-      if (window.SafeWayData && !bData) {
-        setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
-        unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
+      if (SafeWay && !bData) {
+        setBData(SafeWay.INITIAL_BUILDING_DATA);
+        unsub = SafeWay.subscribeToRealtimeData(state => setLiveState(state));
       }
     };
     initialize();
@@ -302,8 +301,8 @@ function MobileApp() {
 
   // Connect Motion Tracker
   useEffect(() => {
-    if (!tracker && window.SafeWayData?.MotionTracker) {
-      setTracker(new window.SafeWayData.MotionTracker());
+    if (!tracker && SafeWay?.MotionTracker) {
+      setTracker(new SafeWay.MotionTracker());
     }
   }, [tracker]);
   useEffect(() => {
@@ -367,7 +366,7 @@ function MobileApp() {
               height: 220
             }
           }, decodedText => {
-            const res = window.SafeWayData?.resolveQrCode(decodedText);
+            const res = SafeWay?.resolveQrCode(decodedText);
             if (res && res.nodeId) {
               setUserLocationNodeId(res.nodeId);
               if (tracker) tracker.resetToOrigin();
@@ -417,11 +416,11 @@ function MobileApp() {
     edges: liveState.corridorCrowds,
     zones: liveState.crowds
   };
-  const normalRoute = !isEmergency ? window.SafeWayData.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
+  const normalRoute = !isEmergency ? SafeWay.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
     isEmergency: false,
     accessibilityMode
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
-  const evacuationResult = isEmergency ? window.SafeWayData.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
+  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
     isEmergency: true,
     accessibilityMode,
     nearestEmergencyDestination: true
@@ -431,7 +430,7 @@ function MobileApp() {
   // Register software-defined route for crowd balancing
   useEffect(() => {
     if (isEmergency && evacuationResult?.recommendedExit?.id) {
-      window.SafeWayData?.registerActiveRoute('mobile-user-1', evacuationResult.recommendedExit.id, userNode?.zone);
+      SafeWay?.registerActiveRoute('mobile-user-1', evacuationResult.recommendedExit.id, userNode?.zone);
     }
   }, [isEmergency, evacuationResult?.recommendedExit?.id, userNode?.zone]);
 
@@ -439,7 +438,7 @@ function MobileApp() {
   const routePoints = activeRoute?.pathNodes?.map(n => [n.x, n.y]) || [[userNode.x, userNode.y]];
   const liveUserCoords = useMemo(() => {
     if (routePoints.length > 1 && traveledDistance > 0) {
-      return window.SafeWayData?.interpolatePositionOnRoute?.(routePoints, traveledDistance * 6) || routePoints[0];
+      return SafeWay?.interpolatePositionOnRoute?.(routePoints, traveledDistance * 6) || routePoints[0];
     }
     return routePoints[0];
   }, [routePoints, traveledDistance]);
@@ -450,7 +449,7 @@ function MobileApp() {
   };
   const handleQrSubmit = e => {
     if (e) e.preventDefault();
-    const res = window.SafeWayData?.resolveQrCode(qrInputText);
+    const res = SafeWay?.resolveQrCode(qrInputText);
     if (res && res.nodeId) {
       setUserLocationNodeId(res.nodeId);
       if (tracker) tracker.resetToOrigin();
@@ -480,7 +479,7 @@ function MobileApp() {
     }
   };
   const triggerSosDistress = () => {
-    window.SafeWayData.sendDistressSignal({
+    SafeWay.sendDistressSignal({
       userId: "mobile-user-1",
       locationName: userNode.name,
       nodeId: userNode.id,
