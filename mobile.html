@@ -745,7 +745,7 @@ function MobileApp() {
     distressSignals: {}
   }));
 
-  // Selected Origin & Destination location keys
+  // Selected Origin & Destination location keys (Map auto-derives from active origin or destination!)
   const [originLocationKey, setOriginLocationKey] = useState("campus:ent-main");
   const [selectedMapId, setSelectedMapId] = useState("campus");
   const [selectedDestinationRoom, setSelectedDestinationRoom] = useState("");
@@ -826,7 +826,7 @@ function MobileApp() {
     return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[0];
   }, [originLocationKey]);
 
-  // Handler for Origin Selection (auto-switches map & position!)
+  // Handler for Origin Selection (auto-switches map directly based on where you are!)
   const handleOriginChange = key => {
     setOriginLocationKey(key);
     for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
@@ -835,7 +835,7 @@ function MobileApp() {
         if (item.mapId) setSelectedMapId(item.mapId);
         if (item.room) setSelectedDestinationRoom(item.room);
         if (tracker) tracker.resetToOrigin();
-        notify(`📍 Origin: ${item.name}`);
+        notify(`📍 Location: ${item.name}`);
         speakText(`Current position: ${item.name}`);
         break;
       }
@@ -962,15 +962,6 @@ function MobileApp() {
     }
   };
 
-  // Switch Map Plan manually
-  const handleSelectMap = mapId => {
-    setSelectedMapId(mapId);
-    if (tracker) tracker.resetToOrigin();
-    const plan = MAP_PLANS.find(p => p.id === mapId);
-    notify(`🗺️ Viewing ${plan?.group} — ${plan?.label}`);
-    speakText(`Switched map to ${plan?.group} ${plan?.label}`);
-  };
-
   // Compute indoor path
   const indoorRoute = useMemo(() => {
     if (selectedMapId === "campus" || !selectedDestinationRoom) return null;
@@ -1063,7 +1054,7 @@ function MobileApp() {
   }, statusNotification), /*#__PURE__*/React.createElement("div", {
     className: "px-3.5 pt-2.5 space-y-2.5"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between"
+    className: "bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-1 min-w-0 pr-2"
   }, /*#__PURE__*/React.createElement("span", {
@@ -1072,7 +1063,7 @@ function MobileApp() {
     className: "flex-1 min-w-0"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-bold text-slate-400 block"
-  }, "1. CURRENT POSITION (CAMPUS & ROOMS):"), /*#__PURE__*/React.createElement("select", {
+  }, "1. CURRENT POSITION:"), /*#__PURE__*/React.createElement("select", {
     value: originLocationKey,
     onChange: e => handleOriginChange(e.target.value),
     className: "w-full bg-transparent text-xs font-black text-white outline-none cursor-pointer truncate"
@@ -1090,48 +1081,37 @@ function MobileApp() {
       setScannerActive(true);
     },
     className: "px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition shrink-0"
-  }, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1.5"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between text-[11px] font-black text-slate-400"
-  }, /*#__PURE__*/React.createElement("span", null, "2. SELECT CAMPUS MAP / BLOCK FLOOR:"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
-    onClick: () => handleSelectMap("campus"),
-    className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
-  }, "\u2039 Campus Map")), /*#__PURE__*/React.createElement("select", {
-    value: selectedMapId,
-    onChange: e => handleSelectMap(e.target.value),
-    className: "w-full bg-slate-900 border border-slate-800 text-white text-xs font-bold rounded-xl p-2.5 outline-none focus:border-indigo-500"
-  }, MAP_PLANS.map(p => /*#__PURE__*/React.createElement("option", {
-    key: p.id,
-    value: p.id
-  }, p.group, " \u2014 ", p.label)))), selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1.5"
+  }, "\uD83D\uDCF7 QR Scan")), selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-black text-slate-400 block"
-  }, "3. CAMPUS DESTINATION / ENTER BLOCK:"), /*#__PURE__*/React.createElement("select", {
+    className: "text-[10px] font-bold text-slate-400 block"
+  }, "2. TARGET DESTINATION:"), /*#__PURE__*/React.createElement("select", {
     value: destinationNodeId,
     onChange: e => {
       setDestinationNodeId(e.target.value);
       const n = bData.nodes.find(node => node.id === e.target.value);
       notify(`🎯 Destination: ${n?.name || e.target.value}`);
     },
-    className: "w-full bg-slate-900 border border-amber-500/50 text-amber-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-amber-400"
+    className: "w-full bg-slate-900 border border-amber-500/50 text-amber-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-amber-400 shadow-md"
   }, /*#__PURE__*/React.createElement("optgroup", {
     label: "Campus Blocks & Destinations"
   }, campusNodes.filter(n => ['room', 'entrance', 'exit'].includes(n.type)).map(n => /*#__PURE__*/React.createElement("option", {
     key: n.id,
     value: n.id
   }, "\uD83D\uDCCD ", n.name))))) : /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1.5"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-black text-slate-400 block"
-  }, "3. SELECT ROOM / FACILITY:"), /*#__PURE__*/React.createElement("select", {
+    className: "space-y-1"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between text-[10px] font-bold text-slate-400"
+  }, /*#__PURE__*/React.createElement("span", null, "2. SELECT ROOM / FACILITY:"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => handleOriginChange("campus:ent-main"),
+    className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
+  }, "\u2039 Campus View")), /*#__PURE__*/React.createElement("select", {
     value: selectedDestinationRoom,
     onChange: e => handleSelectRoomDestination(e.target.value),
-    className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400"
+    className: "w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 text-xs font-black rounded-xl p-2.5 outline-none focus:border-emerald-400 shadow-md"
   }, /*#__PURE__*/React.createElement("option", {
     value: ""
-  }, "\uD83C\uDFAF Select Destination Room"), ALL_CAMPUS_LOCATIONS_HIERARCHY.filter(g => g.mapId).map(group => /*#__PURE__*/React.createElement("optgroup", {
+  }, "\uD83C\uDFAF Select Destination Room"), ALL_CAMPUS_LOCATIONS_HIERARCHY.filter(g => g.items.some(i => i.room)).map(group => /*#__PURE__*/React.createElement("optgroup", {
     key: group.group,
     label: group.group,
     className: "bg-slate-900 text-indigo-300 font-bold"
