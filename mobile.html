@@ -226,6 +226,28 @@ const BLOCK_CAMPUS_ENTRANCE_NODES = {
   "aryabhatta-ground": "cafeteria",
   "aryabhatta-basement": "cafeteria"
 };
+
+// Exact coordinates of block entrances on Campus Map
+const BLOCK_CAMPUS_ENTRANCE_COORDS = {
+  "ramanujan": [355, 206],
+  "ramanujan-ground": [355, 206],
+  "ramanujan-first": [355, 206],
+  "ramanujan-basement": [355, 206],
+  "bhabha": [191, 397],
+  "bhabha-ground": [191, 397],
+  "bhabha-first": [191, 397],
+  "bhabha-basement": [191, 397],
+  "kalpana": [540, 207],
+  "kalpana-ground": [540, 207],
+  "kalpana-first": [540, 207],
+  "kalpana-basement": [540, 207],
+  "raman": [780, 207],
+  "raman-ground": [780, 207],
+  "raman-first": [780, 207],
+  "aryabhatta": [690, 393],
+  "aryabhatta-ground": [690, 393],
+  "aryabhatta-basement": [690, 393]
+};
 const ROOM_ROUTE_TARGETS = {
   "ramanujan-basement": {
     "Lab 1": [600, 275],
@@ -795,9 +817,9 @@ function MobileApp() {
   }));
 
   // Selected Origin & Destination location keys
-  const [originLocationKey, setOriginLocationKey] = useState("ramanujan-ground:R2");
+  const [originLocationKey, setOriginLocationKey] = useState("ramanujan-first:Drawing Lab");
   const [destinationLocationKey, setDestinationLocationKey] = useState("campus:auditorium");
-  const [selectedMapId, setSelectedMapId] = useState("ramanujan-ground");
+  const [selectedMapId, setSelectedMapId] = useState("campus");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -890,13 +912,6 @@ function MobileApp() {
     return BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId] || null;
   }, [activeDestLocation]);
 
-  // Rule 1: Set initial map strictly based on CURRENT POSITION
-  useEffect(() => {
-    if (activeOriginLocation?.mapId) {
-      setSelectedMapId(activeOriginLocation.mapId);
-    }
-  }, [originLocationKey]);
-
   // Handler for Origin Selection
   const handleOriginChange = key => {
     setOriginLocationKey(key);
@@ -904,6 +919,7 @@ function MobileApp() {
       const item = group.items.find(i => i.key === key);
       if (item) {
         if (tracker) tracker.resetToOrigin();
+        if (item.mapId) setSelectedMapId(item.mapId);
         notify(`📍 Origin: ${item.name}`);
         speakText(`Current position: ${item.name}`);
         break;
@@ -933,8 +949,10 @@ function MobileApp() {
     if (resolved.mapId && resolved.room) {
       const key = `${resolved.mapId}:${resolved.room}`;
       setOriginLocationKey(key);
+      setSelectedMapId(resolved.mapId);
     } else if (resolved.nodeId) {
       setOriginLocationKey(`campus:${resolved.nodeId}`);
+      setSelectedMapId("campus");
     }
     if (tracker) tracker.resetToOrigin();
     setIsQrModalOpen(false);
@@ -1044,16 +1062,25 @@ function MobileApp() {
     return buildIndoorExitRoutePath(selectedMapId, activeOriginLocation?.room || "R1");
   }, [selectedMapId, activeOriginLocation, activeDestLocation, isIndoorToOutdoorNav, isIndoorCrossBlockNav]);
 
-  // Smooth Live Position coordinates calculation (No teleportation!)
+  // Precise Live Position Coordinate Resolution (Fixed: Maps indoor rooms to that block's entrance on Campus Map!)
   const liveUserCoords = useMemo(() => {
     try {
       if (selectedMapId === "campus") {
+        // If animated step progress along campus path
         if (activeCampusRoute?.pathNodes?.length > 1 && traveledDistance > 0) {
           const pts = activeCampusRoute.pathNodes.map(n => [n.x, n.y]);
           const pt = SafeWay?.interpolatePositionOnRoute?.(pts, traveledDistance * 6);
           if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
         }
-        return activeOriginLocation?.mapId === "campus" ? activeOriginLocation.point : activeOriginLocation?.point || [440, 565];
+
+        // Exact coordinates on Campus Map:
+        if (activeOriginLocation?.mapId === "campus") {
+          return activeOriginLocation.point || [440, 565];
+        }
+
+        // If user is inside a block, their pin on the Campus Map MUST be at that block's entrance!
+        const blockEntranceCoord = BLOCK_CAMPUS_ENTRANCE_COORDS[activeOriginLocation.mapId] || [355, 206];
+        return blockEntranceCoord;
       }
 
       // Indoor floor plan position calculation
@@ -1063,7 +1090,7 @@ function MobileApp() {
       }
       return activeOriginLocation?.mapId === selectedMapId ? activeOriginLocation.point : activeIndoorRoute?.entry || [500, 400];
     } catch (e) {
-      return activeOriginLocation?.point || [440, 565];
+      return [355, 206];
     }
   }, [selectedMapId, activeCampusRoute, traveledDistance, activeOriginLocation, activeIndoorRoute]);
   const toggleSensors = async () => {
@@ -1170,10 +1197,13 @@ function MobileApp() {
     className: "flex items-center justify-between pb-1"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-black text-emerald-400 flex items-center gap-1"
-  }, "\uD83C\uDFAF 2. TARGET DESTINATION:"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83C\uDFAF 2. TARGET DESTINATION:"), selectedMapId !== "campus" ? /*#__PURE__*/React.createElement("button", {
     onClick: () => setSelectedMapId("campus"),
     className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
-  }, "\u2039 Campus View")), /*#__PURE__*/React.createElement("select", {
+  }, "\u2039 Campus View") : activeOriginLocation?.mapId !== "campus" && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSelectedMapId(activeOriginLocation.mapId),
+    className: "text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/30"
+  }, "\u2039 Floor Plan View")), /*#__PURE__*/React.createElement("select", {
     value: destinationLocationKey,
     onChange: e => handleDestinationChange(e.target.value),
     className: "w-full bg-slate-950 border border-slate-700 text-emerald-300 text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400"
@@ -1195,7 +1225,7 @@ function MobileApp() {
     className: "text-[11px] text-slate-300"
   }, "Follow the blue dashed pathway to the ", /*#__PURE__*/React.createElement("b", null, activeIndoorRoute?.exitLabel || "Exit Door"), "."), /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] text-emerald-400 font-mono bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-500/30 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u26A1 Switch to Campus View once you exit the building:"), /*#__PURE__*/React.createElement("button", {
+  }, /*#__PURE__*/React.createElement("span", null, "\u26A1 Switch to Campus View once you exit:"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setSelectedMapId("campus"),
     className: "px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[9px] font-black shadow"
   }, "Open Campus Map \u2794"))) : isOutdoorToIndoorNav && selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
