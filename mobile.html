@@ -105,7 +105,8 @@
     const {
   useState,
   useEffect,
-  useMemo
+  useMemo,
+  useRef
 } = React;
 const MAP_PLANS = [{
   id: "campus",
@@ -660,9 +661,14 @@ function MobileApp() {
   const [isMotionTracking, setIsMotionTracking] = useState(false);
   const [autoWalkActive, setAutoWalkActive] = useState(false);
 
-  // Modals & Status
+  // QR Modal & Camera states
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [scannerActive, setScannerActive] = useState(false);
+  const [qrInputText, setQrInputText] = useState("");
+  const [quickCheckpointKey, setQuickCheckpointKey] = useState("");
+  const [cameraError, setCameraError] = useState("");
+
+  // SOS state
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
   const [sosSent, setSosSent] = useState(false);
   const [statusNotification, setStatusNotification] = useState("");
@@ -713,7 +719,81 @@ function MobileApp() {
   const isEmergency = liveState.emergencyActive;
   const userNode = bData.nodes.find(n => n.id === userLocationNodeId) || bData.nodes[0];
 
-  // Campus Dijkstra Graph Path calculation (Previous reliable logic)
+  // QR Code Location Resolution Handler
+  const applyQrResolution = resolved => {
+    if (!resolved) {
+      notify("⚠️ Unrecognized QR Code");
+      return;
+    }
+    if (resolved.nodeId) setUserLocationNodeId(resolved.nodeId);
+    if (resolved.mapId) setSelectedMapId(resolved.mapId);
+    if (resolved.room) setSelectedDestinationRoom(resolved.room);
+    if (tracker) tracker.resetToOrigin();
+    setIsQrModalOpen(false);
+    setScannerActive(false);
+    notify(`📍 Scanned: ${resolved.name || resolved.nodeId}!`);
+    speakText(`Position verified at ${resolved.name || "Waypoint"}`);
+  };
+  const handleManualQrSubmit = e => {
+    e.preventDefault();
+    if (!qrInputText.trim()) return;
+    const resolved = SafeWay.resolveQrCode ? SafeWay.resolveQrCode(qrInputText.trim()) : null;
+    if (resolved) {
+      applyQrResolution(resolved);
+      setQrInputText("");
+    } else {
+      notify("⚠️ Code not found in database");
+    }
+  };
+
+  // Real Camera Scanner Lifecycle using Html5Qrcode library
+  useEffect(() => {
+    let html5QrCode = null;
+    if (isQrModalOpen && scannerActive) {
+      setCameraError("");
+      try {
+        if (typeof Html5Qrcode !== "undefined") {
+          html5QrCode = new Html5Qrcode("mobile-qr-reader-container");
+          html5QrCode.start({
+            facingMode: "environment"
+          }, {
+            fps: 10,
+            qrbox: {
+              width: 220,
+              height: 220
+            }
+          }, decodedText => {
+            console.log("Scanned QR:", decodedText);
+            const resolved = SafeWay.resolveQrCode ? SafeWay.resolveQrCode(decodedText) : null;
+            if (resolved) {
+              applyQrResolution(resolved);
+            } else {
+              notify(`📍 Scanned: ${decodedText}`);
+            }
+            html5QrCode.stop().catch(() => {});
+            setScannerActive(false);
+            setIsQrModalOpen(false);
+          }, errorMessage => {
+            // Ignore standard frame scan misses
+          }).catch(err => {
+            console.error("Camera start failed:", err);
+            setCameraError(err?.message || "Camera permission denied or device not found");
+          });
+        } else {
+          setCameraError("Camera QR Library loading...");
+        }
+      } catch (err) {
+        setCameraError(err?.message || "Failed to initialize camera");
+      }
+    }
+    return () => {
+      if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(() => {});
+      }
+    };
+  }, [isQrModalOpen, scannerActive]);
+
+  // Campus Dijkstra Graph Path calculation
   const effectiveEdges = bData.edges.map(e => ({
     ...e,
     blocked: liveState.blockedEdges[e.id] !== undefined ? liveState.blockedEdges[e.id] : e.blocked
@@ -739,7 +819,7 @@ function MobileApp() {
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
   const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-  // Master Room Selection handler (Automatic Map-Switching matching desktop version!)
+  // Master Room Selection handler
   const handleSelectRoomDestination = roomName => {
     setSelectedDestinationRoom(roomName);
     if (!roomName) return;
@@ -815,6 +895,7 @@ function MobileApp() {
   };
   const campusNodes = bData.nodes.filter(n => n.floor === 1);
   const campusEdges = bData.edges.filter(e => e.floor === 1);
+  const qrPresets = SafeWay.getQrPresets ? SafeWay.getQrPresets() : [];
   return /*#__PURE__*/React.createElement("div", {
     className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl"
   }, /*#__PURE__*/React.createElement("header", {
@@ -880,8 +961,8 @@ function MobileApp() {
       setIsQrModalOpen(true);
       setScannerActive(true);
     },
-    className: "px-2 py-1 bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold rounded-lg"
-  }, "[QR Scan]")), /*#__PURE__*/React.createElement("div", {
+    className: "px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition"
+  }, "\uD83D\uDCF7 QR Check-In")), /*#__PURE__*/React.createElement("div", {
     className: "space-y-1.5"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between text-[11px] font-black text-slate-400"
@@ -1222,7 +1303,7 @@ function MobileApp() {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "qr-code",
     className: "w-4 h-4 text-indigo-400"
-  }), "Indoor QR Waypoint Check-In"), /*#__PURE__*/React.createElement("button", {
+  }), "Indoor QR Code Scanner"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsQrModalOpen(false);
       setScannerActive(false);
@@ -1234,18 +1315,53 @@ function MobileApp() {
     className: "flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-xs font-bold text-slate-300"
-  }, "\uD83D\uDCF7 Real Camera:"), /*#__PURE__*/React.createElement("button", {
+  }, "\uD83D\uDCF7 Real Camera Scanner:"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: () => setScannerActive(!scannerActive),
-    className: `px-2.5 py-1 text-xs font-bold rounded-xl border transition ${scannerActive ? "bg-red-600/30 text-red-300 border-red-500/50" : "bg-indigo-600 text-white border-indigo-500"}`
-  }, scannerActive ? "Stop Camera" : "Open Camera")), scannerActive && /*#__PURE__*/React.createElement("div", {
-    className: "bg-black rounded-2xl overflow-hidden border border-indigo-500/50 p-2 text-center"
+    className: `px-3 py-1 text-xs font-black rounded-xl border transition ${scannerActive ? "bg-red-600 text-white border-red-500" : "bg-emerald-600 text-white border-emerald-500"}`
+  }, scannerActive ? "Stop Camera" : "Turn ON Camera")), scannerActive && /*#__PURE__*/React.createElement("div", {
+    className: "bg-black rounded-2xl overflow-hidden border-2 border-indigo-500 p-2 text-center relative"
   }, /*#__PURE__*/React.createElement("div", {
-    id: "mobile-qr-reader-video",
-    className: "w-full rounded-xl overflow-hidden"
-  }), /*#__PURE__*/React.createElement("p", {
+    id: "mobile-qr-reader-container",
+    className: "w-full min-h-[220px] rounded-xl overflow-hidden bg-black flex items-center justify-center text-xs text-slate-400"
+  }, "Initializing camera..."), cameraError && /*#__PURE__*/React.createElement("div", {
+    className: "p-2 bg-red-950/90 text-red-300 text-xs font-bold rounded-xl mt-2 border border-red-500/40"
+  }, "\u26A0\uFE0F ", cameraError, /*#__PURE__*/React.createElement("p", {
+    className: "text-[10px] text-slate-300 mt-0.5"
+  }, "Please allow Camera Permissions in your browser, or use the manual code/checkpoint below.")), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] text-slate-400 mt-1"
-  }, "Point at wall code sticker"))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, "Point your camera at any campus QR waypoint sticker"))), /*#__PURE__*/React.createElement("form", {
+    onSubmit: handleManualQrSubmit,
+    className: "space-y-1.5 pt-2 border-t border-slate-800"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "text-[11px] font-bold text-slate-400 block"
+  }, "Or Type Scanned QR Code:"), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "e.g. SW-RAM-G-R1 or SW-ROOM204",
+    value: qrInputText,
+    onChange: e => setQrInputText(e.target.value),
+    className: "flex-1 bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono uppercase outline-none focus:border-indigo-500"
+  }), /*#__PURE__*/React.createElement("button", {
+    type: "submit",
+    className: "px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black transition"
+  }, "Set"))), qrPresets.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1.5 pt-2 border-t border-slate-800"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "text-[11px] font-bold text-slate-400 block"
+  }, "Quick Checkpoints (1-Tap Simulation):"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1"
+  }, qrPresets.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p.code,
+    type: "button",
+    onClick: () => applyQrResolution(p),
+    className: "p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-left transition"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-black text-white block truncate"
+  }, p.name), /*#__PURE__*/React.createElement("span", {
+    className: "text-[9px] text-indigo-400 font-mono block"
+  }, p.code))))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center"
