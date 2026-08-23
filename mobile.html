@@ -206,6 +206,26 @@ const MAP_PLANS = [{
   floor: 1,
   rooms: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
 }];
+const BLOCK_CAMPUS_ENTRANCE_NODES = {
+  "ramanujan": "admin",
+  "ramanujan-ground": "admin",
+  "ramanujan-first": "admin",
+  "ramanujan-basement": "admin",
+  "bhabha": "lobby",
+  "bhabha-ground": "lobby",
+  "bhabha-first": "lobby",
+  "bhabha-basement": "lobby",
+  "kalpana": "restroom-1",
+  "kalpana-ground": "restroom-1",
+  "kalpana-first": "restroom-1",
+  "kalpana-basement": "restroom-1",
+  "raman": "lab-101",
+  "raman-ground": "lab-101",
+  "raman-first": "lab-101",
+  "aryabhatta": "cafeteria",
+  "aryabhatta-ground": "cafeteria",
+  "aryabhatta-basement": "cafeteria"
+};
 const ROOM_ROUTE_TARGETS = {
   "ramanujan-basement": {
     "Lab 1": [600, 275],
@@ -760,8 +780,8 @@ function MobileApp() {
   }));
 
   // Selected Origin & Destination location keys
-  const [originLocationKey, setOriginLocationKey] = useState("campus:ent-main");
-  const [destinationLocationKey, setDestinationLocationKey] = useState("campus:playground");
+  const [originLocationKey, setOriginLocationKey] = useState("campus:gate-2-destination");
+  const [destinationLocationKey, setDestinationLocationKey] = useState("ramanujan-ground:R11");
   const [selectedMapId, setSelectedMapId] = useState("campus");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -845,16 +865,43 @@ function MobileApp() {
       const found = group.items.find(i => i.key === destinationLocationKey);
       if (found) return found;
     }
-    return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[2];
+    return ALL_CAMPUS_LOCATIONS_HIERARCHY[1].items[9]; // Ramanujan R11
   }, [destinationLocationKey]);
 
-  // Handler for Origin Selection (auto-switches map directly!)
+  // Determine Target Block Entrance Node on Campus Map
+  const targetBlockEntranceNodeId = useMemo(() => {
+    if (!activeDestLocation) return null;
+    if (activeDestLocation.mapId === "campus") return activeDestLocation.nodeId;
+    return BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId] || null;
+  }, [activeDestLocation]);
+
+  // Rule 1: Set initial map strictly based on CURRENT POSITION
+  useEffect(() => {
+    if (activeOriginLocation?.mapId) {
+      setSelectedMapId(activeOriginLocation.mapId);
+    }
+  }, [originLocationKey]);
+
+  // Rule 3: Auto-Handoff when user reaches Block Entrance!
+  useEffect(() => {
+    // If user is currently on campus at a block entrance and destination is inside that block
+    if (activeOriginLocation?.mapId === "campus" && activeDestLocation?.mapId !== "campus") {
+      const targetEntrance = BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId];
+      if (activeOriginLocation.nodeId === targetEntrance) {
+        // Handoff trigger!
+        setSelectedMapId(activeDestLocation.mapId);
+        notify(`🚪 Reached ${activeDestLocation.name.split('—')[0]}! Switching to Floor Plan.`);
+        speakText(`Arrived at block entrance. Showing indoor floor plan to ${activeDestLocation.room || activeDestLocation.name}.`);
+      }
+    }
+  }, [originLocationKey, activeOriginLocation, activeDestLocation]);
+
+  // Handler for Origin Selection (Rule 1: Map follows Current Position)
   const handleOriginChange = key => {
     setOriginLocationKey(key);
     for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
       const item = group.items.find(i => i.key === key);
       if (item) {
-        if (item.mapId) setSelectedMapId(item.mapId);
         if (tracker) tracker.resetToOrigin();
         notify(`📍 Origin: ${item.name}`);
         speakText(`Current position: ${item.name}`);
@@ -863,13 +910,12 @@ function MobileApp() {
     }
   };
 
-  // Handler for Destination Selection (auto-switches map directly!)
+  // Handler for Destination Selection (Rule 2: Map does NOT change prematurely)
   const handleDestinationChange = key => {
     setDestinationLocationKey(key);
     for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
       const item = group.items.find(i => i.key === key);
       if (item) {
-        if (item.mapId) setSelectedMapId(item.mapId);
         notify(`🎯 Target: ${item.name}`);
         speakText(`Route plotted to ${item.name}`);
         break;
@@ -886,10 +932,8 @@ function MobileApp() {
     if (resolved.mapId && resolved.room) {
       const key = `${resolved.mapId}:${resolved.room}`;
       setOriginLocationKey(key);
-      setSelectedMapId(resolved.mapId);
     } else if (resolved.nodeId) {
       setOriginLocationKey(`campus:${resolved.nodeId}`);
-      setSelectedMapId("campus");
     }
     if (tracker) tracker.resetToOrigin();
     setIsQrModalOpen(false);
@@ -926,7 +970,6 @@ function MobileApp() {
               height: 220
             }
           }, decodedText => {
-            console.log("Scanned QR:", decodedText);
             const resolved = SafeWay.resolveQrCode ? SafeWay.resolveQrCode(decodedText) : null;
             if (resolved) {
               applyQrResolution(resolved);
@@ -969,8 +1012,8 @@ function MobileApp() {
     edges: liveState.corridorCrowds,
     zones: liveState.crowds
   };
-  const campusOriginNodeId = activeOriginLocation.nodeId || "ent-main";
-  const campusDestNodeId = activeDestLocation.nodeId || "playground";
+  const campusOriginNodeId = activeOriginLocation.mapId === "campus" ? activeOriginLocation.nodeId : BLOCK_CAMPUS_ENTRANCE_NODES[activeOriginLocation.mapId] || "ent-main";
+  const campusDestNodeId = targetBlockEntranceNodeId || "admin";
   const normalRoute = !isEmergency ? SafeWay.findShortestPath(campusOriginNodeId, campusDestNodeId, bData.nodes, effectiveEdges, {
     isEmergency: false,
     accessibilityMode
@@ -982,7 +1025,7 @@ function MobileApp() {
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
   const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-  // Compute indoor path for destination room
+  // Compute indoor path when viewing block floor plan
   const indoorRoute = useMemo(() => {
     if (selectedMapId === "campus" || !activeDestLocation?.room) return null;
     return buildIndoorRoutePath(selectedMapId, activeDestLocation.room);
@@ -997,7 +1040,7 @@ function MobileApp() {
           const pt = SafeWay?.interpolatePositionOnRoute?.(pts, traveledDistance * 6);
           if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
         }
-        return activeOriginLocation?.point || [440, 565];
+        return activeOriginLocation?.mapId === "campus" ? activeOriginLocation.point : [440, 565];
       }
       return activeOriginLocation?.mapId === selectedMapId ? activeOriginLocation.point : indoorRoute?.entry || [500, 400];
     } catch (e) {
@@ -1034,6 +1077,10 @@ function MobileApp() {
   const campusNodes = bData.nodes.filter(n => n.floor === 1);
   const campusEdges = bData.edges.filter(e => e.floor === 1);
   const qrPresets = SafeWay.getQrPresets ? SafeWay.getQrPresets() : [];
+
+  // Determine Guidance Card Stage
+  const isOutdoorToIndoorNav = activeOriginLocation?.mapId === "campus" && activeDestLocation?.mapId !== "campus";
+  const targetBlockName = activeDestLocation?.name.split('—')[0] || "Block";
   return /*#__PURE__*/React.createElement("div", {
     className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl"
   }, /*#__PURE__*/React.createElement("header", {
@@ -1083,7 +1130,7 @@ function MobileApp() {
     className: "flex-1 min-w-0"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-bold text-slate-400 block"
-  }, "1. CURRENT POSITION:"), /*#__PURE__*/React.createElement("select", {
+  }, "1. CURRENT POSITION (STARTING MAP):"), /*#__PURE__*/React.createElement("select", {
     value: originLocationKey,
     onChange: e => handleOriginChange(e.target.value),
     className: "w-full bg-transparent text-xs font-black text-white outline-none cursor-pointer truncate"
@@ -1107,7 +1154,7 @@ function MobileApp() {
     className: "flex items-center justify-between pb-1"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-black text-emerald-400 flex items-center gap-1"
-  }, "\uD83C\uDFAF 2. TARGET DESTINATION (CAMPUS & ROOMS):"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
+  }, "\uD83C\uDFAF 2. TARGET DESTINATION:"), selectedMapId !== "campus" && /*#__PURE__*/React.createElement("button", {
     onClick: () => setSelectedMapId("campus"),
     className: "text-[10px] text-indigo-400 font-bold bg-indigo-950/60 px-2 py-0.5 rounded-lg border border-indigo-500/30"
   }, "\u2039 Campus View")), /*#__PURE__*/React.createElement("select", {
@@ -1122,17 +1169,27 @@ function MobileApp() {
     key: item.key,
     value: item.key,
     className: "bg-slate-950 text-white font-medium"
-  }, "\uD83C\uDFAF ", item.name)))))), selectedMapId !== "campus" && activeDestLocation?.room && /*#__PURE__*/React.createElement("div", {
+  }, "\uD83C\uDFAF ", item.name)))))), isOutdoorToIndoorNav && selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
+    className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1.5 shadow-lg"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-black text-indigo-300 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step 1 of 2: Campus Circulation"), /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] text-amber-400 font-bold"
+  }, "Approach ", targetBlockName)), /*#__PURE__*/React.createElement("p", {
+    className: "text-[11px] text-slate-300"
+  }, "Follow the illuminated route across campus to the ", /*#__PURE__*/React.createElement("b", null, targetBlockName, " Entrance"), "."), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-emerald-400 font-mono bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-500/30"
+  }, "\u26A1 ", /*#__PURE__*/React.createElement("b", null, "Auto-Handoff:"), " When you reach the entrance, the screen will automatically switch to the ", activeDestLocation.name.split('—')[1] || "floor", " map!")) : selectedMapId !== "campus" && activeDestLocation?.room ? /*#__PURE__*/React.createElement("div", {
     className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-black text-indigo-300 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "Route to ", activeDestLocation.room), /*#__PURE__*/React.createElement("span", {
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step 2 of 2: Indoor Route to ", activeDestLocation.room), /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] text-emerald-400 font-mono"
-  }, "Map: ", activeMapPlan.group, " \u2014 ", activeMapPlan.label)), /*#__PURE__*/React.createElement("div", {
+  }, activeMapPlan.group)), /*#__PURE__*/React.createElement("div", {
     className: "text-[11px] text-amber-300 font-bold"
-  }, "Nearest Entry/Exit: ", indoorRoute?.entryLabel || "Main Door"), /*#__PURE__*/React.createElement("ol", {
+  }, "Doorway: ", indoorRoute?.entryLabel || "Main Door"), /*#__PURE__*/React.createElement("ol", {
     className: "text-[11px] text-slate-300 space-y-0.5 list-decimal pl-4 pt-1 font-medium"
-  }, /*#__PURE__*/React.createElement("li", null, "Enter ", activeMapPlan.group, "."), /*#__PURE__*/React.createElement("li", null, "Go to ", activeMapPlan.label, " using the marked stairs or accessible lift."), /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed pathway shown on the plan to ", activeDestLocation.room, ".")))), /*#__PURE__*/React.createElement("main", {
+  }, /*#__PURE__*/React.createElement("li", null, "Enter block lobby."), /*#__PURE__*/React.createElement("li", null, "Take marked stairs/lift to ", activeMapPlan.label, "."), /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed corridor path to ", /*#__PURE__*/React.createElement("b", null, activeDestLocation.room), "."))) : null), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[340px]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center"
@@ -1232,7 +1289,7 @@ function MobileApp() {
       key: node.id,
       transform: `translate(${node.x}, ${node.y})`,
       onClick: () => {
-        handleDestinationChange(`campus:${node.id}`);
+        handleOriginChange(`campus:${node.id}`);
       },
       style: {
         cursor: "pointer"
@@ -1388,7 +1445,19 @@ function MobileApp() {
     },
     className: "py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-600/30 flex flex-col items-center justify-center gap-0.5"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => tracker?.simulateStep(0.85),
+    onClick: () => {
+      if (tracker) {
+        tracker.simulateStep(0.85);
+        // Check if step brings user to destination block entrance
+        if (isOutdoorToIndoorNav && activeCampusRoute?.pathNodes?.length > 1) {
+          const targetEntrance = BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId];
+          // If simulated distance reached near entrance, auto trigger handoff
+          if (traveledDistance >= activeCampusRoute.totalDistance - 4) {
+            handleOriginChange(`campus:${targetEntrance}`);
+          }
+        }
+      }
+    },
     className: "py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-[11px] border border-slate-700 flex flex-col items-center justify-center gap-0.5"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step (+1)")), /*#__PURE__*/React.createElement("button", {
     onClick: () => setAutoWalkActive(!autoWalkActive),
