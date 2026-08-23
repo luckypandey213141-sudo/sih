@@ -26,7 +26,7 @@
     }
   </script>
 
-  <!-- React 18 Production UMD (Fast & Lightweight) -->
+  <!-- React 18 Production UMD -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 
@@ -70,7 +70,7 @@
     import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
     import { subscribeToRealtimeData, setEmergencyActive, resetAllToNormal } from './services/realtime.js';
 
-    window.SafeWayData = {
+    const SafeWay = {
       INITIAL_BUILDING_DATA,
       findShortestPath,
       findSafestEvacuationPath,
@@ -81,8 +81,9 @@
       resetAllToNormal,
       INDOOR_ROUTE_NETWORKS
     };
+    window.SafeWayData = SafeWay;
 
-    // Execute precompiled Desktop React App within the same module scope
+    // Run Desktop React App synchronously
     const {
   useState,
   useEffect,
@@ -1041,8 +1042,17 @@ function shortestPathOnIndoorNetwork(network, startPoint, targetPoint) {
   };
 }
 function App() {
-  const [bData, setBData] = useState(null);
-  const [liveState, setLiveState] = useState(null);
+  const [bData, setBData] = useState(() => SafeWay.INITIAL_BUILDING_DATA);
+  const [liveState, setLiveState] = useState(() => ({
+    emergencyActive: false,
+    hazards: {},
+    crowds: {},
+    corridorCrowds: {},
+    exits: {},
+    blockedEdges: {},
+    emergencyPolicies: { allowElevatorsInFire: false, accessibleEvacuationStrategy: "refuge_zone" },
+    sensors: {}
+  }));
   const [currentFloor, setCurrentFloor] = useState(1);
   const [selectedMapId, setSelectedMapId] = useState("campus");
   const [guidanceMapOverride, setGuidanceMapOverride] = useState(null);
@@ -1130,7 +1140,7 @@ function App() {
   }, null);
   const emergencyIndoorStart = emergencyRouteMode && displayedMapId === emergencyCurrentGroundMapId && currentLocationMapId !== emergencyCurrentGroundMapId ? emergencyGroundStart : currentIndoorPoint || recognizedEntryExit?.point;
   const emergencyIndoorTarget = emergencyRouteMode ? displayedMapId === emergencyCurrentGroundMapId ? nearestMappedPoint((FLOOR_ENTRY_EXITS[displayedMapId] || []).filter(exit => exit.campusPoint), emergencyIndoorStart || [500, 400])?.point : nearestMappedPoint(FLOOR_ENTRY_EXITS[displayedMapId], emergencyIndoorStart || [500, 400])?.point : null;
-  const shortestIndoorPath = useMemo(() => shortestPathOnIndoorNetwork(window.SafeWayData?.INDOOR_ROUTE_NETWORKS?.[displayedMapId], emergencyIndoorStart, emergencyIndoorTarget || indoorRoute?.points?.[indoorRoute.points.length - 1]), [displayedMapId, emergencyIndoorStart, emergencyIndoorTarget, indoorRoute]);
+  const shortestIndoorPath = useMemo(() => shortestPathOnIndoorNetwork(SafeWay?.INDOOR_ROUTE_NETWORKS?.[displayedMapId], emergencyIndoorStart, emergencyIndoorTarget || indoorRoute?.points?.[indoorRoute.points.length - 1]), [displayedMapId, emergencyIndoorStart, emergencyIndoorTarget, indoorRoute]);
   const selectedGuidedPath = shortestIndoorPath?.path || SELECTED_GUIDED_PATHS[displayedMapId] || null;
   useEffect(() => {
     setInternalDestination(activeQuickCheckpoint?.mapId === selectedMapId && activeQuickCheckpoint?.room ? activeQuickCheckpoint.room : selectedMapPlan.rooms?.[0] || "");
@@ -1267,9 +1277,9 @@ function App() {
 
   // Subscribe to Realtime Data & load graph
   useEffect(() => {
-    if (window.SafeWayData) {
-      setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
-      const unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
+    if (SafeWay) {
+      setBData(SafeWay.INITIAL_BUILDING_DATA);
+      const unsub = SafeWay.subscribeToRealtimeData(state => setLiveState(state));
       return () => unsub();
     }
   }, []);
@@ -1320,13 +1330,13 @@ function App() {
   };
 
   // Normal Navigation Route
-  const normalRoute = !isEmergency ? window.SafeWayData.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
+  const normalRoute = !isEmergency ? SafeWay.findShortestPath(userLocationNodeId, destinationNodeId, bData.nodes, effectiveEdges, {
     isEmergency: false,
     accessibilityMode
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
 
   // Emergency Evacuation Route
-  const evacuationResult = isEmergency ? window.SafeWayData.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
+  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
     isEmergency: true,
     accessibilityMode,
     nearestEmergencyDestination: true
@@ -1411,7 +1421,7 @@ function App() {
   };
   const handleQrSubmit = e => {
     if (e) e.preventDefault();
-    const res = window.SafeWayData.resolveQrCode(qrInputText);
+    const res = SafeWay.resolveQrCode(qrInputText);
     if (res && res.nodeId) {
       handleLocationChange(res.nodeId);
       setIsQrModalOpen(false);
@@ -1527,7 +1537,7 @@ function App() {
   }, "DYNAMIC SEQUENTIAL ROUTING")), /*#__PURE__*/React.createElement("h2", {
     className: "text-xl sm:text-2xl font-black tracking-tight text-white mt-0.5"
   }, "Follow Illuminated Safe Green Evacuation Route"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => window.SafeWayData.resetAllToNormal(),
+    onClick: () => SafeWay.resetAllToNormal(),
     className: "px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-700 transition"
   }, "Clear Emergency / Stand Down")), evacuationResult.isRefugeRoute ? /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-950 rounded-3xl p-6 border-2 border-emerald-400 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6"

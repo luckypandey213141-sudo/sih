@@ -99,7 +99,7 @@
     };
     window.SafeWayData = SafeWay;
 
-    // Run React component inside the same module scope
+    // Run React component synchronously
     const {
   useState,
   useEffect,
@@ -256,8 +256,18 @@ function Icon({
   }));
 }
 function MobileApp() {
-  const [bData, setBData] = useState(null);
-  const [liveState, setLiveState] = useState(null);
+  const [bData, setBData] = useState(() => SafeWay.INITIAL_BUILDING_DATA);
+  const [liveState, setLiveState] = useState(() => ({
+    emergencyActive: false,
+    hazards: {},
+    crowds: {},
+    corridorCrowds: {},
+    exits: {},
+    blockedEdges: {},
+    emergencyPolicies: { allowElevatorsInFire: false, accessibleEvacuationStrategy: "refuge_zone" },
+    distressSignals: {},
+    sensors: {}
+  }));
   const [userLocationNodeId, setUserLocationNodeId] = useState("ent-main");
   const [destinationNodeId, setDestinationNodeId] = useState("lobby");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
@@ -435,12 +445,16 @@ function MobileApp() {
   }, [isEmergency, evacuationResult?.recommendedExit?.id, userNode?.zone]);
 
   // Calculate path points for SVG & motion interpolation
-  const routePoints = activeRoute?.pathNodes?.map(n => [n.x, n.y]) || [[userNode.x, userNode.y]];
+  
+  const defaultCoord = [userNode?.x || 500, userNode?.y || 580];
+  const routePoints = (activeRoute?.pathNodes && activeRoute.pathNodes.length > 0)
+    ? activeRoute.pathNodes.map(n => [n.x || 500, n.y || 580])
+    : [defaultCoord];
   const liveUserCoords = useMemo(() => {
     if (routePoints.length > 1 && traveledDistance > 0) {
       return SafeWay?.interpolatePositionOnRoute?.(routePoints, traveledDistance * 6) || routePoints[0];
     }
-    return routePoints[0];
+    return routePoints[0] || defaultCoord;
   }, [routePoints, traveledDistance]);
   const stepsList = activeRoute?.steps || [];
   const currentStep = stepsList[activeStepIdx] || stepsList[0] || {
