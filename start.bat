@@ -1,14 +1,14 @@
 @echo off
-title SafeWay Web Server [sev2]
+title SafeWay Web Server
 echo ========================================================
-echo   Starting SafeWay Server 2 (sev2)...
+echo   Starting SafeWay Local Server...
 echo ========================================================
 echo.
 
 REM Open browser after a brief delay
-start "" "http://localhost:3001"
+start "" "http://localhost:3000"
 
-REM Run Node server using agy-node
-"C:\Users\vaibh\AppData\Roaming\Antigravity\bin\agy-node.cmd" "%~dp0server.js"
+REM Run Node server
+node "%~dp0local_server.js"
 
 pause

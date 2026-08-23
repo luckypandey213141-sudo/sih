@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "echo Production build complete",
-    "start": "node server.js",
+    "start": "node local_server.js",
     "test": "node tests/test_pathfinder.js"
   },
   "keywords": [
