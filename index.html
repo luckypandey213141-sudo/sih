@@ -110,6 +110,7 @@
       MotionTracker,
       interpolatePositionOnRoute
     };
+    window.dispatchEvent(new CustomEvent('safeway-ready'));
   </script>
 
   <script type="text/babel">
@@ -416,13 +417,20 @@
       const [activeTab, setActiveTab] = useState("map");
 
       // Pedestrian Dead Reckoning & Motion Tracking States
-      const [tracker] = useState(() => (window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null));
+      const [tracker, setTracker] = useState(() => (window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null));
       const [stepCount, setStepCount] = useState(0);
       const [traveledDistance, setTraveledDistance] = useState(0);
       const [compassHeading, setCompassHeading] = useState(0);
       const [isMotionTracking, setIsMotionTracking] = useState(false);
       const [autoWalkActive, setAutoWalkActive] = useState(false);
       const [scannerActive, setScannerActive] = useState(false);
+
+      // Ensure tracker is initialized as soon as window.SafeWayData is available
+      useEffect(() => {
+        if (!tracker && window.SafeWayData?.MotionTracker) {
+          setTracker(new window.SafeWayData.MotionTracker());
+        }
+      }, [tracker]);
 
       // Subscribe to phone motion & orientation events
       useEffect(() => {
@@ -651,12 +659,24 @@
 
       // Subscribe to Realtime Data & load graph
       useEffect(() => {
-        if (window.SafeWayData) {
-          setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
-          const unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
-          return () => unsub();
-        }
-      }, []);
+        let unsub = null;
+        const initializeSafeWay = () => {
+          if (window.SafeWayData && !bData) {
+            setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
+            unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
+          }
+        };
+
+        initializeSafeWay();
+        window.addEventListener('safeway-ready', initializeSafeWay);
+        const interval = setInterval(initializeSafeWay, 60);
+
+        return () => {
+          clearInterval(interval);
+          window.removeEventListener('safeway-ready', initializeSafeWay);
+          if (unsub) unsub();
+        };
+      }, [bData]);
 
       // Keep the visible plan synchronized with the detected current position.
       // Outdoor/campus nodes use the overview; recognized block nodes open the

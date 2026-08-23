@@ -81,6 +81,7 @@
       MotionTracker,
       interpolatePositionOnRoute
     };
+    window.dispatchEvent(new CustomEvent('safeway-ready'));
   </script>
 
   <script type="text/babel">
@@ -100,15 +101,33 @@
       const [qrInputText, setQrInputText] = useState("");
       const [soundEnabled, setSoundEnabled] = useState(true);
 
-      const [tracker] = useState(() => (window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null));
+      const [tracker, setTracker] = useState(() => (window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null));
 
       useEffect(() => {
-        if (window.SafeWayData) {
-          setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
-          const unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
-          return () => unsub();
+        if (!tracker && window.SafeWayData?.MotionTracker) {
+          setTracker(new window.SafeWayData.MotionTracker());
         }
-      }, []);
+      }, [tracker]);
+
+      useEffect(() => {
+        let unsub = null;
+        const initializeSafeWay = () => {
+          if (window.SafeWayData && !bData) {
+            setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
+            unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
+          }
+        };
+
+        initializeSafeWay();
+        window.addEventListener('safeway-ready', initializeSafeWay);
+        const interval = setInterval(initializeSafeWay, 60);
+
+        return () => {
+          clearInterval(interval);
+          window.removeEventListener('safeway-ready', initializeSafeWay);
+          if (unsub) unsub();
+        };
+      }, [bData]);
 
       useEffect(() => {
         if (!tracker) return;
