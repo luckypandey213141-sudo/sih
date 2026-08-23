@@ -226,8 +226,6 @@ const BLOCK_CAMPUS_ENTRANCE_NODES = {
   "aryabhatta-ground": "cafeteria",
   "aryabhatta-basement": "cafeteria"
 };
-
-// Exact coordinates of block entrances on Campus Map
 const BLOCK_CAMPUS_ENTRANCE_COORDS = {
   "ramanujan": [355, 206],
   "ramanujan-ground": [355, 206],
@@ -1062,28 +1060,21 @@ function MobileApp() {
     return buildIndoorExitRoutePath(selectedMapId, activeOriginLocation?.room || "R1");
   }, [selectedMapId, activeOriginLocation, activeDestLocation, isIndoorToOutdoorNav, isIndoorCrossBlockNav]);
 
-  // Precise Live Position Coordinate Resolution (Fixed: Maps indoor rooms to that block's entrance on Campus Map!)
+  // Precise Live Position Coordinate Resolution
   const liveUserCoords = useMemo(() => {
     try {
       if (selectedMapId === "campus") {
-        // If animated step progress along campus path
         if (activeCampusRoute?.pathNodes?.length > 1 && traveledDistance > 0) {
           const pts = activeCampusRoute.pathNodes.map(n => [n.x, n.y]);
           const pt = SafeWay?.interpolatePositionOnRoute?.(pts, traveledDistance * 6);
           if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
         }
-
-        // Exact coordinates on Campus Map:
         if (activeOriginLocation?.mapId === "campus") {
           return activeOriginLocation.point || [440, 565];
         }
-
-        // If user is inside a block, their pin on the Campus Map MUST be at that block's entrance!
         const blockEntranceCoord = BLOCK_CAMPUS_ENTRANCE_COORDS[activeOriginLocation.mapId] || [355, 206];
         return blockEntranceCoord;
       }
-
-      // Indoor floor plan position calculation
       if (activeIndoorRoute?.points && traveledDistance > 0) {
         const pt = SafeWay?.interpolatePositionOnRoute?.(activeIndoorRoute.points, traveledDistance * 12);
         if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
@@ -1600,8 +1591,15 @@ function MobileApp() {
   }, p.code))))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center"
-  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setIsSosModalOpen(false);
+      setSosSent(false);
+    },
+    className: "absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 text-xs font-black",
+    title: "Close"
+  }, "\u2715"), /*#__PURE__*/React.createElement("div", {
     className: "w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center font-black text-white text-2xl mx-auto animate-bounce shadow-2xl shadow-red-600/60"
   }, "\uD83C\uDD98"), /*#__PURE__*/React.createElement("div", {
     className: "space-y-1"
@@ -1612,11 +1610,19 @@ function MobileApp() {
   }, "Transmitting your location to the Campus Security Command Center:"), /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
   }, "\uD83D\uDCCD ", activeOriginLocation?.name || "Campus", " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2.5"
+  }, /*#__PURE__*/React.createElement("div", {
     className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
     className: "w-4 h-4 text-emerald-400"
-  }), "Distress Beacon Active & Logged!") : /*#__PURE__*/React.createElement("div", {
+  }), "Distress Beacon Active & Logged!"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setIsSosModalOpen(false);
+      setSosSent(false);
+    },
+    className: "w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black transition border border-slate-700 shadow-lg flex items-center justify-center gap-1.5"
+  }, /*#__PURE__*/React.createElement("span", null, "\u2039 Back to Navigation Map"))) : /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setIsSosModalOpen(false),
