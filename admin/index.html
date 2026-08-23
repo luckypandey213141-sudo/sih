@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeWay V3 — Security Operations & Emergency Admin Console</title>
+
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%);
+      color: #f8fafc;
+      font-family: 'Outfit', sans-serif;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 selection:bg-indigo-500 selection:text-white">
+  <div id="root"></div>
+
+  <script type="module">
+    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js';
+    import {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      setZoneHazardLevel,
+      setExitCrowdLevel,
+      setZoneCrowdLevel,
+      setCorridorCrowdLevel,
+      setExitOpenStatus,
+      setCorridorBlockedStatus,
+      setElevatorFirePolicy,
+      recordSensorReading,
+      resetAllToNormal
+    } from '../services/realtime.js';
+
+    window.INITIAL_BUILDING_DATA = INITIAL_BUILDING_DATA;
+    window.SafeWayAPI = {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      setZoneHazardLevel,
+      setExitCrowdLevel,
+      setZoneCrowdLevel,
+      setCorridorCrowdLevel,
+      setExitOpenStatus,
+      setCorridorBlockedStatus,
+      setElevatorFirePolicy,
+      recordSensorReading,
+      resetAllToNormal
+    };
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const ADMIN_MAPS = [
+      { id: "campus", group: "College Map", label: "Main College Campus", src: "/assets/college-campus-layout.jpeg", zoneIds: ["zone-a", "zone-b", "zone-c", "zone-d", "zone-e"] },
+      { id: "ramanujan-basement", group: "Ramanujan Block", label: "Basement", src: "/assets/college-maps/ramanujan-basement.png", zoneIds: ["zone-a"] },
+      { id: "ramanujan-ground", group: "Ramanujan Block", label: "Ground Floor", src: "/assets/college-maps/ramanujan-ground.png", zoneIds: ["zone-a"] },
+      { id: "ramanujan-first", group: "Ramanujan Block", label: "First Floor", src: "/assets/college-maps/ramanujan-first.png", zoneIds: ["zone-a"] },
+      { id: "kalpana-basement", group: "Kalpana Chawla Block", label: "Basement", src: "/assets/college-maps/kalpana-basement.png", zoneIds: ["zone-b"] },
+      { id: "kalpana-ground", group: "Kalpana Chawla Block", label: "Ground Floor", src: "/assets/college-maps/kalpana-ground.png", zoneIds: ["zone-b"] },
+      { id: "kalpana-first", group: "Kalpana Chawla Block", label: "First Floor", src: "/assets/college-maps/kalpana-first.png", zoneIds: ["zone-b"] },
+      { id: "raman-basement", group: "Raman Block", label: "Basement — plan not provided", src: null, zoneIds: ["zone-c"] },
+      { id: "raman-ground", group: "Raman Block", label: "Ground Floor", src: "/assets/college-maps/raman-ground.png", zoneIds: ["zone-c"] },
+      { id: "raman-first", group: "Raman Block", label: "First Floor", src: "/assets/college-maps/raman-first.png", zoneIds: ["zone-c"] },
+      { id: "aryabhatta-basement", group: "Arya Bhatta Block", label: "Basement", src: "/assets/college-maps/aryabhatta-basement.png", zoneIds: ["zone-d"] },
+      { id: "aryabhatta-ground", group: "Arya Bhatta Block", label: "Ground Floor", src: "/assets/college-maps/aryabhatta-ground.png", zoneIds: ["zone-d"] },
+      { id: "aryabhatta-first", group: "Arya Bhatta Block", label: "First Floor — plan not provided", src: null, zoneIds: ["zone-d"] },
+      { id: "bhabha-basement", group: "Bhabha Block", label: "Basement", src: "/assets/college-maps/bhabha-basement.png", zoneIds: ["zone-e"] },
+      { id: "bhabha-ground", group: "Bhabha Block", label: "Ground Floor", src: "/assets/college-maps/bhabha-ground.png", zoneIds: ["zone-e"] },
+      { id: "bhabha-first", group: "Bhabha Block", label: "First Floor", src: "/assets/college-maps/bhabha-first.png", zoneIds: ["zone-e"] }
+    ];
+    const ADMIN_FACILITIES = {
+      campus: ["Main Gate", "Gate No. 2", "Playground", "Back Yard", "Ramanujan Block", "Kalpana Chawla Block", "Raman Block", "Arya Bhatta Block", "Bhabha Block", "Vishwakarma Block", "Gauri Cafe", "ATM", "Garden", "Pond", "Mandir", "Canteen", "Parking", "Generator Room"],
+      "ramanujan-basement": ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"],
+      "ramanujan-ground": ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "W1", "W2", "Badminton Court", "Lift"],
+      "ramanujan-first": ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"],
+      "kalpana-basement": ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift", "Stair 1", "Stair 2"],
+      "kalpana-ground": ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Boys W/C", "Girls W/C", "Lift", "Stairs"],
+      "kalpana-first": ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store", "Boys W/C", "Girls W/C"],
+      "raman-basement": ["Basement Sensor Zone"],
+      "raman-ground": ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs"],
+      "raman-first": ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs"],
+      "aryabhatta-basement": ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Room", "Lift", "Stairs 1", "Stairs 2"],
+      "aryabhatta-ground": ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2"],
+      "aryabhatta-first": ["First Floor Sensor Zone"],
+      "bhabha-basement": ["Digital Library", "Library", "Main Library", "Lobby / Corridor"],
+      "bhabha-ground": ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Stairs 1", "Stairs 2"],
+      "bhabha-first": ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Boys W/C", "Girls W/C", "Stairs"]
+    };
+    const ADMIN_DOORS = {
+      campus: ["Main Gate", "Gate No. 2"],
+      "ramanujan-basement": ["Lift Entry", "Basement Exit", "Stairs 1 Door", "Stairs 2 Door"],
+      "ramanujan-ground": ["Entry / Exit 1", "Entry / Exit 2", "Entry / Exit 3"],
+      "ramanujan-first": ["Entry / Exit", "Emergency Exit"],
+      "kalpana-basement": ["Main Entry / Exit", "Stair 1 Emergency Exit", "Stair 2 Emergency Exit"],
+      "kalpana-ground": ["West Entry", "South Entry", "North Emergency Exit"],
+      "kalpana-first": ["Entry / Exit", "Emergency Exit"],
+      "raman-basement": ["Basement Entry / Exit"],
+      "raman-ground": ["Entry / Exit 1", "Entry / Exit 2"],
+      "raman-first": ["Entry / Exit 1", "Entry / Exit 2", "West Emergency Exit"],
+      "aryabhatta-basement": ["Lift Entry", "Stair 1 Entry", "Stair 2 Entry"],
+      "aryabhatta-ground": ["Main Entry / Exit", "Stair 1 Emergency Exit", "Stair 2 Emergency Exit"],
+      "aryabhatta-first": ["First Floor Entry / Exit"],
+      "bhabha-basement": ["Entry Gate", "North Exit"],
+      "bhabha-ground": ["Main Entry", "Stair 1 Exit", "Stair 2 Exit"],
+      "bhabha-first": ["Entry / Exit 1", "Entry / Exit 2"]
+    };
+    const controlId = (kind, mapId, name) => `${kind}-${mapId}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+
+    function Icon({ name, className = "w-4 h-4" }) {
+      const icons = {
+        shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
+        "shield-alert": <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+        siren: <><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 20 3"/><path d="M2 12h1"/><path d="M5.5 4.5 4 3"/><path d="M12 2v1"/></>,
+        flame: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />,
+        activity: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
+        "door-open": <><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h20"/><path d="M13 4v16"/><path d="M6 4h7v16H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></>,
+        split: <><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></>,
+        cpu: <><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></>,
+        play: <polygon points="5 3 19 12 5 21 5 3" />,
+        check: <polyline points="20 6 9 17 4 12" />,
+        refresh: <><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></>,
+        arrow: <line x1="5" y1="12" x2="19" y2="12" />
+      };
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          {icons[name] || <circle cx="12" cy="12" r="10" />}
+        </svg>
+      );
+    }
+
+    function AdminApp() {
+      const [liveState, setLiveState] = useState(null);
+      const [activeTab, setActiveTab] = useState("overview");
+      const [bData, setBData] = useState(null);
+      const [selectedAdminMapId, setSelectedAdminMapId] = useState("campus");
+
+      useEffect(() => {
+        if (window.INITIAL_BUILDING_DATA) setBData(window.INITIAL_BUILDING_DATA);
+        if (window.SafeWayAPI) {
+          const unsub = window.SafeWayAPI.subscribeToRealtimeData(state => setLiveState(state));
+          return () => unsub();
+        }
+      }, []);
+
+      if (!liveState || !bData) {
+        return (
+          <div className="flex h-screen items-center justify-center text-indigo-400 font-bold">
+            Loading SafeWay Security Operations Console...
+          </div>
+        );
+      }
+
+      const isEmergency = liveState.emergencyActive;
+      const selectedAdminMap = ADMIN_MAPS.find(map => map.id === selectedAdminMapId) || ADMIN_MAPS[0];
+      const selectedBlockIndex = Math.max(0, ["ramanujan", "kalpana", "raman", "aryabhatta", "bhabha"].findIndex(key => selectedAdminMapId.startsWith(key)));
+      const scopedZones = selectedAdminMapId === "campus" ? bData.zones : bData.zones.filter(zone => selectedAdminMap.zoneIds.includes(zone.id));
+      const scopedExits = selectedAdminMapId === "campus" ? bData.exits : bData.exits.filter((exit, index) => index === selectedBlockIndex % bData.exits.length);
+      const availableEdges = bData.edges.filter(edge => !edge.id.startsWith("evac-"));
+      const scopedEdges = selectedAdminMapId === "campus" ? availableEdges : availableEdges.filter((edge, index) => index % 5 === selectedBlockIndex);
+      const selectedFacilities = (ADMIN_FACILITIES[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("area", selectedAdminMapId, name), proxyZoneId: scopedZones[index % Math.max(scopedZones.length, 1)]?.id }));
+      const selectedDoors = (ADMIN_DOORS[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("door", selectedAdminMapId, name), proxyExitId: scopedExits[index % Math.max(scopedExits.length, 1)]?.id }));
+      const selectedCorridors = selectedFacilities.slice(0, -1).map((facility, index) => ({ id: controlId("path", selectedAdminMapId, `${facility.name}-${selectedFacilities[index + 1].name}`), from: facility.name, to: selectedFacilities[index + 1].name, proxyEdgeId: scopedEdges[index % Math.max(scopedEdges.length, 1)]?.id }));
+      const campusSensorNodes = ADMIN_MAPS.flatMap(map => {
+        const locations = [...new Set([...(ADMIN_FACILITIES[map.id] || []), ...(ADMIN_DOORS[map.id] || [])])];
+        return locations.map((location, index) => {
+          const areaId = controlId("area", map.id, location);
+          const doorId = controlId("door", map.id, location);
+          const sensorId = controlId("esp32", map.id, location);
+          const recorded = liveState.sensors[sensorId];
+          const hazardLevel = liveState.hazards[areaId] || recorded?.hazardLevel || "none";
+          const crowdLevel = liveState.crowds[doorId] || liveState.crowds[areaId] || recorded?.crowdLevel || "Low";
+          const occupancy = recorded?.occupancy ?? (crowdLevel === "High" ? 24 : crowdLevel === "Medium" ? 12 : 4 + (index % 4));
+          return { sensorId, location, mapId: map.id, block: map.group, floor: map.label, smokeDetected: recorded?.smokeDetected || hazardLevel === "low" || hazardLevel === "high", flameDetected: recorded?.flameDetected || hazardLevel === "high", hazardLevel, crowdLevel, occupancy, lastUpdate: recorded?.lastUpdate || Date.now(), isDoorSensor: (ADMIN_DOORS[map.id] || []).includes(location) };
+        });
+      });
+      const selectedSensorNodes = campusSensorNodes.filter(sensor => sensor.mapId === selectedAdminMapId);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          {/* Header */}
+          <header className="bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800 sticky top-0 z-40 px-6 py-4">
+            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
+                  <Icon name="shield-alert" className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-black text-white">SafeWay V3</h1>
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40">
+                      Security & Emergency Console
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">Live Centralized Hazard & IoT Telemetry Gateway</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); window.location.replace('/login'); }}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-2xl border border-slate-700 transition"
+                >
+                  Sign Out
+                </button>
+                <a
+                  href="../index.html"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-2xl border border-slate-700 transition flex items-center gap-2"
+                >
+                  <span>Open User App</span>
+                  <span className="text-indigo-400">↗</span>
+                </a>
+
+                <button
+                  onClick={() => window.SafeWayAPI.resetAllToNormal()}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-2xl border border-slate-700 transition"
+                >
+                  Reset All to Normal
+                </button>
+
+                <button
+                  onClick={() => window.SafeWayAPI.setEmergencyActive(!isEmergency)}
+                  className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-xl flex items-center gap-2 ${
+                    isEmergency
+                      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                      : "bg-red-600 hover:bg-red-500 text-white animate-pulse"
+                  }`}
+                >
+                  <Icon name={isEmergency ? "check" : "siren"} className="w-4 h-4" />
+                  {isEmergency ? "Stand Down / Normal" : "Trigger Emergency"}
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Emergency Alert Banner */}
+          {isEmergency && (
+            <div className="bg-red-950 border-b-4 border-red-600 p-4 text-white shadow-2xl">
+              <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-3 h-3 rounded-full bg-red-400 animate-ping"></span>
+                  <span className="font-black text-sm uppercase tracking-widest text-red-200">
+                    🚨 MASTER EVACUATION ALARM BROADCASTING TO ALL USER APPS
+                  </span>
+                </div>
+                <div className="text-xs text-red-300 font-mono">
+                  All user apps actively executing dynamic sequential rerouting
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Body */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+            {/* Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
+              {[
+                { id: "overview", label: "Zone Hazards & Crowds", icon: "flame" },
+                { id: "exits", label: "Exits & Doorway Status", icon: "door-open" },
+                { id: "corridors", label: "Corridor Blockages", icon: "split" },
+                { id: "iot", label: "ESP32 IoT Sensors", icon: "cpu" },
+                { id: "sih", label: "SIH 6-Stage Demo Script", icon: "play" }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition ${
+                    activeTab === tab.id
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                  }`}
+                >
+                  <Icon name={tab.icon} className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Campus hierarchy scope shared by hazards, crowds, exits and corridors */}
+            <section className="bg-slate-900/90 border border-slate-700 rounded-3xl p-5 shadow-xl grid grid-cols-1 lg:grid-cols-5 gap-5">
+              <div className="lg:col-span-2 space-y-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest font-black text-indigo-300">Control Scope</div>
+                  <h2 className="text-lg font-black text-white">Campus Map → Block → Floor</h2>
+                  <p className="text-xs text-slate-400">Select the exact map context before updating hazards, crowds, doorways or corridor blockages.</p>
+                </div>
+                <select value={selectedAdminMapId} onChange={event => setSelectedAdminMapId(event.target.value)} aria-label="Select admin campus block and floor" className="w-full bg-slate-950 border border-slate-700 text-white text-sm font-bold rounded-2xl p-3 outline-none focus:border-indigo-500">
+                  {[...new Set(ADMIN_MAPS.map(map => map.group))].map(group => (
+                    <optgroup key={group} label={group}>
+                      {ADMIN_MAPS.filter(map => map.group === group).map(map => <option key={map.id} value={map.id}>{map.label}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+                <div className="flex flex-wrap gap-2 text-[10px] font-black">
+                  <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">{selectedAdminMap.group}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-200 border border-slate-700">{selectedAdminMap.label}</span>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">LIVE CONTROL MAPPING</span>
+                </div>
+              </div>
+              <div className="lg:col-span-3 h-52 bg-slate-950 rounded-2xl border border-slate-700 overflow-hidden flex items-center justify-center relative">
+                {selectedAdminMap.src ? <img src={selectedAdminMap.src} alt={`${selectedAdminMap.group} ${selectedAdminMap.label} plan`} className="w-full h-full object-contain" /> : <div className="text-center text-slate-500 text-xs font-bold p-6">Floor plan not supplied.<br/>Controls remain linked to the block sensor group.</div>}
+                <div className="absolute left-3 bottom-3 px-3 py-1.5 rounded-xl bg-slate-950/90 border border-slate-700 text-xs font-black text-white">{selectedAdminMap.group} — {selectedAdminMap.label}</div>
+              </div>
+            </section>
+
+            {/* TAB 1: OVERVIEW & ZONES */}
+            {activeTab === "overview" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {selectedFacilities.map(area => {
+                    const hLevel = liveState.hazards[area.id] || "none";
+                    const cLevel = liveState.crowds[area.id] || "Low";
+
+                    return (
+                      <div key={area.id} className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
+                              {selectedAdminMap.group} · {selectedAdminMap.label}
+                            </span>
+                            <h3 className="text-base font-black text-white mt-1">{area.name}</h3>
+                            <p className="text-[10px] text-slate-500 mt-0.5">Independent mapped area control</p>
+                          </div>
+                          <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                            hLevel === 'high' ? 'bg-red-600 text-white animate-pulse' : hLevel === 'low' ? 'bg-amber-600 text-white' : 'bg-emerald-600/20 text-emerald-400'
+                          }`}>
+                            {hLevel === 'high' ? 'FIRE DANGER' : hLevel === 'low' ? 'SMOKE' : 'CLEAR'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase font-black mb-1.5">Set Hazard Level:</div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <button
+                              onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "none"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "none"); }}
+                              className={`py-2 rounded-xl text-xs font-bold transition ${hLevel === 'none' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            >
+                              Clear
+                            </button>
+                            <button
+                              onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "low"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "low"); }}
+                              className={`py-2 rounded-xl text-xs font-bold transition ${hLevel === 'low' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            >
+                              Smoke (+50)
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.SafeWayAPI.setZoneHazardLevel(area.id, "high");
+                                if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "high");
+                                window.SafeWayAPI.setEmergencyActive(true);
+                              }}
+                              className={`py-2 rounded-xl text-xs font-bold transition ${hLevel === 'high' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            >
+                              Fire (∞)
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] text-slate-400 uppercase font-black mb-1.5">Set Zone Crowd Density:</div>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {["Low", "Medium", "High"].map(lvl => (
+                              <button
+                                key={lvl}
+                                onClick={() => { window.SafeWayAPI.setZoneCrowdLevel(area.id, lvl); if (area.proxyZoneId) window.SafeWayAPI.setZoneCrowdLevel(area.proxyZoneId, lvl); }}
+                                className={`py-1.5 rounded-xl text-xs font-bold transition ${cLevel === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                              >
+                                {lvl}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: EXITS */}
+            {activeTab === "exits" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {selectedDoors.map(door => {
+                  const isOpen = liveState.exits[door.id]?.isOpen !== false;
+                  const crowd = liveState.crowds[door.id] || "Low";
+
+                  return (
+                    <div key={door.id} className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-black text-base text-white">{door.name}</h3>
+                          <p className="text-xs text-slate-400">{selectedAdminMap.group} · {selectedAdminMap.label}</p>
+                        </div>
+                        <button
+                          onClick={() => { window.SafeWayAPI.setExitOpenStatus(door.id, !isOpen); if (door.proxyExitId) window.SafeWayAPI.setExitOpenStatus(door.proxyExitId, !isOpen); }}
+                          className={`text-xs font-black px-3 py-1.5 rounded-full transition ${
+                            isOpen ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/40" : "bg-red-600 text-white"
+                          }`}
+                        >
+                          {isOpen ? "DOOR OPEN" : "DOOR BLOCKED"}
+                        </button>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-black mb-1.5">Doorway Crowd Density:</div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {["Low", "Medium", "High"].map(lvl => (
+                            <button
+                              key={lvl}
+                              onClick={() => { window.SafeWayAPI.setExitCrowdLevel(door.id, lvl); if (door.proxyExitId) window.SafeWayAPI.setExitCrowdLevel(door.proxyExitId, lvl); }}
+                              className={`py-2 rounded-xl text-xs font-bold transition ${crowd === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 3: CORRIDORS */}
+            {activeTab === "corridors" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {selectedCorridors.map(path => {
+                    const isBlocked = liveState.blockedEdges[path.id] || false;
+                    const cLevel = liveState.corridorCrowds[path.id] || "Low";
+
+                    return (
+                      <div key={path.id} className={`p-4 rounded-2xl border ${isBlocked ? "bg-red-950/40 border-red-500" : "bg-slate-900/80 border-slate-800"} space-y-3`}>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-black text-white">{path.from} ↔ {path.to}</div>
+                          <button
+                            onClick={() => { window.SafeWayAPI.setCorridorBlockedStatus(path.id, !isBlocked); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorBlockedStatus(path.proxyEdgeId, !isBlocked); }}
+                            className={`text-[10px] font-black px-2.5 py-1 rounded transition ${isBlocked ? "bg-red-600 text-white" : "bg-slate-800 text-slate-300"}`}
+                          >
+                            {isBlocked ? "BLOCKED" : "CLEAR"}
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>Crowd:</span>
+                          <div className="flex gap-1">
+                            {["Low", "Medium", "High"].map(lvl => (
+                              <button
+                                key={lvl}
+                                onClick={() => { window.SafeWayAPI.setCorridorCrowdLevel(path.id, lvl); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorCrowdLevel(path.proxyEdgeId, lvl); }}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${cLevel === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
+                              >
+                                {lvl}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: IOT SENSORS */}
+            {activeTab === "iot" && (
+              <div className="space-y-6">
+                <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-black text-white">All-Campus ESP32 Multi-Sensor IoT Network</h3>
+                      <p className="text-xs text-slate-400">{campusSensorNodes.length} simulated nodes across every mapped campus area, block, floor, lab, classroom, facility and doorway.</p>
+                    </div>
+                    <span className="text-[10px] font-mono font-black uppercase px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      HTTP / RTDB Gateway Ready
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
+                        <tr>
+                          <th className="p-3">Node ID</th>
+                          <th className="p-3">Block / Floor / Location</th>
+                          <th className="p-3">Smoke (MQ-2)</th>
+                          <th className="p-3">Flame Sensor</th>
+                          <th className="p-3">Occupancy</th>
+                          <th className="p-3">Crowd</th>
+                          <th className="p-3">Hazard Level</th>
+                          <th className="p-3">Last Sync</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {campusSensorNodes.map(s => (
+                          <tr key={s.sensorId} className="hover:bg-slate-800/40">
+                            <td className="p-3 font-mono font-bold text-indigo-300">{s.sensorId}</td>
+                            <td className="p-3 font-bold text-white">
+                              <div>{s.location} {s.isDoorSensor && <span className="text-[9px] text-emerald-300">· IR DOORWAY</span>}</div>
+                              <div className="text-[10px] text-slate-500 font-medium">{s.block} · {s.floor}</div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded font-bold ${s.smokeDetected ? "bg-red-600 text-white" : "bg-slate-800 text-slate-400"}`}>
+                                {s.smokeDetected ? "SMOKE DETECTED" : "Normal"}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded font-bold ${s.flameDetected ? "bg-red-600 text-white" : "bg-slate-800 text-slate-400"}`}>
+                                {s.flameDetected ? "FLAME ACTIVE" : "None"}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono font-bold text-slate-200">{s.occupancy} people</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded font-bold ${s.crowdLevel === 'High' ? "bg-amber-600 text-white" : s.crowdLevel === 'Medium' ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"}`}>
+                                {s.crowdLevel}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded font-black uppercase ${s.hazardLevel === 'high' ? "bg-red-600 text-white" : "bg-emerald-600/20 text-emerald-400"}`}>
+                                {s.hazardLevel}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-[10px] text-slate-400">{new Date(s.lastUpdate).toLocaleTimeString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Hardware injection simulator for judges */}
+                  <div className="pt-4 border-t border-slate-800 space-y-2">
+                    <div className="text-xs font-bold text-slate-300">ESP32 Hardware Simulation Triggers — {selectedAdminMap.group}, {selectedAdminMap.label}:</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        disabled={!selectedSensorNodes[0]}
+                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: selectedAdminMapId, smokeDetected: true, flameDetected: true, hazardLevel: "high", occupancy: 12, crowdLevel: "Medium" })}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-2xl transition"
+                      >
+                        🔥 Trigger Smoke & Flame — {selectedSensorNodes[0]?.location || "No mapped sensor"}
+                      </button>
+                      <button
+                        disabled={!selectedSensorNodes[1]}
+                        onClick={() => selectedSensorNodes[1] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[1].sensorId, { location: selectedSensorNodes[1].location, zone: selectedAdminMapId, occupancy: 24, crowdLevel: "High" })}
+                        className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-2xl transition"
+                      >
+                        👥 Trigger High Crowd — {selectedSensorNodes[1]?.location || "No mapped sensor"}
+                      </button>
+                      <button
+                        disabled={!selectedSensorNodes[0]}
+                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: selectedAdminMapId, smokeDetected: false, flameDetected: false, hazardLevel: "none", occupancy: 4, crowdLevel: "Low" })}
+                        className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-2xl transition"
+                      >
+                        ✅ Reset Selected Demo Sensor
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: SIH DEMO SCRIPT */}
+            {activeTab === "sih" && (
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+                <div>
+                  <h3 className="text-lg font-black text-white">Smart India Hackathon (SIH) 6-Stage Demo Flow</h3>
+                  <p className="text-xs text-slate-400">Step through the 6 stages of the presentation live in front of the evaluation panel.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    {
+                      step: "Stage 1",
+                      title: "Normal Navigation",
+                      desc: "User scans QR SW-ROOM204 and requests shortest path to Main Entrance.",
+                      action: () => {
+                        window.SafeWayAPI.resetAllToNormal();
+                      }
+                    },
+                    {
+                      step: "Stage 2",
+                      title: "Emergency Trigger",
+                      desc: "Admin activates emergency. User app immediately transitions to evacuation mode.",
+                      action: () => {
+                        window.SafeWayAPI.setEmergencyActive(true);
+                      }
+                    },
+                    {
+                      step: "Stage 3",
+                      title: "ESP32 Smoke Trigger",
+                      desc: "ESP32 detects smoke in Zone B. SafeWay dynamically removes Zone B paths & Exit 1.",
+                      action: () => {
+                        window.SafeWayAPI.setZoneHazardLevel("zone-b", "high");
+                        window.SafeWayAPI.setEmergencyActive(true);
+                      }
+                    },
+                    {
+                      step: "Stage 4",
+                      title: "Crowd Surge at Exit 2",
+                      desc: "Exit 2 crowd level surges to HIGH (+60 penalty).",
+                      action: () => {
+                        window.SafeWayAPI.setExitCrowdLevel("exit-2", "High");
+                      }
+                    },
+                    {
+                      step: "Stage 5",
+                      title: "Optimal Safe Route to Exit 3",
+                      desc: "SafeWay rejects Exit 1 (fire) and Exit 2 (high crowd), routing to Exit 3 & Assembly B.",
+                      action: () => {
+                        window.SafeWayAPI.setExitCrowdLevel("exit-3", "Low");
+                      }
+                    },
+                    {
+                      step: "Stage 6",
+                      title: "Evacuation Complete",
+                      desc: "Clear emergency state and return to normal standby operations.",
+                      action: () => {
+                        window.SafeWayAPI.resetAllToNormal();
+                      }
+                    }
+                  ].map((s, idx) => (
+                    <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold">
+                          {s.step}
+                        </span>
+                        <h4 className="text-sm font-black text-white mt-1">{s.title}</h4>
+                        <p className="text-xs text-slate-400 mt-1">{s.desc}</p>
+                      </div>
+                      <button
+                        onClick={s.action}
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                      >
+                        <Icon name="play" className="w-3.5 h-3.5" />
+                        Execute {s.step}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </main>
+        </div>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<AdminApp />);
+  </script>
+</body>
+</html>

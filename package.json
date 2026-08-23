@@ -1,0 +1,25 @@
+{
+  "name": "safeway-v3",
+  "version": "3.0.0",
+  "description": "SafeWay V3 — Smart Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/test_pathfinder.js",
+    "deploy": "vercel",
+    "deploy:prod": "vercel --prod"
+  },
+  "keywords": [
+    "indoor-navigation",
+    "emergency-evacuation",
+    "dijkstra",
+    "crowd-density",
+    "iot-sensors",
+    "esp32",
+    "smart-india-hackathon",
+    "sih-2026"
+  ],
+  "author": "SafeWay Engineering Team (SIH)",
+  "license": "MIT"
+}

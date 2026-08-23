@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeWay Admin Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+  <main class="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
+    <div class="mb-8 flex items-center gap-3">
+      <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-xl font-black">S</div>
+      <div><h1 class="text-xl font-black">SafeWay V3</h1><p class="text-xs text-slate-400">Security Console Access</p></div>
+    </div>
+    <h2 class="text-2xl font-black">Admin verification required</h2>
+    <p class="mt-2 text-sm text-slate-400">Enter the authorized username and passcode to open the Security Console.</p>
+    <form id="login-form" class="mt-7 space-y-5">
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Username<input id="username" autocomplete="username" required autofocus class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-base text-white outline-none focus:border-indigo-500"></label>
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Passcode<input id="password" type="password" autocomplete="current-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-base text-white outline-none focus:border-indigo-500"></label>
+      <p id="error" role="alert" class="min-h-5 text-sm font-semibold text-red-400"></p>
+      <button class="w-full rounded-xl bg-indigo-600 px-4 py-3 font-black text-white hover:bg-indigo-500" type="submit">Unlock Security Console</button>
+    </form>
+    <a href="/" class="mt-6 block text-center text-sm text-slate-400 hover:text-white">← Return to User Application</a>
+    <p class="mt-6 border-t border-slate-800 pt-5 text-center text-xs text-slate-500">Local SIH demo access gate. Not production authentication.</p>
+  </main>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const error = document.getElementById('error');
+      error.textContent = '';
+      const response = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: document.getElementById('username').value, password: document.getElementById('password').value }) });
+      if (response.ok) location.replace('/admin/');
+      else error.textContent = (await response.json()).error || 'Sign-in failed';
+    });
+  </script>
+</body>
+</html>
