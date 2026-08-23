@@ -13,6 +13,6 @@ set /p GITHUB_TOKEN="Paste your GitHub Token (ghp_...): "
 echo.
 echo Connecting to GitHub and uploading repository 'sih'...
 echo.
-"C:\Users\vaibh\AppData\Roaming\Antigravity\bin\agy-node.cmd" "%~dp0upload_to_github.js" %GITHUB_TOKEN%
+node "%~dp0upload_to_github.js" %GITHUB_TOKEN%
 echo.
 pause
