@@ -5,16 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SafeWay V3 — Smart Indoor Navigation & Crowd-Aware Emergency Evacuation</title>
 
-  <!-- Mobile & PWA Metadata -->
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="mobile-web-app-capable" content="yes">
-
-  <!-- HTML5 QR Code Scanner CDN -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
   <!-- Google Fonts: Outfit & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -93,8 +83,7 @@
     import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=campus-layout-7';
     import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=guided-shortest-1';
     import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
-    import { subscribeToRealtimeData, setEmergencyActive, resetAllToNormal, registerActiveRoute } from './services/realtime.js';
-    import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js';
+    import { subscribeToRealtimeData, setEmergencyActive, resetAllToNormal } from './services/realtime.js';
 
     window.SafeWayData = {
       INITIAL_BUILDING_DATA,
@@ -105,12 +94,8 @@
       subscribeToRealtimeData,
       setEmergencyActive,
       resetAllToNormal,
-      registerActiveRoute,
-      INDOOR_ROUTE_NETWORKS,
-      MotionTracker,
-      interpolatePositionOnRoute
+      INDOOR_ROUTE_NETWORKS
     };
-    window.dispatchEvent(new CustomEvent('safeway-ready'));
   </script>
 
   <script type="text/babel">
@@ -415,105 +400,6 @@
       const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
       const [selectedNode, setSelectedNode] = useState(null);
       const [activeTab, setActiveTab] = useState("map");
-
-      // Pedestrian Dead Reckoning & Motion Tracking States
-      const [tracker, setTracker] = useState(() => (window.SafeWayData?.MotionTracker ? new window.SafeWayData.MotionTracker() : null));
-      const [stepCount, setStepCount] = useState(0);
-      const [traveledDistance, setTraveledDistance] = useState(0);
-      const [compassHeading, setCompassHeading] = useState(0);
-      const [isMotionTracking, setIsMotionTracking] = useState(false);
-      const [autoWalkActive, setAutoWalkActive] = useState(false);
-      const [scannerActive, setScannerActive] = useState(false);
-
-      // Ensure tracker is initialized as soon as window.SafeWayData is available
-      useEffect(() => {
-        if (!tracker && window.SafeWayData?.MotionTracker) {
-          setTracker(new window.SafeWayData.MotionTracker());
-        }
-      }, [tracker]);
-
-      // Subscribe to phone motion & orientation events
-      useEffect(() => {
-        if (!tracker) return;
-        const unsub = tracker.subscribe(e => {
-          if (e.type === 'STEP') {
-            setStepCount(e.stepCount);
-            setTraveledDistance(e.distance);
-          } else if (e.type === 'ORIENTATION') {
-            setCompassHeading(e.heading);
-          } else if (e.type === 'RESET') {
-            setStepCount(0);
-            setTraveledDistance(0);
-          }
-        });
-        return () => unsub();
-      }, [tracker]);
-
-      // Presentation Demo Simulator: Automatically steps along route when active
-      useEffect(() => {
-        let interval = null;
-        if (autoWalkActive && tracker) {
-          interval = setInterval(() => {
-            tracker.simulateStep(0.85);
-          }, 850);
-        }
-        return () => {
-          if (interval) clearInterval(interval);
-        };
-      }, [autoWalkActive, tracker]);
-
-      const toggleMotionTracking = async () => {
-        if (!tracker) return;
-        if (isMotionTracking) {
-          tracker.stop();
-          setIsMotionTracking(false);
-        } else {
-          const granted = await tracker.requestPermission();
-          if (granted) {
-            tracker.start();
-            setIsMotionTracking(true);
-          }
-        }
-      };
-
-      // HTML5 Camera QR Code Scanner lifecycle
-      useEffect(() => {
-        let html5QrCode = null;
-        let timeoutId = null;
-        if (isQrModalOpen && scannerActive && typeof window.Html5Qrcode !== 'undefined') {
-          timeoutId = setTimeout(() => {
-            const el = document.getElementById('qr-reader-video');
-            if (el) {
-              html5QrCode = new window.Html5Qrcode('qr-reader-video');
-              html5QrCode.start(
-                { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 220, height: 220 } },
-                (decodedText) => {
-                  const res = window.SafeWayData?.resolveQrCode(decodedText);
-                  if (res && res.nodeId) {
-                    handleLocationChange(res.nodeId);
-                    if (tracker) tracker.resetToOrigin();
-                    setIsQrModalOpen(false);
-                    setScannerActive(false);
-                  }
-                },
-                () => {}
-              ).catch(err => {
-                console.warn('[Html5Qrcode] Camera scan error:', err);
-              });
-            }
-          }, 150);
-        }
-        return () => {
-          if (timeoutId) clearTimeout(timeoutId);
-          if (html5QrCode) {
-            html5QrCode.stop().catch(() => {}).then(() => {
-              try { html5QrCode.clear(); } catch(e) {}
-            });
-          }
-        };
-      }, [isQrModalOpen, scannerActive]);
-
       const selectedMapPlan = MAP_PLANS.find(plan => plan.id === selectedMapId) || MAP_PLANS[0];
       const displayedMapId = guidanceMapOverride || selectedMapId;
       const displayedMapPlan = MAP_PLANS.find(plan => plan.id === displayedMapId) || MAP_PLANS[0];
@@ -659,24 +545,12 @@
 
       // Subscribe to Realtime Data & load graph
       useEffect(() => {
-        let unsub = null;
-        const initializeSafeWay = () => {
-          if (window.SafeWayData && !bData) {
-            setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
-            unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
-          }
-        };
-
-        initializeSafeWay();
-        window.addEventListener('safeway-ready', initializeSafeWay);
-        const interval = setInterval(initializeSafeWay, 60);
-
-        return () => {
-          clearInterval(interval);
-          window.removeEventListener('safeway-ready', initializeSafeWay);
-          if (unsub) unsub();
-        };
-      }, [bData]);
+        if (window.SafeWayData) {
+          setBData(window.SafeWayData.INITIAL_BUILDING_DATA);
+          const unsub = window.SafeWayData.subscribeToRealtimeData(state => setLiveState(state));
+          return () => unsub();
+        }
+      }, []);
 
       // Keep the visible plan synchronized with the detected current position.
       // Outdoor/campus nodes use the overview; recognized block nodes open the
@@ -794,7 +668,6 @@
         setActiveQuickCheckpoint(null);
         setFollowPositionMap(true);
         setUserLocationNodeId(nodeId);
-        if (tracker) tracker.resetToOrigin();
         const node = bData.nodes.find(n => n.id === nodeId);
         if (node && node.floor && node.floor !== currentFloor) {
           setCurrentFloor(node.floor);
@@ -810,7 +683,6 @@
         setSelectedMapId(checkpoint.mapId);
         setGuidanceMapOverride(checkpoint.mapId);
         setFollowPositionMap(true);
-        if (tracker) tracker.resetToOrigin();
         if (checkpoint.room) setInternalDestination(checkpoint.room);
         setActiveGuidanceStep(0);
         setZoomLevel(1);
@@ -823,7 +695,6 @@
         const res = window.SafeWayData.resolveQrCode(qrInputText);
         if (res && res.nodeId) {
           handleLocationChange(res.nodeId);
-          if (tracker) tracker.resetToOrigin();
           setIsQrModalOpen(false);
           setQrInputText("");
         }
@@ -853,22 +724,6 @@
           }
         }
       }
-
-      // Predictive Crowd Load Balancing: Register active evacuation route to server bus
-      useEffect(() => {
-        if (isEmergency && evacuationResult?.recommendedExit?.id) {
-          window.SafeWayData?.registerActiveRoute('device-session-1', evacuationResult.recommendedExit.id, userNode?.zone);
-        }
-      }, [isEmergency, evacuationResult?.recommendedExit?.id, userNode?.zone]);
-
-      // Calculate smooth live motion coordinates along active path
-      const activePathPoints = shortestIndoorPath?.points || indoorRoute?.points || null;
-      const liveMotionPoint = useMemo(() => {
-        if (!activePathPoints || activePathPoints.length === 0) return null;
-        if (traveledDistance <= 0) return activePathPoints[0];
-        // 1m ≈ 18 canvas units
-        return window.SafeWayData?.interpolatePositionOnRoute?.(activePathPoints, traveledDistance * 18) || activePathPoints[0];
-      }, [activePathPoints, traveledDistance]);
 
       const userNodeBase = bData.nodes.find(n => n.id === userLocationNodeId);
       const userNode = activeQuickCheckpoint
@@ -906,8 +761,8 @@
               <div className="flex items-center gap-2 sm:gap-3">
                 <a
                   href="/mobile.html"
-                  className="px-3.5 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 text-xs font-bold rounded-2xl border border-indigo-500/40 transition flex items-center gap-1.5 shadow-md"
-                  title="Switch to dedicated Mobile Phone PWA Interface"
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-2xl transition flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                  title="Open Mobile Phone View"
                 >
                   <span>📱 Mobile App</span>
                 </a>
@@ -944,66 +799,6 @@
               </div>
             </div>
           </header>
-
-          {/* Mobile & Presentation Motion Tracking Toolbar */}
-          <div className="bg-slate-900/95 border-b border-slate-800 px-4 py-2.5 backdrop-blur-xl">
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <Icon name="navigation" className="w-3.5 h-3.5 text-indigo-400" />
-                  Live Motion Tracking:
-                </span>
-
-                <button
-                  onClick={toggleMotionTracking}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border ${
-                    isMotionTracking
-                      ? "bg-emerald-600/30 text-emerald-300 border-emerald-500/50 shadow-lg shadow-emerald-900/30"
-                      : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white"
-                  }`}
-                  title="Uses phone accelerometer & compass to track walking"
-                >
-                  <span>{isMotionTracking ? "🟢 Phone Sensors Active" : "📱 Enable Phone Sensors"}</span>
-                </button>
-
-                <button
-                  onClick={() => tracker?.simulateStep(1.0)}
-                  className="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 rounded-xl font-bold transition flex items-center gap-1"
-                  title="Simulate 1 step forward along the path"
-                >
-                  <span>🚶 Walk +1 Step</span>
-                </button>
-
-                <button
-                  onClick={() => setAutoWalkActive(!autoWalkActive)}
-                  className={`px-3 py-1.5 rounded-xl font-bold transition border ${
-                    autoWalkActive
-                      ? "bg-amber-600/30 text-amber-300 border-amber-500/50 animate-pulse"
-                      : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white"
-                  }`}
-                  title="Simulates continuous walking for live presentation demos"
-                >
-                  <span>{autoWalkActive ? "⏸ Pause Auto-Walk" : "▶ Auto-Walk Demo"}</span>
-                </button>
-
-                <button
-                  onClick={() => tracker?.resetToOrigin()}
-                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 rounded-xl font-semibold transition"
-                  title="Reset step counter to zero"
-                >
-                  ↺ Reset Steps
-                </button>
-              </div>
-
-              <div className="flex items-center gap-3 font-mono text-[11px] bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl text-slate-300">
-                <span>👣 <b>{stepCount}</b> steps</span>
-                <span className="text-slate-600">|</span>
-                <span>📏 <b>{traveledDistance.toFixed(1)}</b>m</span>
-                <span className="text-slate-600">|</span>
-                <span>🧭 <b>{compassHeading}°</b></span>
-              </div>
-            </div>
-          </div>
 
           {/* Emergency Alert Banner */}
           {isEmergency && evacuationResult && (
@@ -1642,32 +1437,13 @@
                             <text x="832" y="101" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="800">{displayedGuidanceSteps[activeGuidanceStep].title}</text>
                           </g>
                         )}
-                        {/* Live Motion Tracking User Pin on Indoor Map */}
-                        {liveMotionPoint ? (
-                          <g transform={`translate(${liveMotionPoint[0]},${liveMotionPoint[1]})`}>
-                            <circle r="36" fill="#0ea5e9" fillOpacity="0.3" className="radar-pulse" />
-                            <circle r="14" fill="#0284c7" stroke="#ffffff" strokeWidth="4" />
-                            {/* Directional Heading Needle */}
-                            <g transform={`rotate(${compassHeading || liveMotionPoint[2] || 0})`}>
-                              <polygon points="0,-24 -7,-10 7,-10" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
-                            </g>
-                            <circle r="4" fill="#ffffff" />
-                            <g transform="translate(0, 26)">
-                              <rect x="-50" y="-10" width="100" height="22" rx="9" fill="#0284c7" stroke="#ffffff" strokeWidth="1.5" />
-                              <text y="5" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">
-                                {stepCount > 0 ? `👣 ${stepCount} STEPS` : "🟢 YOU ARE HERE"}
-                              </text>
-                            </g>
-                          </g>
-                        ) : (
-                          <g transform="translate(82,104)">
-                            <circle r="28" fill="#0ea5e9" fillOpacity="0.25" className="radar-pulse" />
-                            <circle r="11" fill="#2563eb" stroke="#ffffff" strokeWidth="4" />
-                            <rect x="20" y="-19" width="230" height="38" rx="12" fill="#0f172a" fillOpacity="0.94" stroke="#38bdf8" strokeWidth="2" />
-                            <text x="135" y="-3" textAnchor="middle" fill="#7dd3fc" fontSize="10" fontWeight="900">CURRENT POSITION</text>
-                            <text x="135" y="11" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="800">{userNode?.name || "Locating…"}</text>
-                          </g>
-                        )}
+                        <g transform="translate(82,104)">
+                          <circle r="28" fill="#0ea5e9" fillOpacity="0.25" className="radar-pulse" />
+                          <circle r="11" fill="#2563eb" stroke="#ffffff" strokeWidth="4" />
+                          <rect x="20" y="-19" width="230" height="38" rx="12" fill="#0f172a" fillOpacity="0.94" stroke="#38bdf8" strokeWidth="2" />
+                          <text x="135" y="-3" textAnchor="middle" fill="#7dd3fc" fontSize="10" fontWeight="900">CURRENT POSITION</text>
+                          <text x="135" y="11" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="800">{userNode?.name || "Locating…"}</text>
+                        </g>
                         {internalDestination && (
                           <g>
                             <rect x="300" y="592" width="400" height="42" rx="14" fill="#047857" fillOpacity="0.96" stroke="#a7f3d0" strokeWidth="2" />
@@ -1682,47 +1458,22 @@
             </div>
           </main>
 
-          {/* QR Scanner Modal with Live Camera & Manual Fallback */}
+          {/* QR Scanner Modal */}
           {isQrModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-2xl">
-              <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                   <div className="flex items-center gap-2">
                     <Icon name="qr-code" className="w-5 h-5 text-indigo-400" />
-                    <h3 className="text-base font-bold text-white">Indoor QR Waypoint Scanner</h3>
+                    <h3 className="text-base font-bold text-white">Indoor QR Code Location Scanner</h3>
                   </div>
-                  <button onClick={() => { setIsQrModalOpen(false); setScannerActive(false); }} className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
+                  <button onClick={() => setIsQrModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800">
                     <Icon name="x" className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* Live Camera Scanner View */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-300">📷 Real-Time Camera Scanner:</span>
-                    <button
-                      type="button"
-                      onClick={() => setScannerActive(!scannerActive)}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition ${
-                        scannerActive
-                          ? "bg-red-600/30 text-red-300 border-red-500/50"
-                          : "bg-indigo-600 text-white border-indigo-500 hover:bg-indigo-500"
-                      }`}
-                    >
-                      {scannerActive ? "Stop Camera" : "Open Camera"}
-                    </button>
-                  </div>
-
-                  {scannerActive && (
-                    <div className="bg-black rounded-2xl overflow-hidden border border-indigo-500/50 p-2 text-center">
-                      <div id="qr-reader-video" className="w-full rounded-xl overflow-hidden"></div>
-                      <p className="text-[11px] text-slate-400 mt-2">Point your camera at any SafeWay waypoint code sticker.</p>
-                    </div>
-                  )}
-                </div>
-
-                <form onSubmit={handleQrSubmit} className="space-y-2 pt-2 border-t border-slate-800">
-                  <label className="text-[11px] font-bold text-slate-400 block">Or Enter Scanned Code manually:</label>
+                <form onSubmit={handleQrSubmit} className="space-y-2">
+                  <label className="text-[11px] font-bold text-slate-400 block">Enter Scanned QR Code String:</label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -1764,7 +1515,7 @@
                       Set Here
                     </button>
                   </div>
-                  <div className="text-[10px] text-slate-500">Choose any mapped campus place or room to snap position and reset sensor drift.</div>
+                  <div className="text-[10px] text-slate-500">Choose any mapped campus place or any room on an available block floor plan.</div>
                 </div>
               </div>
             </div>
