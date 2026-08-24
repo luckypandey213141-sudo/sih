@@ -68,7 +68,15 @@
     import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=campus-layout-7';
     import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=guided-shortest-1';
     import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
-    import { subscribeToRealtimeData, setEmergencyActive, resetAllToNormal } from './services/realtime.js';
+    import {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      resetAllToNormal,
+      sendDistressSignal,
+      clearDistressSignal,
+      reportDevicePresence,
+      getDeviceId
+    } from './services/realtime.js';
 
     const SafeWay = {
       INITIAL_BUILDING_DATA,
@@ -79,6 +87,10 @@
       subscribeToRealtimeData,
       setEmergencyActive,
       resetAllToNormal,
+      sendDistressSignal,
+      clearDistressSignal,
+      reportDevicePresence,
+      getDeviceId,
       INDOOR_ROUTE_NETWORKS
     };
     window.SafeWayData = SafeWay;
@@ -1198,10 +1210,12 @@ function App() {
       SafeWay.sendDistressSignal({
         userId: "aegispath-pc-terminal",
         locationName: `${activeQuickCheckpoint?.name || userNode?.name || "Campus Ground"} (${displayedMapPlan.label})`,
+        roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+        mapId: displayedMapId,
         nodeId: userLocationNodeId,
         floor: displayedMapPlan.floor || 1,
         zone: displayedMapPlan.group,
-        emergencyType: sosEmergencyType,
+        reason: sosEmergencyType,
         accessibilityUser: accessibilityMode
       });
     }
@@ -1215,6 +1229,29 @@ function App() {
     setSosSent(false);
     setIsSosModalOpen(false);
   };
+
+  // Live Presence Heartbeat
+  useEffect(() => {
+    if (SafeWay?.reportDevicePresence) {
+      SafeWay.reportDevicePresence({
+        mapId: displayedMapId,
+        roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+        name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+        floor: displayedMapPlan.floor || 1
+      });
+    }
+    const interval = setInterval(() => {
+      if (SafeWay?.reportDevicePresence) {
+        SafeWay.reportDevicePresence({
+          mapId: displayedMapId,
+          roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+          name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+          floor: displayedMapPlan.floor || 1
+        });
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [displayedMapId, activeQuickCheckpoint, userNode]);
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrInputText, setQrInputText] = useState("");

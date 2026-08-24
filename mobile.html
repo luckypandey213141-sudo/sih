@@ -78,7 +78,9 @@
       resetAllToNormal,
       registerActiveRoute,
       sendDistressSignal,
-      clearDistressSignal
+      clearDistressSignal,
+      reportDevicePresence,
+      getDeviceId
     } from './services/realtime.js';
     import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js';
 
@@ -94,6 +96,8 @@
       registerActiveRoute,
       sendDistressSignal,
       clearDistressSignal,
+      reportDevicePresence,
+      getDeviceId,
       INDOOR_ROUTE_NETWORKS,
       MotionTracker,
       interpolatePositionOnRoute
@@ -792,10 +796,34 @@
 
       // SOS state
       const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+      const [sosReason, setSosReason] = useState("🔥 Trapped by Smoke / Fire");
       const [sosSent, setSosSent] = useState(false);
       const [statusNotification, setStatusNotification] = useState("");
 
       const activeMapPlan = MAP_PLANS.find(p => p.id === selectedMapId) || MAP_PLANS[0];
+
+      // Live Presence Heartbeat
+      useEffect(() => {
+        if (window.SafeWay?.reportDevicePresence && activeOriginLocation) {
+          window.SafeWay.reportDevicePresence({
+            mapId: activeOriginLocation.mapId || "campus",
+            roomName: activeOriginLocation.room || (activeOriginLocation.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
+            name: activeOriginLocation.name || "Campus",
+            floor: activeMapPlan?.floor ?? 1
+          });
+        }
+        const interval = setInterval(() => {
+          if (window.SafeWay?.reportDevicePresence && activeOriginLocation) {
+            window.SafeWay.reportDevicePresence({
+              mapId: activeOriginLocation.mapId || "campus",
+              roomName: activeOriginLocation.room || (activeOriginLocation.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
+              name: activeOriginLocation.name || "Campus",
+              floor: activeMapPlan?.floor ?? 1
+            });
+          }
+        }, 8000);
+        return () => clearInterval(interval);
+      }, [activeOriginLocation, activeMapPlan]);
 
       // Subscribe Realtime Sync
       useEffect(() => {
@@ -1063,9 +1091,12 @@
           window.SafeWay.sendDistressSignal({
             userId: "aegispath-user-mobile",
             locationName: (activeOriginLocation?.name || "Campus") + " (" + activeMapPlan.label + ")",
+            roomName: activeOriginLocation?.room || (activeOriginLocation?.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
+            mapId: activeOriginLocation?.mapId || "campus",
             nodeId: "mobile-node",
             floor: activeMapPlan.floor || 1,
-            zone: activeMapPlan.group
+            zone: activeMapPlan.group,
+            reason: sosReason
           });
         }
         setSosSent(true);
@@ -1701,13 +1732,35 @@
                   🆘
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <h3 className={"text-lg font-black " + (isLight ? "text-slate-900" : "text-white")}>Emergency Trapped Signal</h3>
                   <p className={"text-xs " + (isLight ? "text-slate-700" : "text-slate-300")}>
-                    Transmitting your location to the Campus Security Command Center:
+                    Transmitting your location & situation to the Security Command Center:
                   </p>
-                  <div className="p-3 bg-red-50 dark:bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-600 dark:text-red-400">
+                  <div className="p-2.5 bg-red-50 dark:bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-600 dark:text-red-400">
                     {"📍 " + (activeOriginLocation?.name || "Campus") + " • " + activeMapPlan.label}
+                  </div>
+
+                  {/* Distress Reason Selector */}
+                  <div className="text-left space-y-1 pt-1">
+                    <label className={"text-[10px] font-bold uppercase tracking-wider block " + (isLight ? "text-slate-600" : "text-slate-400")}>
+                      Distress Reason / Situation:
+                    </label>
+                    <select
+                      value={sosReason}
+                      onChange={(e) => setSosReason(e.target.value)}
+                      className={"w-full p-2.5 rounded-xl border text-xs font-bold outline-none " + (
+                        isLight
+                          ? "bg-slate-50 border-red-300 text-slate-900 focus:border-red-500"
+                          : "bg-slate-950 border-red-500/50 text-white focus:border-red-400"
+                      )}
+                    >
+                      <option value="🔥 Trapped by Smoke / Fire">🔥 Trapped by Smoke / Fire</option>
+                      <option value="🚪 Blocked Stairway / Corridor Exit">🚪 Blocked Stairway / Corridor Exit</option>
+                      <option value="🚑 Injured / Medical Emergency">🚑 Injured / Medical Emergency</option>
+                      <option value="♿ Mobility Impairment / Assistance Needed">♿ Mobility Impairment / Assistance Needed</option>
+                      <option value="⚠️ Structural Damage / Debris Obstruction">⚠️ Structural Damage / Debris Obstruction</option>
+                    </select>
                   </div>
                 </div>
 
