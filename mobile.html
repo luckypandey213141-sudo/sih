@@ -106,6 +106,11 @@
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
 
+    function getControlId(kind, mapId, name) {
+      if (!name || !mapId) return "";
+      return kind + "-" + mapId + "-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+
     const MAP_PLANS = [
       { id: "campus", group: "Campus", label: "Main College Campus Map", src: "/assets/college-campus-layout.jpeg", floor: 1 },
       { id: "ramanujan-basement", group: "Ramanujan Block", label: "Basement", src: "/assets/college-maps/ramanujan-basement.png", floor: 0, rooms: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2", "Exit"] },
@@ -214,55 +219,55 @@
 
     const BLOCK_EGRESS_OPTIONS = {
       "ramanujan-ground": [
-        { id: "Entry / Exit 1", key: "door:ramanujan-ground:Entry / Exit 1", label: "MAIN EXIT 1 (South-West)", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500, defaultPriority: 1 },
-        { id: "Entry / Exit 2", key: "door:ramanujan-ground:Entry / Exit 2", label: "EXIT 2 (East Wing)", point: [920, 300], campusNode: "auditorium", corridorY: 300, hubX: 650, defaultPriority: 2 },
-        { id: "Entry / Exit 3", key: "door:ramanujan-ground:Entry / Exit 3", label: "EXIT 3 (South-East)", point: [760, 590], campusNode: "lift-1", corridorY: 455, hubX: 650, defaultPriority: 3 }
+        { id: "Entry / Exit 1", label: "MAIN EXIT 1 (South-West)", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500, defaultPriority: 1 },
+        { id: "Entry / Exit 2", label: "EXIT 2 (East Wing)", point: [920, 300], campusNode: "auditorium", corridorY: 300, hubX: 760, defaultPriority: 2 },
+        { id: "Entry / Exit 3", label: "EXIT 3 (South-East)", point: [760, 590], campusNode: "lift-1", corridorY: 455, hubX: 760, defaultPriority: 3 }
       ],
       "bhabha-ground": [
-        { id: "Entry", key: "door:bhabha-ground:Entry", label: "MAIN RECEPTION EXIT", point: [500, 590], campusNode: "lobby", corridorY: 420, hubX: 500, defaultPriority: 1 },
-        { id: "Rear Egress", key: "door:bhabha-ground:Rear Egress", label: "REAR EXIT GATE", point: [720, 590], campusNode: "gate-2-destination", corridorY: 420, hubX: 650, defaultPriority: 2 }
+        { id: "Entry", label: "MAIN RECEPTION EXIT", point: [500, 590], campusNode: "lobby", corridorY: 420, hubX: 500, defaultPriority: 1 },
+        { id: "Rear Egress", label: "REAR EXIT GATE", point: [720, 590], campusNode: "gate-2-destination", corridorY: 420, hubX: 650, defaultPriority: 2 }
       ],
       "kalpana-ground": [
-        { id: "Entry", key: "door:kalpana-ground:Entry", label: "SOUTH MAIN EXIT", point: [500, 590], campusNode: "restroom-1", corridorY: 400, hubX: 500, defaultPriority: 1 },
-        { id: "Emergency Exit", key: "door:kalpana-ground:Emergency Exit", label: "NORTH EMERGENCY FIRE EXIT", point: [500, 120], campusNode: "ent-north", corridorY: 220, hubX: 500, defaultPriority: 2 }
+        { id: "Entry", label: "SOUTH MAIN EXIT", point: [500, 590], campusNode: "restroom-1", corridorY: 400, hubX: 500, defaultPriority: 1 },
+        { id: "Emergency Exit", label: "NORTH EMERGENCY FIRE EXIT", point: [500, 120], campusNode: "ent-north", corridorY: 220, hubX: 500, defaultPriority: 2 }
       ],
       "raman-ground": [
-        { id: "Entry / Exit 1", key: "door:raman-ground:Entry / Exit 1", label: "RAMAN MAIN EXIT 1", point: [650, 590], campusNode: "lab-101", corridorY: 350, hubX: 500, defaultPriority: 1 },
-        { id: "Entry / Exit 2", key: "door:raman-ground:Entry / Exit 2", label: "RAMAN CORRIDOR EXIT 2", point: [920, 300], campusNode: "auditorium", corridorY: 350, hubX: 750, defaultPriority: 2 }
+        { id: "Entry / Exit 1", label: "RAMAN MAIN EXIT 1", point: [650, 590], campusNode: "lab-101", corridorY: 350, hubX: 500, defaultPriority: 1 },
+        { id: "Entry / Exit 2", label: "RAMAN CORRIDOR EXIT 2", point: [920, 300], campusNode: "auditorium", corridorY: 350, hubX: 750, defaultPriority: 2 }
       ],
       "aryabhatta-ground": [
-        { id: "Entry / Exit", key: "door:aryabhatta-ground:Entry / Exit", label: "MAIN CAMPUS EXIT", point: [500, 590], campusNode: "cafeteria", corridorY: 390, hubX: 500, defaultPriority: 1 },
-        { id: "Stairs 2 Exit", key: "door:aryabhatta-ground:Stairs 2", label: "EAST STAIRS EXIT", point: [650, 505], campusNode: "gate-2-destination", corridorY: 390, hubX: 600, defaultPriority: 2 }
+        { id: "Entry / Exit", label: "MAIN CAMPUS EXIT", point: [500, 590], campusNode: "cafeteria", corridorY: 390, hubX: 500, defaultPriority: 1 },
+        { id: "Stairs 2 Exit", label: "EAST STAIRS EXIT", point: [650, 505], campusNode: "gate-2-destination", corridorY: 390, hubX: 600, defaultPriority: 2 }
       ]
     };
 
     const BLOCK_STAIRS_OPTIONS = {
       "ramanujan-first": [
-        { id: "East Stairs", key: "corridor:ramanujan-first:stair-east", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] },
-        { id: "West Lobby", key: "corridor:ramanujan-first:lift", label: "WEST STAIRS / LOBBY", point: [190, 235], corridorY: 325, hubX: 350, groundStairs: [190, 235] }
+        { id: "East Stairs", name: "Stairs", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] },
+        { id: "West Lobby", name: "Lift", label: "WEST STAIRS / LOBBY", point: [190, 235], corridorY: 325, hubX: 350, groundStairs: [190, 235] }
       ],
       "ramanujan-basement": [
-        { id: "Stairs 1", key: "corridor:ramanujan-basement:stairs-1", label: "BASEMENT STAIRS 1", point: [550, 260], corridorY: 300, hubX: 500, groundStairs: [760, 250] },
-        { id: "Stairs 2", key: "corridor:ramanujan-basement:stairs-2", label: "BASEMENT STAIRS 2", point: [720, 260], corridorY: 300, hubX: 650, groundStairs: [760, 250] }
+        { id: "Stairs 1", name: "Stairs 1", label: "BASEMENT STAIRS 1", point: [550, 260], corridorY: 300, hubX: 500, groundStairs: [760, 250] },
+        { id: "Stairs 2", name: "Stairs 2", label: "BASEMENT STAIRS 2", point: [720, 260], corridorY: 300, hubX: 650, groundStairs: [760, 250] }
       ],
       "bhabha-first": [
-        { id: "Stairs", key: "corridor:bhabha-first:stairs", label: "CENTRAL STAIRS", point: [755, 175], corridorY: 300, hubX: 500, groundStairs: [755, 175] }
+        { id: "Stairs", name: "Stairs", label: "CENTRAL STAIRS", point: [755, 175], corridorY: 300, hubX: 500, groundStairs: [755, 175] }
       ],
       "bhabha-basement": [
-        { id: "Library Stairs", key: "corridor:bhabha-basement:stairs", label: "LIBRARY STAIRS", point: [500, 420], corridorY: 335, hubX: 500, groundStairs: [500, 590] }
+        { id: "Library Stairs", name: "Lobby / Corridor", label: "LIBRARY STAIRS", point: [500, 420], corridorY: 335, hubX: 500, groundStairs: [500, 590] }
       ],
       "kalpana-first": [
-        { id: "Entry / Exit", key: "corridor:kalpana-first:entry-exit", label: "MAIN STAIRS", point: [145, 325], corridorY: 325, hubX: 300, groundStairs: [385, 220] },
-        { id: "Emergency Exit", key: "corridor:kalpana-first:emergency-exit", label: "NORTH ESCAPE STAIRS", point: [175, 300], corridorY: 300, hubX: 300, groundStairs: [500, 120] }
+        { id: "Entry / Exit", name: "Entry / Exit", label: "MAIN STAIRS", point: [145, 325], corridorY: 325, hubX: 300, groundStairs: [385, 220] },
+        { id: "Emergency Exit", name: "Emergency Exit", label: "NORTH ESCAPE STAIRS", point: [175, 300], corridorY: 300, hubX: 300, groundStairs: [500, 120] }
       ],
       "kalpana-basement": [
-        { id: "Basement Stairs", key: "corridor:kalpana-basement:stairs", label: "BASEMENT STAIRS", point: [500, 590], corridorY: 290, hubX: 500, groundStairs: [500, 590] }
+        { id: "Basement Stairs", name: "Entry / Exit", label: "BASEMENT STAIRS", point: [500, 590], corridorY: 290, hubX: 500, groundStairs: [500, 590] }
       ],
       "raman-first": [
-        { id: "Stairs", key: "corridor:raman-first:stairs", label: "FIRST FLOOR STAIRS", point: [755, 260], corridorY: 270, hubX: 520, groundStairs: [755, 260] }
+        { id: "Stairs", name: "Stairs", label: "FIRST FLOOR STAIRS", point: [755, 260], corridorY: 270, hubX: 520, groundStairs: [755, 260] }
       ],
       "aryabhatta-basement": [
-        { id: "Stairs 1", key: "corridor:aryabhatta-basement:stairs-1", label: "BASEMENT STAIRS", point: [220, 170], corridorY: 330, hubX: 500, groundStairs: [430, 505] }
+        { id: "Stairs 1", name: "Stairs 1", label: "BASEMENT STAIRS", point: [220, 170], corridorY: 330, hubX: 500, groundStairs: [430, 505] }
       ]
     };
 
@@ -273,10 +278,17 @@
       }
 
       const viable = options.filter(opt => {
+        const doorKey = getControlId("door", groundMapId, opt.id);
+        const areaKey = getControlId("area", groundMapId, opt.id);
+
+        if (liveState?.exits?.[doorKey]?.isOpen === false) return false;
         if (liveState?.exits?.[opt.id]?.isOpen === false) return false;
-        if (liveState?.exits?.[opt.key]?.isOpen === false) return false;
-        if (liveState?.hazards?.[opt.key] === "high" || liveState?.hazards?.[opt.id] === "high" || liveState?.hazards?.[groundMapId + ":" + opt.id] === "high") return false;
-        if (liveState?.blockedEdges?.[opt.key] || liveState?.blockedEdges?.[opt.id]) return false;
+
+        if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
+        if (liveState?.hazards?.[opt.id] === "high") return false;
+
+        if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
+
         return true;
       });
 
@@ -293,9 +305,16 @@
       }
 
       viable.sort((a, b) => {
-        const crowdA = liveState?.crowds?.[a.id] === "High" ? 50 : (liveState?.crowds?.[a.id] === "Medium" ? 20 : 0);
-        const crowdB = liveState?.crowds?.[b.id] === "High" ? 50 : (liveState?.crowds?.[b.id] === "Medium" ? 20 : 0);
-        return (crowdA + (a.defaultPriority || 1)) - (crowdB + (b.defaultPriority || 1));
+        const doorKeyA = getControlId("door", groundMapId, a.id);
+        const doorKeyB = getControlId("door", groundMapId, b.id);
+
+        const crowdValA = liveState?.crowds?.[doorKeyA] || liveState?.crowds?.[a.id] || "Low";
+        const crowdValB = liveState?.crowds?.[doorKeyB] || liveState?.crowds?.[b.id] || "Low";
+
+        const crowdPenaltyA = crowdValA === "High" ? 80 : (crowdValA === "Medium" ? 30 : 0);
+        const crowdPenaltyB = crowdValB === "High" ? 80 : (crowdValB === "Medium" ? 30 : 0);
+
+        return (crowdPenaltyA + (a.defaultPriority || 1)) - (crowdPenaltyB + (b.defaultPriority || 1));
       });
 
       return viable[0];
@@ -308,12 +327,45 @@
       }
 
       const viable = options.filter(opt => {
-        if (liveState?.hazards?.[opt.key] === "high" || liveState?.hazards?.[opt.id] === "high") return false;
-        if (liveState?.blockedEdges?.[opt.key]) return false;
+        const doorKey = getControlId("door", upperMapId, opt.name || opt.id);
+        const areaKey = getControlId("area", upperMapId, opt.name || opt.id);
+
+        if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
+        if (liveState?.hazards?.[opt.id] === "high") return false;
+        if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
         return true;
       });
 
       return viable.length > 0 ? viable[0] : options[0];
+    }
+
+    function computeFloorPath(startPt, endPt, corridorY = 455, hubX = 500) {
+      if (!startPt || !endPt) return [startPt || [500, 500], endPt || [500, 500]];
+      const [x1, y1] = startPt;
+      const [x2, y2] = endPt;
+
+      if (Math.abs(x1 - x2) < 30) {
+        return [
+          [x1, y1],
+          [x1, corridorY],
+          [x2, y2]
+        ];
+      }
+
+      if (Math.abs(y1 - y2) < 30) {
+        return [
+          [x1, y1],
+          [x2, y2]
+        ];
+      }
+
+      return [
+        [x1, y1],
+        [x1, corridorY],
+        [hubX, corridorY],
+        [x2, corridorY],
+        [x2, y2]
+      ];
     }
 
     const ALL_CAMPUS_LOCATIONS_HIERARCHY = [
@@ -438,7 +490,7 @@
       const isOriginUpperOrLower = originMap.includes("first") || originMap.includes("basement");
       const isDestUpperOrLower = destMap.includes("first") || destMap.includes("basement");
 
-      // Dynamic Egress Selection
+      // Dynamic Egress & Stairs Selection based on liveState
       const chosenStairs = isOriginUpperOrLower ? selectBestStairs(originMap, liveState) : null;
       const groundMapId = originBlockPrefix ? (originBlockPrefix + "-ground") : "campus";
       const chosenEgressDoor = selectBestEgressDoor(groundMapId, liveState);
@@ -450,13 +502,7 @@
         const corridorY = chosenStairs?.corridorY || 325;
         const hubX = chosenStairs?.hubX || 520;
 
-        const p1 = [
-          roomPt,
-          [roomPt[0], corridorY],
-          [hubX, corridorY],
-          [stairsPt[0], corridorY],
-          stairsPt
-        ];
+        const p1 = computeFloorPath(roomPt, stairsPt, corridorY, hubX);
 
         stages.push({
           stageKey: "origin-upper",
@@ -482,13 +528,7 @@
         const gCorridorY = chosenEgressDoor.corridorY || 455;
         const gHubX = chosenEgressDoor.hubX || 500;
 
-        const p2 = [
-          gStairsPt,
-          [gStairsPt[0], gCorridorY],
-          [gHubX, gCorridorY],
-          [gExitPt[0], gCorridorY],
-          gExitPt
-        ];
+        const p2 = computeFloorPath(gStairsPt, gExitPt, gCorridorY, gHubX);
 
         stages.push({
           stageKey: "origin-ground",
@@ -514,13 +554,7 @@
         const gCorridorY = chosenEgressDoor.corridorY || 455;
         const gHubX = chosenEgressDoor.hubX || 500;
 
-        const p = [
-          roomPt,
-          [roomPt[0], gCorridorY],
-          [gHubX, gCorridorY],
-          [gExitPt[0], gCorridorY],
-          gExitPt
-        ];
+        const p = computeFloorPath(roomPt, gExitPt, gCorridorY, gHubX);
 
         stages.push({
           stageKey: "origin-ground",
@@ -574,13 +608,7 @@
         const tCorridorY = targetChosenDoor.corridorY || 455;
         const tHubX = targetChosenDoor.hubX || 500;
 
-        const pInGround = [
-          entryPt,
-          [entryPt[0], tCorridorY],
-          [tHubX, tCorridorY],
-          [targetEndPt[0], tCorridorY],
-          targetEndPt
-        ];
+        const pInGround = computeFloorPath(entryPt, targetEndPt, tCorridorY, tHubX);
 
         stages.push({
           stageKey: "target-ground",
@@ -607,13 +635,7 @@
           const finalCorridorY = targetStairs?.corridorY || 325;
           const finalHubX = targetStairs?.hubX || 520;
 
-          const pFinal = [
-            tStairsPt,
-            [tStairsPt[0], finalCorridorY],
-            [finalHubX, finalCorridorY],
-            [tRoomPt[0], finalCorridorY],
-            tRoomPt
-          ];
+          const pFinal = computeFloorPath(tStairsPt, tRoomPt, finalCorridorY, finalHubX);
 
           stages.push({
             stageKey: "target-final",
@@ -923,7 +945,7 @@
 
       const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-      // Build True Multi-Floor Dynamic Egress Pipeline
+      // Build True Multi-Floor Dynamic Egress Pipeline (Reacts dynamically to liveState changes!)
       const multiFloorPipeline = useMemo(() => {
         return buildMultiFloorStagePipeline({
           activeOriginLocation,

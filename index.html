@@ -570,6 +570,102 @@ const INDOOR_ROUTE_TEMPLATES = {
     hubX: 500
   }
 };
+function getControlId(kind, mapId, name) {
+  if (!name || !mapId) return "";
+  return kind + "-" + mapId + "-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+const BLOCK_EGRESS_OPTIONS = {
+  "ramanujan-ground": [
+    { id: "Entry / Exit 1", label: "MAIN EXIT 1 (South-West)", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500, defaultPriority: 1 },
+    { id: "Entry / Exit 2", label: "EXIT 2 (East Wing)", point: [920, 300], campusNode: "auditorium", corridorY: 300, hubX: 760, defaultPriority: 2 },
+    { id: "Entry / Exit 3", label: "EXIT 3 (South-East)", point: [760, 590], campusNode: "lift-1", corridorY: 455, hubX: 760, defaultPriority: 3 }
+  ],
+  "bhabha-ground": [
+    { id: "Entry", label: "MAIN RECEPTION EXIT", point: [500, 590], campusNode: "lobby", corridorY: 420, hubX: 500, defaultPriority: 1 },
+    { id: "Rear Egress", label: "REAR EXIT GATE", point: [720, 590], campusNode: "gate-2-destination", corridorY: 420, hubX: 650, defaultPriority: 2 }
+  ],
+  "kalpana-ground": [
+    { id: "Entry", label: "SOUTH MAIN EXIT", point: [500, 590], campusNode: "restroom-1", corridorY: 400, hubX: 500, defaultPriority: 1 },
+    { id: "Emergency Exit", label: "NORTH EMERGENCY FIRE EXIT", point: [500, 120], campusNode: "ent-north", corridorY: 220, hubX: 500, defaultPriority: 2 }
+  ],
+  "raman-ground": [
+    { id: "Entry / Exit 1", label: "RAMAN MAIN EXIT 1", point: [650, 590], campusNode: "lab-101", corridorY: 350, hubX: 500, defaultPriority: 1 },
+    { id: "Entry / Exit 2", label: "RAMAN CORRIDOR EXIT 2", point: [920, 300], campusNode: "auditorium", corridorY: 350, hubX: 750, defaultPriority: 2 }
+  ],
+  "aryabhatta-ground": [
+    { id: "Entry / Exit", label: "MAIN CAMPUS EXIT", point: [500, 590], campusNode: "cafeteria", corridorY: 390, hubX: 500, defaultPriority: 1 },
+    { id: "Stairs 2 Exit", label: "EAST STAIRS EXIT", point: [650, 505], campusNode: "gate-2-destination", corridorY: 390, hubX: 600, defaultPriority: 2 }
+  ]
+};
+const BLOCK_STAIRS_OPTIONS = {
+  "ramanujan-first": [
+    { id: "East Stairs", name: "Stairs", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] },
+    { id: "West Lobby", name: "Lift", label: "WEST STAIRS / LOBBY", point: [190, 235], corridorY: 325, hubX: 350, groundStairs: [190, 235] }
+  ],
+  "ramanujan-basement": [
+    { id: "Stairs 1", name: "Stairs 1", label: "BASEMENT STAIRS 1", point: [550, 260], corridorY: 300, hubX: 500, groundStairs: [760, 250] },
+    { id: "Stairs 2", name: "Stairs 2", label: "BASEMENT STAIRS 2", point: [720, 260], corridorY: 300, hubX: 650, groundStairs: [760, 250] }
+  ],
+  "bhabha-first": [
+    { id: "Stairs", name: "Stairs", label: "CENTRAL STAIRS", point: [755, 175], corridorY: 300, hubX: 500, groundStairs: [755, 175] }
+  ],
+  "kalpana-first": [
+    { id: "Entry / Exit", name: "Entry / Exit", label: "MAIN STAIRS", point: [145, 325], corridorY: 325, hubX: 300, groundStairs: [385, 220] },
+    { id: "Emergency Exit", name: "Emergency Exit", label: "NORTH ESCAPE STAIRS", point: [175, 300], corridorY: 300, hubX: 300, groundStairs: [500, 120] }
+  ]
+};
+function selectBestEgressDoor(groundMapId, liveState) {
+  const options = BLOCK_EGRESS_OPTIONS[groundMapId] || [];
+  if (options.length === 0) {
+    return { id: "Exit", label: "MAIN EXIT", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500 };
+  }
+  const viable = options.filter(opt => {
+    const doorKey = getControlId("door", groundMapId, opt.id);
+    const areaKey = getControlId("area", groundMapId, opt.id);
+    if (liveState?.exits?.[doorKey]?.isOpen === false) return false;
+    if (liveState?.exits?.[opt.id]?.isOpen === false) return false;
+    if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
+    if (liveState?.hazards?.[opt.id] === "high") return false;
+    if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
+    return true;
+  });
+  if (viable.length === 0) {
+    return {
+      id: "Area of Refuge",
+      label: "SAFE AREA OF REFUGE (ALL EXITS BLOCKED)",
+      point: [500, 390],
+      campusNode: "admin",
+      corridorY: 400,
+      hubX: 500,
+      isTrapped: true
+    };
+  }
+  viable.sort((a, b) => {
+    const doorKeyA = getControlId("door", groundMapId, a.id);
+    const doorKeyB = getControlId("door", groundMapId, b.id);
+    const crowdValA = liveState?.crowds?.[doorKeyA] || liveState?.crowds?.[a.id] || "Low";
+    const crowdValB = liveState?.crowds?.[doorKeyB] || liveState?.crowds?.[b.id] || "Low";
+    const crowdPenaltyA = crowdValA === "High" ? 80 : (crowdValA === "Medium" ? 30 : 0);
+    const crowdPenaltyB = crowdValB === "High" ? 80 : (crowdValB === "Medium" ? 30 : 0);
+    return (crowdPenaltyA + (a.defaultPriority || 1)) - (crowdPenaltyB + (b.defaultPriority || 1));
+  });
+  return viable[0];
+}
+function selectBestStairs(upperMapId, liveState) {
+  const options = BLOCK_STAIRS_OPTIONS[upperMapId] || [];
+  if (options.length === 0) {
+    return { id: "Stairs", label: "STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] };
+  }
+  const viable = options.filter(opt => {
+    const doorKey = getControlId("door", upperMapId, opt.name || opt.id);
+    const areaKey = getControlId("area", upperMapId, opt.name || opt.id);
+    if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
+    if (liveState?.hazards?.[opt.id] === "high") return false;
+    if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
+    return true;
+  });
+  return viable.length > 0 ? viable[0] : options[0];
+}
 const FLOOR_CONNECTIONS = {
   "ramanujan-ground": [{
     id: "rj-lift",
@@ -1187,15 +1283,15 @@ function App() {
   const indoorRoute = useMemo(() => buildIndoorRoute(displayedMapId, displayedMapId === selectedMapId ? internalDestination : chosenFloorConnection?.name || (accessibilityMode ? "Accessible Lift Unavailable" : "Stairs / Lift"), accessibilityMode, indoorTargetPoint, recognizedEntryExit?.point), [displayedMapId, selectedMapId, internalDestination, accessibilityMode, chosenFloorConnection, indoorTargetPoint, recognizedEntryExit]);
   const emergencyRouteMode = !!liveState?.emergencyActive && displayedMapId !== "campus";
   const emergencyCurrentGroundMapId = currentLocationMapId === "campus" ? "campus" : `${currentLocationMapId.split("-")[0]}-ground`;
-  const emergencyGroundConnections = (FLOOR_CONNECTIONS[emergencyCurrentGroundMapId] || []).filter(connection => !accessibilityMode || connection.type === "lift");
-  const emergencyGroundStart = emergencyGroundConnections[0]?.point || recognizedEntryExit?.point;
-  const nearestMappedPoint = (items, reference) => (items || []).reduce((best, item) => {
-    if (!best) return item;
-    const distance = point => Math.hypot(point[0] - reference[0], point[1] - reference[1]);
-    return distance(item.point) < distance(best.point) ? item : best;
-  }, null);
+  const chosenBestEgress = useMemo(() => {
+    return selectBestEgressDoor(displayedMapId.endsWith("-ground") ? displayedMapId : emergencyCurrentGroundMapId, liveState);
+  }, [displayedMapId, emergencyCurrentGroundMapId, liveState]);
+  const chosenBestStairs = useMemo(() => {
+    return selectBestStairs(displayedMapId, liveState);
+  }, [displayedMapId, liveState]);
+  const emergencyGroundStart = chosenBestStairs?.groundStairs || recognizedEntryExit?.point;
   const emergencyIndoorStart = emergencyRouteMode && displayedMapId === emergencyCurrentGroundMapId && currentLocationMapId !== emergencyCurrentGroundMapId ? emergencyGroundStart : currentIndoorPoint || recognizedEntryExit?.point;
-  const emergencyIndoorTarget = emergencyRouteMode ? displayedMapId === emergencyCurrentGroundMapId ? nearestMappedPoint((FLOOR_ENTRY_EXITS[displayedMapId] || []).filter(exit => exit.campusPoint), emergencyIndoorStart || [500, 400])?.point : nearestMappedPoint(FLOOR_ENTRY_EXITS[displayedMapId], emergencyIndoorStart || [500, 400])?.point : null;
+  const emergencyIndoorTarget = emergencyRouteMode ? (displayedMapId.endsWith("-ground") ? chosenBestEgress.point : (chosenBestStairs?.point || [500, 300])) : null;
   const shortestIndoorPath = useMemo(() => shortestPathOnIndoorNetwork(SafeWay?.INDOOR_ROUTE_NETWORKS?.[displayedMapId], emergencyIndoorStart, emergencyIndoorTarget || indoorRoute?.points?.[indoorRoute.points.length - 1]), [displayedMapId, emergencyIndoorStart, emergencyIndoorTarget, indoorRoute]);
   const selectedGuidedPath = shortestIndoorPath?.path || SELECTED_GUIDED_PATHS[displayedMapId] || null;
   useEffect(() => {
