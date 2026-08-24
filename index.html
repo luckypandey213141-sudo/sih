@@ -1723,24 +1723,30 @@ function App() {
     className: "space-y-2"
   }, /*#__PURE__*/React.createElement("label", {
     className: "text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDFE2 1. Current Position"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsQrModalOpen(true),
-    className: "text-indigo-400 text-[11px] font-bold hover:underline"
-  }, "[QR Scan]")), /*#__PURE__*/React.createElement("div", {
-    onClick: () => setIsQrModalOpen(true),
-    className: "w-full bg-slate-950/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex items-center justify-between cursor-pointer group transition"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-black text-xs"
-  }, userNode?.floor, "F"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "text-sm font-black text-white group-hover:text-indigo-400 transition"
-  }, userNode?.name), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] text-slate-400 font-medium"
-  }, "Zone: ", userNode?.zone?.toUpperCase() || 'Lobby'))), /*#__PURE__*/React.createElement(Icon, {
-    name: "qr-code",
-    className: "w-4 h-4 text-slate-500 group-hover:text-white transition"
-  }))), !isEmergency && /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDFE2 1. Current Position")), /*#__PURE__*/React.createElement("select", {
+    value: quickCheckpointKey,
+    onChange: event => {
+      setQuickCheckpointKey(event.target.value);
+      const checkpoint = quickCheckpoints.find(item => item.key === event.target.value);
+      if (checkpoint) {
+        setActiveQuickCheckpoint(checkpoint);
+        setUserLocationNodeId(checkpoint.nodeId);
+        setCurrentFloor(checkpoint.floor);
+        setSelectedMapId(checkpoint.mapId);
+        setGuidanceMapOverride(checkpoint.mapId);
+        setFollowPositionMap(true);
+        if (checkpoint.room) setInternalDestination(checkpoint.room);
+        setActiveGuidanceStep(0);
+      }
+    },
+    className: "w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-2xl p-3.5 font-bold focus:outline-none focus:border-indigo-500 transition"
+  }, /*#__PURE__*/React.createElement("option", { value: "" }, "Select current position\u2026"), [...new Set(quickCheckpoints.map(item => item.group))].map(group => /*#__PURE__*/React.createElement("optgroup", {
+    key: group,
+    label: group
+  }, quickCheckpoints.filter(item => item.group === group).map(item => /*#__PURE__*/React.createElement("option", {
+    key: item.key,
+    value: item.key
+  }, "📍 ", item.name)))))), !isEmergency && /*#__PURE__*/React.createElement("div", {
     className: "space-y-2"
   }, /*#__PURE__*/React.createElement("label", {
     className: "text-[11px] font-black text-slate-400 uppercase tracking-wider block"
@@ -2787,68 +2793,7 @@ function App() {
   }, "Cancel"), /*#__PURE__*/React.createElement("button", {
     onClick: triggerSosDistress,
     className: "flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-red-600/40"
-  }, "DISPATCH SOS BEACON")))), isQrModalOpen && /*#__PURE__*/React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-2xl"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between pb-3 border-b border-slate-800"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "qr-code",
-    className: "w-5 h-5 text-indigo-400"
-  }), /*#__PURE__*/React.createElement("h3", {
-    className: "text-base font-bold text-white"
-  }, "Indoor QR Code Location Scanner")), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setIsQrModalOpen(false),
-    className: "p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "x",
-    className: "w-4 h-4"
-  }))), /*#__PURE__*/React.createElement("form", {
-    onSubmit: handleQrSubmit,
-    className: "space-y-2"
-  }, /*#__PURE__*/React.createElement("label", {
-    className: "text-[11px] font-bold text-slate-400 block"
-  }, "Enter Scanned QR Code String:"), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-2"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "e.g. SW-ROOM204 or SW-LAB101",
-    value: qrInputText,
-    onChange: e => setQrInputText(e.target.value),
-    className: "flex-1 bg-slate-950 border border-slate-700 rounded-2xl p-3 text-xs text-white font-mono uppercase"
-  }), /*#__PURE__*/React.createElement("button", {
-    type: "submit",
-    className: "px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition"
-  }, "Set Location"))), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-2 pt-2 border-t border-slate-800"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-xs font-bold text-slate-400"
-  }, "Quick Checkpoints \u2014 Campus, Block, Floor, Room / Facility:"), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-2"
-  }, /*#__PURE__*/React.createElement("select", {
-    value: quickCheckpointKey,
-    onChange: event => setQuickCheckpointKey(event.target.value),
-    className: "flex-1 min-w-0 bg-slate-950 border border-slate-700 rounded-2xl p-3 text-xs text-white font-bold outline-none focus:border-indigo-500",
-    "aria-label": "Select any campus checkpoint"
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select current position\u2026"), [...new Set(quickCheckpoints.map(item => item.group))].map(group => /*#__PURE__*/React.createElement("optgroup", {
-    key: group,
-    label: group
-  }, quickCheckpoints.filter(item => item.group === group).map(item => /*#__PURE__*/React.createElement("option", {
-    key: item.key,
-    value: item.key
-  }, item.name))))), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    disabled: !quickCheckpointKey,
-    onClick: handleQuickCheckpoint,
-    className: "px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-2xl text-xs font-black transition"
-  }, "Set Here")), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] text-slate-500"
-  }, "Choose any mapped campus place or any room on an available block floor plan.")))));
+  }, "DISPATCH SOS BEACON"))));
 }
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);

@@ -1160,11 +1160,6 @@ function MobileApp() {
   const [isMotionTracking, setIsMotionTracking] = useState(false);
   const [autoWalkActive, setAutoWalkActive] = useState(false);
 
-  // QR Modal & Camera states
-  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [scannerActive, setScannerActive] = useState(false);
-  const [qrInputText, setQrInputText] = useState("");
-  const [cameraError, setCameraError] = useState("");
 
   // SOS state
   const [isSosModalOpen, setIsSosModalOpen] = useState(false);
@@ -1444,91 +1439,8 @@ function MobileApp() {
       notify("⚠️ Unrecognized QR Code");
       return;
     }
-    setStageStepCount(0);
-    setActiveStageIndex(0);
-    if (resolved.mapId && resolved.mapId !== "campus" && resolved.room) {
-      const key = `${resolved.mapId}:${resolved.room}`;
-      setOriginLocationKey(key);
-      setSelectedMapId(resolved.mapId);
-    } else if (resolved.nodeId) {
-      setOriginLocationKey(`campus:${resolved.nodeId}`);
-      setSelectedMapId("campus");
-    } else {
-      setOriginLocationKey(`campus:${resolved.code}`);
-      setSelectedMapId(resolved.mapId || "campus");
-    }
-    setIsQrModalOpen(false);
-    setScannerActive(false);
-    notify(`📍 Scanned: ${resolved.name || "Waypoint"}!`);
-    speakText(`Position verified at ${resolved.name || "Waypoint"}`);
-  };
-  const handleManualQrSubmit = e => {
-    e.preventDefault();
-    if (!qrInputText.trim()) return;
-    const resolved = SafeWay.resolveQrCode ? SafeWay.resolveQrCode(qrInputText.trim()) : null;
-    if (resolved) {
-      applyQrResolution(resolved);
-      setQrInputText("");
-    } else {
-      notify("⚠️ Code not found in database");
-    }
   };
 
-  // URL Query Param QR code support (e.g. ?qr=SW-RAM-G-R1)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const qrParam = params.get('qr');
-    if (qrParam && SafeWay.resolveQrCode) {
-      const res = SafeWay.resolveQrCode(qrParam);
-      if (res) {
-        applyQrResolution(res);
-      }
-    }
-  }, []);
-
-  // Real Camera Scanner Lifecycle
-  useEffect(() => {
-    let html5QrCode = null;
-    if (isQrModalOpen && scannerActive) {
-      setCameraError("");
-      try {
-        if (typeof Html5Qrcode !== "undefined") {
-          html5QrCode = new Html5Qrcode("mobile-qr-reader-container");
-          html5QrCode.start({
-            facingMode: "environment"
-          }, {
-            fps: 10,
-            qrbox: {
-              width: 220,
-              height: 220
-            }
-          }, decodedText => {
-            const resolved = SafeWay.resolveQrCode ? SafeWay.resolveQrCode(decodedText) : null;
-            if (resolved) {
-              applyQrResolution(resolved);
-            } else {
-              notify(`📍 Scanned: ${decodedText}`);
-            }
-            html5QrCode.stop().catch(() => {});
-            setScannerActive(false);
-            setIsQrModalOpen(false);
-          }, () => {}).catch(err => {
-            console.error("Camera start failed:", err);
-            setCameraError(err?.message || "Camera permission denied or device not found");
-          });
-        } else {
-          setCameraError("Camera QR Library loading...");
-        }
-      } catch (err) {
-        setCameraError(err?.message || "Failed to initialize camera");
-      }
-    }
-    return () => {
-      if (html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(() => {});
-      }
-    };
-  }, [isQrModalOpen, scannerActive]);
   const toggleSensors = async () => {
     if (isMotionTracking) {
       setIsMotionTracking(false);
@@ -1642,13 +1554,7 @@ function MobileApp() {
     key: item.key,
     value: item.key,
     className: isLight ? "bg-white text-slate-900 font-medium" : "bg-slate-950 text-white font-medium"
-  }, "\uD83D\uDCCD ", item.name))))))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setIsQrModalOpen(true);
-      setScannerActive(true);
-    },
-    className: "px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition shrink-0"
-  }, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCCD ", item.name))))))), /*#__PURE__*/React.createElement("div", {
     className: `border rounded-2xl p-2.5 shadow-lg transition-colors ${isLight ? "bg-white border-emerald-500/40 shadow-slate-200" : "bg-slate-900 border-emerald-500/50"}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between pb-1"
@@ -2013,76 +1919,7 @@ function MobileApp() {
       notify("↺ Navigation restarted at Stage 1");
     },
     className: `font-mono transition ${isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-500 hover:text-slate-300"}`
-  }, "\u21BA Restart Route"))), isQrModalOpen && /*#__PURE__*/React.createElement("div", {
-    className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: `border rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto ${isLight ? "bg-white border-slate-200" : "bg-slate-900 border-slate-800"}`
-  }, /*#__PURE__*/React.createElement("div", {
-    className: `flex items-center justify-between pb-2 border-b ${isLight ? "border-slate-200" : "border-slate-800"}`
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: `text-sm font-black flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "qr-code",
-    className: "w-4 h-4 text-indigo-500"
-  }), "AegisPath QR Waypoint Scanner"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setIsQrModalOpen(false);
-      setScannerActive(false);
-    },
-    className: `font-black text-sm p-1 ${isLight ? "text-slate-400 hover:text-slate-800" : "text-slate-400 hover:text-white"}`
-  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-2"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", {
-    className: `text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`
-  }, "\uD83D\uDCF7 Real Camera Scanner:"), /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: () => setScannerActive(!scannerActive),
-    className: `px-3 py-1 text-xs font-black rounded-xl border transition ${scannerActive ? "bg-red-600 text-white border-red-500" : "bg-emerald-600 text-white border-emerald-500"}`
-  }, scannerActive ? "Stop Camera" : "Turn ON Camera")), scannerActive && /*#__PURE__*/React.createElement("div", {
-    className: "bg-black rounded-2xl overflow-hidden border-2 border-indigo-500 p-2 text-center relative"
-  }, /*#__PURE__*/React.createElement("div", {
-    id: "mobile-qr-reader-container",
-    className: "w-full min-h-[220px] rounded-xl overflow-hidden bg-black flex items-center justify-center text-xs text-slate-400"
-  }, "Initializing camera..."), cameraError && /*#__PURE__*/React.createElement("div", {
-    className: "p-2 bg-red-950/90 text-red-300 text-xs font-bold rounded-xl mt-2 border border-red-500/40"
-  }, "\u26A0\uFE0F ", cameraError, /*#__PURE__*/React.createElement("p", {
-    className: "text-[10px] text-slate-300 mt-0.5"
-  }, "Please allow Camera Permissions in your browser, or use the manual code/checkpoint below.")), /*#__PURE__*/React.createElement("p", {
-    className: "text-[10px] text-slate-400 mt-1"
-  }, "Point camera at AegisPath waypoint QR code"))), /*#__PURE__*/React.createElement("form", {
-    onSubmit: handleManualQrSubmit,
-    className: `space-y-1.5 pt-2 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`
-  }, /*#__PURE__*/React.createElement("label", {
-    className: `text-[11px] font-bold block ${isLight ? "text-slate-600" : "text-slate-400"}`
-  }, "Or Type Scanned QR Code:"), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-2"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "text",
-    placeholder: "e.g. SW-RAM-G-R1 or SW-ROOM204",
-    value: qrInputText,
-    onChange: e => setQrInputText(e.target.value),
-    className: `flex-1 border rounded-xl p-2.5 text-xs font-mono uppercase outline-none focus:border-indigo-500 ${isLight ? "bg-slate-50 border-slate-300 text-slate-900" : "bg-slate-950 border-slate-700 text-white"}`
-  }), /*#__PURE__*/React.createElement("button", {
-    type: "submit",
-    className: "px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black transition"
-  }, "Set"))), qrPresets.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: `space-y-1.5 pt-2 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`
-  }, /*#__PURE__*/React.createElement("label", {
-    className: `text-[11px] font-bold block ${isLight ? "text-slate-600" : "text-slate-400"}`
-  }, "Quick Checkpoints (1-Tap Simulation):"), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1"
-  }, qrPresets.map(p => /*#__PURE__*/React.createElement("button", {
-    key: p.code,
-    type: "button",
-    onClick: () => applyQrResolution(p),
-    className: `p-2 border rounded-xl text-left transition ${isLight ? "bg-slate-50 hover:bg-slate-100 border-slate-200" : "bg-slate-950 hover:bg-slate-800 border-slate-800 hover:border-indigo-500/50"}`
-  }, /*#__PURE__*/React.createElement("span", {
-    className: `text-[11px] font-black block truncate ${isLight ? "text-slate-900" : "text-white"}`
-  }, p.name), /*#__PURE__*/React.createElement("span", {
-    className: "text-[9px] text-indigo-500 dark:text-indigo-400 font-mono block"
-  }, p.code))))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, "\u21BA Restart Route"))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
     className: `border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative ${isLight ? "bg-white" : "bg-slate-900"}`
