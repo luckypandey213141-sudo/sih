@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>AegisPath — Intelligent Indoor Evacuation & Motion Guidance</title>
+
+  <!-- PWA & Mobile Phone Metadata -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes pulseRadar {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+    .mobile-radar-pulse { animation: pulseRadar 1.8s infinite; }
+    @keyframes dashMove {
+      to { stroke-dashoffset: -32; }
+    }
+    .route-glow-dash {
+      animation: dashMove 0.8s linear infinite;
+    }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen select-none transition-colors duration-300">
+  <div id="root"></div>
+
+  <!-- SafeWay Module Data Loader -->
+  <script type="module">
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js';
+    import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
+    import {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      resetAllToNormal,
+      registerActiveRoute,
+      sendDistressSignal,
+      clearDistressSignal
+    } from './services/realtime.js';
+    import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js';
+
+    const SafeWay = {
+      INITIAL_BUILDING_DATA,
+      findShortestPath,
+      findSafestEvacuationPath,
+      resolveQrCode,
+      getQrPresets,
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      resetAllToNormal,
+      registerActiveRoute,
+      sendDistressSignal,
+      clearDistressSignal,
+      INDOOR_ROUTE_NETWORKS,
+      MotionTracker,
+      interpolatePositionOnRoute
+    };
+    window.SafeWay = SafeWay;
+    window.SafeWayData = SafeWay;
+  </script>
+
+  <!-- React 18 Application Script -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    const MAP_PLANS = [
+      { id: "campus", group: "Campus", label: "Main College Campus Map", src: "/assets/college-campus-layout.jpeg", floor: 1 },
+      { id: "ramanujan-basement", group: "Ramanujan Block", label: "Basement", src: "/assets/college-maps/ramanujan-basement.png", floor: 0, rooms: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2", "Exit"] },
+      { id: "ramanujan-ground", group: "Ramanujan Block", label: "Ground Floor", src: "/assets/college-maps/ramanujan-ground.png", floor: 1, rooms: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "W1", "W2", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2", "Entry / Exit 3"] },
+      { id: "ramanujan-first", group: "Ramanujan Block", label: "First Floor", src: "/assets/college-maps/ramanujan-first.png", floor: 2, rooms: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit"] },
+      { id: "bhabha-basement", group: "Bhabha Block", label: "Basement", src: "/assets/college-maps/bhabha-basement.png", floor: 0, rooms: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate", "Exit"] },
+      { id: "bhabha-ground", group: "Bhabha Block", label: "Ground Floor", src: "/assets/college-maps/bhabha-ground.png", floor: 1, rooms: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Stairs 1", "Stairs 2", "Entry"] },
+      { id: "bhabha-first", group: "Bhabha Block", label: "First Floor", src: "/assets/college-maps/bhabha-first.png", floor: 2, rooms: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Boys W/C", "Girls W/C", "Stairs", "Entry / Exit 1", "Entry / Exit 2"] },
+      { id: "kalpana-basement", group: "Kalpana Block", label: "Basement", src: "/assets/college-maps/kalpana-basement.png", floor: 0, rooms: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift", "Stair 1", "Stair 2", "Entry / Exit"] },
+      { id: "kalpana-ground", group: "Kalpana Block", label: "Ground Floor", src: "/assets/college-maps/kalpana-ground.png", floor: 1, rooms: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry", "Emergency Exit"] },
+      { id: "kalpana-first", group: "Kalpana Block", label: "First Floor", src: "/assets/college-maps/kalpana-first.png", floor: 2, rooms: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store", "Boys W/C", "Girls W/C", "Entry / Exit", "Emergency Exit"] },
+      { id: "raman-ground", group: "Raman Block", label: "Ground Floor", src: "/assets/college-maps/raman-ground.png", floor: 1, rooms: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"] },
+      { id: "raman-first", group: "Raman Block", label: "First Floor", src: "/assets/college-maps/raman-first.png", floor: 2, rooms: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Boys W/C", "Girls W/C", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"] },
+      { id: "aryabhatta-basement", group: "Aryabhatta Block", label: "Basement", src: "/assets/college-maps/aryabhatta-basement.png", floor: 0, rooms: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Room", "Lift", "Stairs 1", "Stairs 2"] },
+      { id: "aryabhatta-ground", group: "Aryabhatta Block", label: "Ground Floor", src: "/assets/college-maps/aryabhatta-ground.png", floor: 1, rooms: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Boys Washroom", "Girls Washroom", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"] }
+    ];
+
+    const BLOCK_CAMPUS_ENTRANCE_NODES = {
+      "ramanujan": "admin",
+      "ramanujan-ground": "admin",
+      "ramanujan-first": "admin",
+      "ramanujan-basement": "admin",
+      "bhabha": "lobby",
+      "bhabha-ground": "lobby",
+      "bhabha-first": "lobby",
+      "bhabha-basement": "lobby",
+      "kalpana": "restroom-1",
+      "kalpana-ground": "restroom-1",
+      "kalpana-first": "restroom-1",
+      "kalpana-basement": "restroom-1",
+      "raman": "lab-101",
+      "raman-ground": "lab-101",
+      "raman-first": "lab-101",
+      "aryabhatta": "cafeteria",
+      "aryabhatta-ground": "cafeteria",
+      "aryabhatta-basement": "cafeteria"
+    };
+
+    const ROOM_ROUTE_TARGETS = {
+      "ramanujan-basement": {
+        "Lab 1": [600, 275], "Lab 2": [680, 275], "Lab 3": [760, 275], "Lab 4": [600, 430], "Lab 5": [680, 430], "Lab 6": [760, 430],
+        "Lift": [220, 275], "Stairs 1": [550, 260], "Stairs 2": [720, 260], "Exit": [740, 430]
+      },
+      "ramanujan-ground": {
+        "R1": [350, 455], "R2": [830, 455], "R3": [830, 520], "R4": [650, 455],
+        "R6": [220, 350], "R7": [405, 250], "R8": [220, 300], "R9": [330, 250],
+        "R10": [480, 250], "R11": [565, 250], "R12": [650, 250], "W1": [820, 250],
+        "W2": [205, 250], "Badminton Court": [500, 390], "Lift": [190, 235],
+        "Entry / Exit 1": [250, 590], "Entry / Exit 2": [920, 300], "Entry / Exit 3": [760, 590]
+      },
+      "ramanujan-first": {
+        "Drawing Lab": [500, 325], "LT 1": [260, 400], "LT 2": [420, 400],
+        "LT 3": [580, 400], "LT 4": [740, 400], "Boys W/C": [840, 260],
+        "Girls W/C": [840, 380], "Lift": [190, 235], "Stairs": [800, 235], "Entry / Exit": [920, 325]
+      },
+      "bhabha-ground": {
+        "Lecture Hall 1": [300, 320], "Lecture Hall 2": [720, 320], "Reception": [330, 420],
+        "Registrar": [700, 420], "Director Office": [300, 500], "Admission Cell": [720, 500],
+        "Sitting Hall": [620, 500], "Drinking Water": [740, 260], "Boys W/C": [300, 220],
+        "Girls W/C": [740, 220], "Stairs 1": [295, 175], "Stairs 2": [755, 175], "Entry": [500, 590]
+      },
+      "bhabha-first": {
+        "HOD ME": [300, 300], "LT 1": [420, 300], "LT 2": [580, 300], "LT 3": [740, 300],
+        "Faculty Cabins": [400, 450], "ECE Lab": [650, 450], "Stairs": [755, 175], "Entry / Exit 1": [500, 590]
+      },
+      "bhabha-basement": {
+        "Digital Library": [300, 335], "Library": [500, 335], "Main Library": [700, 335],
+        "Lobby / Corridor": [500, 420], "Entry Gate": [410, 590], "Exit": [720, 590]
+      },
+      "kalpana-ground": {
+        "LT 1": [640, 220], "LT 2": [235, 400], "LT 3": [370, 400], "CCPD 1": [355, 400],
+        "CCPD 2": [610, 400], "Computer Lab 1": [720, 400], "HOD CSE": [475, 440],
+        "Boys W/C": [300, 220], "Girls W/C": [840, 220], "Lift": [190, 220],
+        "Stairs": [385, 220], "Entry": [500, 590], "Emergency Exit": [500, 120]
+      },
+      "kalpana-first": {
+        "Training Hall 1": [300, 325], "Training Hall 2": [450, 325], "Class Room 1": [600, 325],
+        "Class Room 2": [750, 325], "Class Room 3": [300, 450], "Class Room 4": [600, 450],
+        "Entry / Exit": [145, 325], "Emergency Exit": [175, 300]
+      },
+      "kalpana-basement": {
+        "Fluid Mechanics Lab": [320, 290], "Computer Lab 1": [480, 290], "Computer Lab 2": [640, 290],
+        "Automobile Lab": [400, 450], "Store Room": [700, 450], "Lift": [190, 205], "Entry / Exit": [500, 590]
+      },
+      "raman-ground": {
+        "Lecture Hall 1": [380, 350], "Lecture Hall 2": [500, 385], "Samvaad Club": [585, 350],
+        "Kalakrit Club": [300, 385], "Medical Room": [650, 385], "Drinking Water": [850, 410],
+        "Boys W/C": [220, 300], "Girls W/C": [805, 300], "Lift": [155, 345], "Stairs": [755, 260],
+        "Entry / Exit 1": [650, 590], "Entry / Exit 2": [920, 300]
+      },
+      "raman-first": {
+        "Auditorium Hall": [500, 270], "Lecture Hall": [750, 270], "Drinking Water": [850, 410],
+        "Lift": [155, 345], "Stairs": [755, 260], "Entry / Exit 1": [330, 190]
+      },
+      "aryabhatta-ground": {
+        "Large Room": [440, 290], "Room 1": [260, 390], "Room 2": [350, 390], "Room 3": [440, 390],
+        "Room 4": [300, 300], "Room 5": [385, 300], "Lab": [650, 290], "Temple": [720, 440],
+        "Boys Washroom": [330, 230], "Girls Washroom": [660, 230], "Lift": [420, 315],
+        "Stairs 1": [430, 505], "Stairs 2": [650, 505], "Entry / Exit": [500, 590]
+      },
+      "aryabhatta-basement": {
+        "Classroom 1": [300, 330], "Classroom 2": [450, 330], "Classroom 3": [600, 330],
+        "Lab 1": [350, 480], "Lab 2": [550, 480], "Lift": [320, 540], "Stairs 1": [220, 170]
+      }
+    };
+
+    const FLOOR_VERTICAL_ANCHORS = {
+      "ramanujan-first": { stairs: [800, 235], stairsLabel: "EAST STAIRS", corridorY: 325, hubX: 520 },
+      "ramanujan-ground": { stairs: [760, 250], stairsLabel: "CENTRAL STAIRWELL", mainExit: [250, 590], exitLabel: "MAIN ENTRY / EXIT 1", corridorY: 455, hubX: 500 },
+      "ramanujan-basement": { stairs: [720, 260], stairsLabel: "BASEMENT STAIRS", corridorY: 300, hubX: 500 },
+      "bhabha-first": { stairs: [755, 175], stairsLabel: "STAIRS", corridorY: 300, hubX: 500 },
+      "bhabha-ground": { stairs: [755, 175], stairsLabel: "STAIRS", mainExit: [500, 590], exitLabel: "MAIN RECEPTION EXIT", corridorY: 420, hubX: 500 },
+      "bhabha-basement": { stairs: [500, 420], stairsLabel: "LIBRARY STAIRS", corridorY: 335, hubX: 500 },
+      "kalpana-first": { stairs: [145, 325], stairsLabel: "STAIRS / EXIT", corridorY: 325, hubX: 500 },
+      "kalpana-ground": { stairs: [385, 220], stairsLabel: "MAIN STAIRS", mainExit: [500, 590], exitLabel: "SOUTH MAIN EXIT", corridorY: 400, hubX: 500 },
+      "kalpana-basement": { stairs: [500, 590], stairsLabel: "BASEMENT STAIRS", corridorY: 290, hubX: 500 },
+      "raman-first": { stairs: [755, 260], stairsLabel: "STAIRS", corridorY: 270, hubX: 520 },
+      "raman-ground": { stairs: [755, 260], stairsLabel: "STAIRS", mainExit: [650, 590], exitLabel: "RAMAN MAIN EXIT 1", corridorY: 350, hubX: 500 },
+      "aryabhatta-basement": { stairs: [220, 170], stairsLabel: "STAIRS", corridorY: 330, hubX: 500 },
+      "aryabhatta-ground": { stairs: [430, 505], stairsLabel: "CENTRAL STAIRS", mainExit: [500, 590], exitLabel: "MAIN CAMPUS EXIT", corridorY: 390, hubX: 500 }
+    };
+
+    const ALL_CAMPUS_LOCATIONS_HIERARCHY = [
+      {
+        group: "🏫 Campus Outdoor Gates & Grounds",
+        mapId: "campus",
+        items: [
+          { key: "campus:ent-main", name: "College Main Gate", mapId: "campus", nodeId: "ent-main", point: [440, 565] },
+          { key: "campus:gate-2-destination", name: "Gate No. 2 (East)", mapId: "campus", nodeId: "gate-2-destination", point: [972, 140] },
+          { key: "campus:playground", name: "Playground Safe Assembly", mapId: "campus", nodeId: "playground", point: [410, 105] },
+          { key: "campus:ent-north", name: "Back Yard Safe Assembly", mapId: "campus", nodeId: "ent-north", point: [155, 225] },
+          { key: "campus:reception", name: "Gauri Cafe & ATM", mapId: "campus", nodeId: "reception", point: [440, 290] },
+          { key: "campus:auditorium", name: "Garden, Pond & Mandir", mapId: "campus", nodeId: "auditorium", point: [760, 490] },
+          { key: "campus:lift-1", name: "Campus Central Junction", mapId: "campus", nodeId: "lift-1", point: [440, 347] }
+        ]
+      },
+      {
+        group: "📐 Ramanujan Block — Ground Floor",
+        mapId: "ramanujan-ground",
+        items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2"]
+          .map(r => ({ key: `ramanujan-ground:${r}`, name: `Ramanujan Ground — ${r}`, mapId: "ramanujan-ground", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || [350, 455] }))
+      },
+      {
+        group: "📐 Ramanujan Block — First Floor",
+        mapId: "ramanujan-first",
+        items: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"]
+          .map(r => ({ key: `ramanujan-first:${r}`, name: `Ramanujan 1F — ${r}`, mapId: "ramanujan-first", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || [500, 325] }))
+      },
+      {
+        group: "📐 Ramanujan Block — Basement",
+        mapId: "ramanujan-basement",
+        items: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"]
+          .map(r => ({ key: `ramanujan-basement:${r}`, name: `Ramanujan Basement — ${r}`, mapId: "ramanujan-basement", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || [600, 275] }))
+      },
+      {
+        group: "⚛️ Bhabha Block — Ground Floor",
+        mapId: "bhabha-ground",
+        items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2"]
+          .map(r => ({ key: `bhabha-ground:${r}`, name: `Bhabha Ground — ${r}`, mapId: "bhabha-ground", room: r, point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || [300, 320] }))
+      },
+      {
+        group: "⚛️ Bhabha Block — First Floor",
+        mapId: "bhabha-first",
+        items: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Stairs"]
+          .map(r => ({ key: `bhabha-first:${r}`, name: `Bhabha 1F — ${r}`, mapId: "bhabha-first", room: r, point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || [300, 300] }))
+      },
+      {
+        group: "⚛️ Bhabha Block — Basement",
+        mapId: "bhabha-basement",
+        items: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate"]
+          .map(r => ({ key: `bhabha-basement:${r}`, name: `Bhabha Basement — ${r}`, mapId: "bhabha-basement", room: r, point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || [300, 335] }))
+      },
+      {
+        group: "🚀 Kalpana Chawla Block — Ground Floor",
+        mapId: "kalpana-ground",
+        items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs"]
+          .map(r => ({ key: `kalpana-ground:${r}`, name: `Kalpana Ground — ${r}`, mapId: "kalpana-ground", room: r, point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || [640, 220] }))
+      },
+      {
+        group: "🚀 Kalpana Chawla Block — First Floor",
+        mapId: "kalpana-first",
+        items: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store"]
+          .map(r => ({ key: `kalpana-first:${r}`, name: `Kalpana 1F — ${r}`, mapId: "kalpana-first", room: r, point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || [300, 325] }))
+      },
+      {
+        group: "🚀 Kalpana Chawla Block — Basement",
+        mapId: "kalpana-basement",
+        items: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift"]
+          .map(r => ({ key: `kalpana-basement:${r}`, name: `Kalpana Basement — ${r}`, mapId: "kalpana-basement", room: r, point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || [320, 290] }))
+      },
+      {
+        group: "🔬 Raman Block — Ground Floor",
+        mapId: "raman-ground",
+        items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs"]
+          .map(r => ({ key: `raman-ground:${r}`, name: `Raman Ground — ${r}`, mapId: "raman-ground", room: r, point: ROOM_ROUTE_TARGETS["raman-ground"][r] || [380, 350] }))
+      },
+      {
+        group: "🔬 Raman Block — First Floor",
+        mapId: "raman-first",
+        items: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Lift", "Stairs"]
+          .map(r => ({ key: `raman-first:${r}`, name: `Raman 1F — ${r}`, mapId: "raman-first", room: r, point: ROOM_ROUTE_TARGETS["raman-first"][r] || [500, 270] }))
+      },
+      {
+        group: "🔭 Aryabhatta Block — Ground Floor",
+        mapId: "aryabhatta-ground",
+        items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2"]
+          .map(r => ({ key: `aryabhatta-ground:${r}`, name: `Aryabhatta Ground — ${r}`, mapId: "aryabhatta-ground", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || [440, 290] }))
+      },
+      {
+        group: "🔭 Aryabhatta Block — Basement",
+        mapId: "aryabhatta-basement",
+        items: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Lift", "Stairs 1"]
+          .map(r => ({ key: `aryabhatta-basement:${r}`, name: `Aryabhatta Basement — ${r}`, mapId: "aryabhatta-basement", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || [300, 330] }))
+      }
+    ];
+
+    function calculatePolylineLength(points) {
+      if (!points || points.length < 2) return 1;
+      let len = 0;
+      for (let i = 0; i < points.length - 1; i++) {
+        const dx = points[i+1][0] - points[i][0];
+        const dy = points[i+1][1] - points[i][1];
+        len += Math.sqrt(dx * dx + dy * dy);
+      }
+      return len;
+    }
+
+    function buildMultiFloorStagePipeline({
+      activeOriginLocation,
+      activeDestLocation,
+      activeCampusRoute
+    }) {
+      const stages = [];
+      const originMap = activeOriginLocation.mapId;
+      const destMap = activeDestLocation.mapId;
+
+      const originBlockPrefix = originMap !== "campus" ? originMap.split("-")[0] : null;
+      const destBlockPrefix = destMap !== "campus" ? destMap.split("-")[0] : null;
+
+      const isOriginUpperOrLower = originMap.includes("first") || originMap.includes("basement");
+      const isDestUpperOrLower = destMap.includes("first") || destMap.includes("basement");
+
+      if (isOriginUpperOrLower) {
+        const originAnchor = FLOOR_VERTICAL_ANCHORS[originMap] || { stairs: [800, 235], corridorY: 325, hubX: 520 };
+        const roomPt = activeOriginLocation.point || [500, 325];
+        const stairsPt = originAnchor.stairs;
+
+        const p1 = [
+          roomPt,
+          [roomPt[0], originAnchor.corridorY],
+          [originAnchor.hubX, originAnchor.corridorY],
+          [stairsPt[0], originAnchor.corridorY],
+          stairsPt
+        ];
+
+        stages.push({
+          stageKey: "origin-upper",
+          mapId: originMap,
+          title: `Step 1: Depart ${activeOriginLocation.name.split('—')[1] || "Room"}`,
+          description: `Walk along corridor to ${originAnchor.stairsLabel || "Stairs"}.`,
+          targetBadge: "STAIRS",
+          targetBadgeColor: "#f59e0b",
+          targetLabel: originAnchor.stairsLabel || "STAIRS",
+          startPoint: roomPt,
+          endPoint: stairsPt,
+          points: p1,
+          d: `M ${p1.map(p => p.join(" ")).join(" L ")}`,
+          pixelLength: calculatePolylineLength(p1),
+          nextMapId: `${originBlockPrefix}-ground`,
+          switchPrompt: "Descend to Ground Floor ➔",
+          voiceAnnouncement: `Descended to ${originBlockPrefix} Ground Floor. Showing path to building exit.`
+        });
+
+        const groundMapId = `${originBlockPrefix}-ground`;
+        const groundAnchor = FLOOR_VERTICAL_ANCHORS[groundMapId] || { stairs: [760, 250], mainExit: [250, 590], exitLabel: "MAIN EXIT", corridorY: 455, hubX: 500 };
+        const gStairsPt = groundAnchor.stairs;
+        const gExitPt = groundAnchor.mainExit || [250, 590];
+
+        const p2 = [
+          gStairsPt,
+          [gStairsPt[0], groundAnchor.corridorY],
+          [groundAnchor.hubX, groundAnchor.corridorY],
+          [gExitPt[0], groundAnchor.corridorY],
+          gExitPt
+        ];
+
+        stages.push({
+          stageKey: "origin-ground",
+          mapId: groundMapId,
+          title: `Step 2: Ground Floor Egress`,
+          description: `Walk from stairwell to ${groundAnchor.exitLabel || "Main Exit Door"}.`,
+          targetBadge: "EXIT",
+          targetBadgeColor: "#10b981",
+          targetLabel: groundAnchor.exitLabel || "MAIN EXIT DOOR",
+          startPoint: gStairsPt,
+          endPoint: gExitPt,
+          points: p2,
+          d: `M ${p2.map(p => p.join(" ")).join(" L ")}`,
+          pixelLength: calculatePolylineLength(p2),
+          nextMapId: (destMap === groundMapId) ? groundMapId : "campus",
+          switchPrompt: "Exit to Campus Ground ➔",
+          voiceAnnouncement: `Exited ${originBlockPrefix} Block. Showing outdoor campus map.`
+        });
+      } else if (originMap.includes("ground")) {
+        const groundAnchor = FLOOR_VERTICAL_ANCHORS[originMap] || { stairs: [760, 250], mainExit: [250, 590], exitLabel: "MAIN EXIT", corridorY: 455, hubX: 500 };
+        const roomPt = activeOriginLocation.point || [350, 455];
+        const gExitPt = (destMap === originMap) ? (activeDestLocation.point || [830, 455]) : (groundAnchor.mainExit || [250, 590]);
+
+        const p = [
+          roomPt,
+          [roomPt[0], groundAnchor.corridorY],
+          [groundAnchor.hubX, groundAnchor.corridorY],
+          [gExitPt[0], groundAnchor.corridorY],
+          gExitPt
+        ];
+
+        stages.push({
+          stageKey: "origin-ground",
+          mapId: originMap,
+          title: (destMap === originMap) ? `Walk to ${activeDestLocation.room || "Destination"}` : `Exit ${activeOriginLocation.name.split('—')[0]}`,
+          description: (destMap === originMap) ? `Follow corridor to destination room.` : `Walk along hallway to ${groundAnchor.exitLabel || "Main Exit"}.`,
+          targetBadge: (destMap === originMap) ? "TARGET" : "EXIT",
+          targetBadgeColor: (destMap === originMap) ? "#2563eb" : "#10b981",
+          targetLabel: (destMap === originMap) ? (activeDestLocation.room || "ROOM") : (groundAnchor.exitLabel || "MAIN EXIT"),
+          startPoint: roomPt,
+          endPoint: gExitPt,
+          points: p,
+          d: `M ${p.map(p => p.join(" ")).join(" L ")}`,
+          pixelLength: calculatePolylineLength(p),
+          nextMapId: (destMap === originMap) ? originMap : "campus",
+          switchPrompt: (destMap === originMap) ? null : "Exit to Campus Ground ➔",
+          voiceAnnouncement: `Exited ${originBlockPrefix} Block. Showing campus route.`
+        });
+      }
+
+      if (destMap === "campus" || destBlockPrefix !== originBlockPrefix) {
+        const campusPts = activeCampusRoute?.pathNodes?.map(n => [n.x, n.y]) || [[355, 206], [760, 490]];
+        const targetBlockName = activeDestLocation.name.split('—')[0];
+
+        stages.push({
+          stageKey: "campus-walk",
+          mapId: "campus",
+          title: `Campus Walkway: Approach ${destMap === "campus" ? activeDestLocation.name : targetBlockName}`,
+          description: `Follow illuminated pathway across campus grounds.`,
+          targetBadge: destMap === "campus" ? "DESTINATION" : "GATE",
+          targetBadgeColor: destMap === "campus" ? "#059669" : "#6366f1",
+          targetLabel: destMap === "campus" ? activeDestLocation.name : `${targetBlockName} ENTRANCE`,
+          startPoint: campusPts[0],
+          endPoint: campusPts[campusPts.length - 1],
+          points: campusPts,
+          d: `M ${campusPts.map(p => p.join(" ")).join(" L ")}`,
+          pixelLength: calculatePolylineLength(campusPts),
+          nextMapId: destMap !== "campus" ? `${destBlockPrefix}-ground` : "campus",
+          switchPrompt: destMap !== "campus" ? `Enter ${targetBlockName} ➔` : null,
+          voiceAnnouncement: destMap !== "campus" ? `Arrived at ${targetBlockName} entrance. Showing Ground Floor plan.` : `Arrived at ${activeDestLocation.name}!`
+        });
+      }
+
+      if (destMap !== "campus" && (destBlockPrefix !== originBlockPrefix || (originMap === "campus"))) {
+        const targetGroundMapId = `${destBlockPrefix}-ground`;
+        const targetGroundAnchor = FLOOR_VERTICAL_ANCHORS[targetGroundMapId] || { stairs: [760, 250], mainExit: [250, 590], corridorY: 455, hubX: 500 };
+        const entryPt = targetGroundAnchor.mainExit || [250, 590];
+        const targetEndPt = isDestUpperOrLower ? targetGroundAnchor.stairs : (activeDestLocation.point || [830, 455]);
+
+        const pInGround = [
+          entryPt,
+          [entryPt[0], targetGroundAnchor.corridorY],
+          [targetGroundAnchor.hubX, targetGroundAnchor.corridorY],
+          [targetEndPt[0], targetGroundAnchor.corridorY],
+          targetEndPt
+        ];
+
+        stages.push({
+          stageKey: "target-ground",
+          mapId: targetGroundMapId,
+          title: isDestUpperOrLower ? `Enter Ground Floor & Head to Stairs` : `Enter Ground Floor to ${activeDestLocation.room || "Room"}`,
+          description: isDestUpperOrLower ? `Walk through ground lobby to stairwell.` : `Follow corridor to room doorway.`,
+          targetBadge: isDestUpperOrLower ? "STAIRS" : "TARGET",
+          targetBadgeColor: isDestUpperOrLower ? "#f59e0b" : "#2563eb",
+          targetLabel: isDestUpperOrLower ? (targetGroundAnchor.stairsLabel || "STAIRS") : (activeDestLocation.room || "ROOM"),
+          startPoint: entryPt,
+          endPoint: targetEndPt,
+          points: pInGround,
+          d: `M ${pInGround.map(p => p.join(" ")).join(" L ")}`,
+          pixelLength: calculatePolylineLength(pInGround),
+          nextMapId: destMap,
+          switchPrompt: isDestUpperOrLower ? `Ascend to ${activeDestLocation.name.split('—')[1]} ➔` : null,
+          voiceAnnouncement: isDestUpperOrLower ? `Ascended to ${activeDestLocation.name.split('—')[1]}. Showing final floor route.` : `Arrived at ${activeDestLocation.room}!`
+        });
+
+        if (isDestUpperOrLower) {
+          const targetAnchor = FLOOR_VERTICAL_ANCHORS[destMap] || { stairs: [800, 235], corridorY: 325, hubX: 520 };
+          const tStairsPt = targetAnchor.stairs;
+          const tRoomPt = activeDestLocation.point || [500, 325];
+
+          const pFinal = [
+            tStairsPt,
+            [tStairsPt[0], targetAnchor.corridorY],
+            [targetAnchor.hubX, targetAnchor.corridorY],
+            [tRoomPt[0], targetAnchor.corridorY],
+            tRoomPt
+          ];
+
+          stages.push({
+            stageKey: "target-final",
+            mapId: destMap,
+            title: `Final Approach: ${activeDestLocation.room || activeDestLocation.name}`,
+            description: `Walk along corridor to room entrance.`,
+            targetBadge: "DESTINATION",
+            targetBadgeColor: "#059669",
+            targetLabel: activeDestLocation.room || "TARGET ROOM",
+            startPoint: tStairsPt,
+            endPoint: tRoomPt,
+            points: pFinal,
+            d: `M ${pFinal.map(p => p.join(" ")).join(" L ")}`,
+            pixelLength: calculatePolylineLength(pFinal),
+            nextMapId: destMap,
+            switchPrompt: null,
+            voiceAnnouncement: `Arrived at destination: ${activeDestLocation.room}!`
+          });
+        }
+      }
+
+      return stages.length > 0 ? stages : [
+        {
+          stageKey: "fallback",
+          mapId: originMap,
+          title: `Navigate to ${activeDestLocation.name}`,
+          description: `Follow guidance path.`,
+          targetBadge: "TARGET",
+          targetBadgeColor: "#2563eb",
+          targetLabel: activeDestLocation.name,
+          startPoint: [440, 565],
+          endPoint: [760, 490],
+          points: [[440, 565], [760, 490]],
+          d: `M 440 565 L 760 490`,
+          pixelLength: 300,
+          nextMapId: destMap
+        }
+      ];
+    }
+
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioClass) audioCtx = new AudioClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playEmergencySirenPulse() {
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(960, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(560, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 1.05;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {}
+      }
+    }
+
+    function Icon({ name, className = "w-4 h-4" }) {
+      const icons = {
+        navigation: <polygon points="3 11 22 2 13 21 11 13 3 11" />,
+        siren: <><path d="M7 18v-6a5 5 0 1 1 10 0v6"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z"/><path d="M21 12h1"/><path d="M18.5 4.5 20 3"/><path d="M2 12h1"/><path d="M5.5 4.5 4 3"/><path d="M12 2v1"/></>,
+        sos: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>,
+        check: <polyline points="20 6 9 17 4 12" />,
+        "list-ordered": <><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></>,
+        "chevron-down": <polyline points="6 9 12 15 18 9" />,
+        "chevron-up": <polyline points="18 15 12 9 6 15" />,
+        sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></>,
+        moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>,
+        shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      };
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+          {icons[name] || <circle cx="12" cy="12" r="10" />}
+        </svg>
+      );
+    }
+
+    function MobileApp() {
+      const [bData, setBData] = useState(() => window.SafeWay?.INITIAL_BUILDING_DATA);
+      const [liveState, setLiveState] = useState(() => ({
+        emergencyActive: false,
+        hazards: {},
+        crowds: {},
+        corridorCrowds: {},
+        exits: {},
+        blockedEdges: {},
+        distressSignals: {},
+        emergencyPolicies: { allowElevatorsInFire: false, accessibleEvacuationStrategy: "refuge_zone" }
+      }));
+
+      // Selected Origin & Destination location keys
+      const [originLocationKey, setOriginLocationKey] = useState("ramanujan-first:Drawing Lab");
+      const [destinationLocationKey, setDestinationLocationKey] = useState("campus:auditorium");
+      const [selectedMapId, setSelectedMapId] = useState("ramanujan-first");
+      const [accessibilityMode, setAccessibilityMode] = useState(false);
+      const [soundEnabled, setSoundEnabled] = useState(true);
+      const [showDirectionsDrawer, setShowDirectionsDrawer] = useState(true);
+
+      // Theme Management (Light / Dark)
+      const [theme, setTheme] = useState(() => localStorage.getItem('aegispath_theme') || 'dark');
+
+      useEffect(() => {
+        localStorage.setItem('aegispath_theme', theme);
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.body.style.backgroundColor = '#f1f5f9';
+          document.body.style.color = '#0f172a';
+        } else {
+          document.documentElement.classList.add('dark');
+          document.body.style.backgroundColor = '#020617';
+          document.body.style.color = '#f8fafc';
+        }
+      }, [theme]);
+
+      const toggleTheme = () => {
+        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+      };
+
+      // Walking Speed Selection (Natural 1.4s vs Brisk 0.7s)
+      const [walkSpeedMode, setWalkSpeedMode] = useState("1x");
+
+      // Multi-Floor Stage Index State
+      const [activeStageIndex, setActiveStageIndex] = useState(0);
+      const [stageStepCount, setStageStepCount] = useState(0);
+      const [totalStepCount, setTotalStepCount] = useState(0);
+      const [compassHeading, setCompassHeading] = useState(0);
+      const [isMotionTracking, setIsMotionTracking] = useState(false);
+      const [autoWalkActive, setAutoWalkActive] = useState(false);
+
+      // SOS state
+      const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+      const [sosSent, setSosSent] = useState(false);
+      const [statusNotification, setStatusNotification] = useState("");
+
+      const activeMapPlan = MAP_PLANS.find(p => p.id === selectedMapId) || MAP_PLANS[0];
+
+      // Subscribe Realtime Sync
+      useEffect(() => {
+        if (window.SafeWay?.subscribeToRealtimeData) {
+          const unsub = window.SafeWay.subscribeToRealtimeData(state => setLiveState(state));
+          return () => { if (unsub) unsub(); };
+        }
+      }, []);
+
+      const notify = (msg) => {
+        setStatusNotification(msg);
+        setTimeout(() => setStatusNotification(""), 3500);
+      };
+
+      const isEmergency = liveState.emergencyActive;
+
+      // Sound Siren & Vocalization during Emergency
+      useEffect(() => {
+        let intervalId = null;
+        if (isEmergency && soundEnabled) {
+          speakText("Attention! Critical emergency evacuation active. Follow the illuminated green route immediately.");
+          playEmergencySirenPulse();
+          intervalId = setInterval(() => playEmergencySirenPulse(), 850);
+        }
+        return () => {
+          if (intervalId) clearInterval(intervalId);
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        };
+      }, [isEmergency, soundEnabled]);
+
+      // Find active origin location object
+      const activeOriginLocation = useMemo(() => {
+        for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+          const found = group.items.find(i => i.key === originLocationKey);
+          if (found) return found;
+        }
+        return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[0];
+      }, [originLocationKey]);
+
+      // Find active destination location object
+      const activeDestLocation = useMemo(() => {
+        for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+          const found = group.items.find(i => i.key === destinationLocationKey);
+          if (found) return found;
+        }
+        return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[5]; // Garden
+      }, [destinationLocationKey]);
+
+      // Determine Target Block Entrance Node on Campus Map
+      const targetBlockEntranceNodeId = useMemo(() => {
+        if (!activeDestLocation) return null;
+        if (activeDestLocation.mapId === "campus") return activeDestLocation.nodeId;
+        return BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId] || null;
+      }, [activeDestLocation]);
+
+      // Handler for Origin Selection
+      const handleOriginChange = (key) => {
+        setOriginLocationKey(key);
+        for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+          const item = group.items.find(i => i.key === key);
+          if (item) {
+            setStageStepCount(0);
+            setActiveStageIndex(0);
+            if (item.mapId) setSelectedMapId(item.mapId);
+            notify(`📍 Origin: ${item.name}`);
+            speakText(`Current position: ${item.name}`);
+            break;
+          }
+        }
+      };
+
+      // Handler for Destination Selection
+      const handleDestinationChange = (key) => {
+        setDestinationLocationKey(key);
+        for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
+          const item = group.items.find(i => i.key === key);
+          if (item) {
+            setStageStepCount(0);
+            setActiveStageIndex(0);
+            notify(`🎯 Target: ${item.name}`);
+            speakText(`Route plotted to ${item.name}`);
+            break;
+          }
+        }
+      };
+
+      if (!bData) {
+        return (
+          <div className="flex h-screen items-center justify-center text-indigo-400 font-bold">
+            Loading AegisPath System...
+          </div>
+        );
+      }
+
+      // Campus Dijkstra Graph Path calculation
+      const effectiveEdges = bData.edges.map(e => ({
+        ...e,
+        blocked: liveState.blockedEdges[e.id] !== undefined ? liveState.blockedEdges[e.id] : e.blocked
+      }));
+
+      const effectiveExits = bData.exits.map(ex => ({
+        ...ex,
+        isOpen: liveState.exits[ex.id]?.isOpen !== false,
+        crowdLevel: liveState.crowds[ex.id] || ex.crowdLevel
+      }));
+
+      const crowdInput = {
+        exits: liveState.crowds,
+        edges: liveState.corridorCrowds,
+        zones: liveState.crowds
+      };
+
+      const campusOriginNodeId = activeOriginLocation.mapId === "campus" 
+        ? activeOriginLocation.nodeId 
+        : (BLOCK_CAMPUS_ENTRANCE_NODES[activeOriginLocation.mapId] || "admin");
+      const campusDestNodeId = targetBlockEntranceNodeId || "admin";
+
+      const normalRoute = !isEmergency && window.SafeWay?.findShortestPath ? window.SafeWay.findShortestPath(
+        campusOriginNodeId,
+        campusDestNodeId,
+        bData.nodes,
+        effectiveEdges,
+        { isEmergency: false, accessibilityMode },
+        crowdInput,
+        liveState.hazards,
+        liveState.emergencyPolicies
+      ) : null;
+
+      const evacuationResult = isEmergency && window.SafeWay?.findSafestEvacuationPath ? window.SafeWay.findSafestEvacuationPath(
+        campusOriginNodeId,
+        bData.nodes,
+        effectiveEdges,
+        effectiveExits,
+        bData.assemblyAreas,
+        { isEmergency: true, accessibilityMode, nearestEmergencyDestination: true },
+        crowdInput,
+        liveState.hazards,
+        liveState.emergencyPolicies
+      ) : null;
+
+      const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
+
+      // Build True Multi-Floor Sequential Pipeline
+      const multiFloorPipeline = useMemo(() => {
+        return buildMultiFloorStagePipeline({
+          activeOriginLocation,
+          activeDestLocation,
+          activeCampusRoute
+        });
+      }, [activeOriginLocation, activeDestLocation, activeCampusRoute]);
+
+      // Current active stage object in pipeline
+      const currentActiveStage = multiFloorPipeline[activeStageIndex] || multiFloorPipeline[0];
+
+      // Keep selectedMapId synced with currentActiveStage map
+      useEffect(() => {
+        if (currentActiveStage?.mapId && selectedMapId !== currentActiveStage.mapId) {
+          setSelectedMapId(currentActiveStage.mapId);
+        }
+      }, [activeStageIndex, currentActiveStage]);
+
+      // Stage steps required for current sub-stage
+      const stageTargetSteps = useMemo(() => {
+        if (currentActiveStage?.mapId === "campus") {
+          const dist = activeCampusRoute?.totalDistance || 45;
+          return Math.max(15, Math.round(dist / 1.5));
+        }
+        return 18;
+      }, [currentActiveStage, activeCampusRoute]);
+
+      // Stage progress ratio (0.0 to 1.0)
+      const stageProgress = Math.min(1.0, stageStepCount / (stageTargetSteps || 18));
+
+      // Live Position Coordinate on Active Map
+      const liveUserCoords = useMemo(() => {
+        try {
+          if (currentActiveStage?.points && stageStepCount > 0) {
+            const pt = window.SafeWay?.interpolatePositionOnRoute?.(currentActiveStage.points, stageProgress * (currentActiveStage.pixelLength || 350));
+            if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
+          }
+          return currentActiveStage?.startPoint || [440, 565];
+        } catch(e) {
+          return currentActiveStage?.startPoint || [440, 565];
+        }
+      }, [currentActiveStage, stageStepCount, stageProgress]);
+
+      // Advance to Next Stage in Pipeline
+      const advanceToStage = (targetIndex) => {
+        if (targetIndex < multiFloorPipeline.length) {
+          setActiveStageIndex(targetIndex);
+          setStageStepCount(0);
+          const nextStage = multiFloorPipeline[targetIndex];
+          setSelectedMapId(nextStage.mapId);
+          if (nextStage.voiceAnnouncement) speakText(nextStage.voiceAnnouncement);
+          notify(`⚡ Stage ${targetIndex + 1}: ${nextStage.title}`);
+        }
+      };
+
+      // Step Execution & Automatic Multi-Floor Handoff
+      const takeStep = () => {
+        setTotalStepCount(prev => prev + 1);
+        const nextSteps = stageStepCount + 1;
+        setStageStepCount(nextSteps);
+
+        if (nextSteps >= stageTargetSteps) {
+          if (activeStageIndex < multiFloorPipeline.length - 1) {
+            advanceToStage(activeStageIndex + 1);
+          } else {
+            notify(`🎯 Arrived at ${activeDestLocation.name}!`);
+            speakText(`You have arrived at your destination: ${activeDestLocation.name}.`);
+            setAutoWalkActive(false);
+          }
+        }
+      };
+
+      // Auto-Walk presentation with Natural 1.4s Stride
+      useEffect(() => {
+        let timer = null;
+        if (autoWalkActive) {
+          const stepInterval = walkSpeedMode === "2x" ? 700 : 1400;
+          timer = setInterval(() => {
+            takeStep();
+          }, stepInterval);
+        }
+        return () => { if (timer) clearInterval(timer); };
+      }, [autoWalkActive, walkSpeedMode, stageStepCount, activeStageIndex, stageTargetSteps, multiFloorPipeline]);
+
+      const toggleSensors = async () => {
+        if (isMotionTracking) {
+          setIsMotionTracking(false);
+          notify("Sensors paused");
+        } else {
+          if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            try {
+              const res = await DeviceOrientationEvent.requestPermission();
+              if (res === 'granted') {
+                setIsMotionTracking(true);
+                window.addEventListener('deviceorientation', (e) => {
+                  if (e.alpha !== null) setCompassHeading(Math.round(e.alpha));
+                });
+                notify("🟢 Physical Sensors Active!");
+              }
+            } catch(e) {}
+          } else {
+            setIsMotionTracking(true);
+            window.addEventListener('deviceorientation', (e) => {
+              if (e.alpha !== null) setCompassHeading(Math.round(e.alpha));
+            });
+            notify("🟢 Physical Sensors Active!");
+          }
+        }
+      };
+
+      const triggerSosDistress = () => {
+        if (window.SafeWay?.sendDistressSignal) {
+          window.SafeWay.sendDistressSignal({
+            userId: "aegispath-user-mobile",
+            locationName: `${activeOriginLocation?.name || "Campus"} (${activeMapPlan.label})`,
+            nodeId: "mobile-node",
+            floor: activeMapPlan.floor || 1,
+            zone: activeMapPlan.group
+          });
+        }
+        setSosSent(true);
+        notify("🆘 Trapped Distress Beacon Sent!");
+        speakText("Distress beacon transmitted to emergency operations console.");
+      };
+
+      const campusNodes = bData.nodes.filter(n => n.floor === 1);
+      const campusEdges = bData.edges.filter(e => e.floor === 1);
+
+      const totalEstimatedMeters = (activeCampusRoute?.totalDistance || 35) + (multiFloorPipeline.length * 15);
+      const totalEstimatedSeconds = Math.ceil(totalEstimatedMeters / 1.2);
+
+      const isLight = theme === 'light';
+
+      return (
+        <div className={`min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 ${
+          isLight ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100"
+        }`}>
+          {/* Top Header */}
+          <header className={`p-3.5 border-b flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl transition-colors ${
+            isEmergency 
+              ? "bg-red-950/95 border-red-600 text-white shadow-xl shadow-red-600/30 animate-pulse"
+              : (isLight ? "bg-white/95 border-slate-200 shadow-sm text-slate-900" : "bg-slate-900/95 border-slate-800 text-white")
+          }`}>
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-white shadow-lg ${isEmergency ? "bg-red-600 animate-bounce" : "bg-indigo-600"}`}>
+                <Icon name={isEmergency ? "siren" : "navigation"} className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className={`text-xs font-black flex items-center gap-1.5 ${isEmergency ? "text-white" : (isLight ? "text-slate-900" : "text-white")}`}>
+                  AegisPath
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isEmergency ? "bg-red-600 text-white border border-red-400 animate-pulse" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"}`}>
+                    {isEmergency ? "🚨 EVACUATION ACTIVE" : `STAGE ${activeStageIndex + 1}/${multiFloorPipeline.length}`}
+                  </span>
+                </h1>
+                <p className={`text-[10px] font-medium truncate max-w-[140px] ${isEmergency ? "text-red-200" : (isLight ? "text-slate-600" : "text-slate-400")}`}>
+                  {activeMapPlan.group} &bull; <b className={isEmergency ? "text-white" : "text-indigo-600 dark:text-indigo-300"}>{activeMapPlan.label}</b>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              {/* Admin Security Console Button */}
+              <a
+                href="/admin/login.html"
+                className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition flex items-center gap-1 ${
+                  isLight
+                    ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 shadow-sm"
+                    : "bg-slate-800 hover:bg-slate-700 text-indigo-300 border-slate-700"
+                }`}
+                title="Open Admin Security Console"
+              >
+                <span>🛡️ Admin</span>
+              </a>
+
+              {/* Universal Theme Switcher Button */}
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-xl border text-xs transition ${isLight ? "bg-slate-100 text-amber-600 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700"}`}
+                title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              >
+                <Icon name={isLight ? "sun" : "moon"} className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-2 rounded-xl border text-xs transition ${
+                  soundEnabled
+                    ? (isEmergency ? "bg-red-600 text-white border-red-400" : "bg-indigo-600/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/40")
+                    : (isLight ? "bg-slate-100 text-slate-400 border-slate-300" : "bg-slate-800 text-slate-500 border-slate-700")
+                }`}
+                title={soundEnabled ? "Mute Siren Alerts" : "Enable Siren Alerts"}
+              >
+                <Icon name="volume-2" className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setAccessibilityMode(!accessibilityMode)}
+                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 ${
+                  accessibilityMode
+                    ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                    : (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700")
+                }`}
+                title="Step-Free Mode"
+              >
+                <span>♿</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Floating Status Toast */}
+          {statusNotification && (
+            <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white font-black text-xs px-4 py-2 rounded-full shadow-2xl border border-indigo-400 animate-bounce">
+              {statusNotification}
+            </div>
+          )}
+
+          {/* BIG CRITICAL EMERGENCY EVACUATION BANNER (Mobile Full-Width Interface) */}
+          {isEmergency && (
+            <div className="w-full bg-red-950 border-b-4 border-red-600 shadow-2xl p-3.5 text-white space-y-2.5 animate-pulse">
+              <div className="flex items-center justify-between pb-2 border-b border-red-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center font-black text-white text-xl shadow-2xl shadow-red-600/70 animate-bounce shrink-0">
+                    🚨
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-wider">
+                        CRITICAL EVACUATION
+                      </span>
+                      <span className="text-red-300 text-[10px] font-mono">DYNAMIC RE-ROUTING</span>
+                    </div>
+                    <h2 className="text-xs font-black text-white mt-0.5">
+                      Follow Illuminated Safe Green Evacuation Route
+                    </h2>
+                  </div>
+                </div>
+                <button
+                  onClick={() => window.SafeWay?.resetAllToNormal?.()}
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-wider border border-slate-700 shrink-0"
+                >
+                  Stand Down
+                </button>
+              </div>
+
+              {/* Dynamic Evacuation Destination Card */}
+              {evacuationResult && (
+                <div className="bg-slate-950 rounded-2xl p-3 border-2 border-emerald-400 shadow-xl space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-black text-emerald-400">
+                    <span className="flex items-center gap-1">
+                      <Icon name="shield" className="w-3.5 h-3.5 text-emerald-400" />
+                      {evacuationResult.isRefugeRoute ? "FIRE POLICY: SAFE REFUGE ASSIGNED" : "NEAREST SAFE DESTINATION"}
+                    </span>
+                    <span className="font-mono text-emerald-300 font-bold">~{evacuationResult.bestRoute?.totalDistance || 25}m</span>
+                  </div>
+                  <div className="text-sm font-black text-emerald-300 leading-snug">
+                    Proceed to {evacuationResult.recommendedExit?.name || evacuationResult.recommendedAssembly?.name || evacuationResult.refugeNode?.name || "Designated Safe Zone"}
+                  </div>
+                  <p className="text-[11px] text-slate-300 font-medium">
+                    {evacuationResult.safetyGuidance || "Follow green route markings. Avoid elevators and proceed calmly."}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Navigation Controls */}
+          <div className="px-3.5 pt-2.5 space-y-2.5">
+            {/* 1. CURRENT POSITION */}
+            <div className={`border rounded-2xl p-2.5 flex items-center justify-between shadow-lg transition-colors ${
+              isLight ? "bg-white border-slate-300 shadow-slate-200" : "bg-slate-900 border-slate-800"
+            }`}>
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-black text-xs shrink-0">📍</span>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-[10px] font-black block ${isLight ? "text-slate-700" : "text-slate-400"}`}>1. CURRENT POSITION:</span>
+                  <select
+                    value={originLocationKey}
+                    onChange={(e) => handleOriginChange(e.target.value)}
+                    className={`w-full bg-transparent text-xs font-black outline-none cursor-pointer truncate ${isLight ? "text-slate-900" : "text-white"}`}
+                  >
+                    {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
+                      <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
+                        {group.items.map(item => (
+                          <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
+                            📍 {item.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. TARGET DESTINATION */}
+            {!isEmergency && (
+              <div className={`border rounded-2xl p-2.5 shadow-lg transition-colors ${
+                isLight ? "bg-white border-emerald-400 shadow-slate-200" : "bg-slate-900 border-emerald-500/50"
+              }`}>
+                <div className="flex items-center justify-between pb-1">
+                  <span className={`text-[10px] font-black flex items-center gap-1 ${isLight ? "text-emerald-800" : "text-emerald-400"}`}>
+                    🎯 2. TARGET DESTINATION:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {activeStageIndex > 0 && (
+                      <button
+                        onClick={() => advanceToStage(activeStageIndex - 1)}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition ${isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700"}`}
+                      >
+                        ‹ Prev Floor
+                      </button>
+                    )}
+                    {activeStageIndex < multiFloorPipeline.length - 1 && (
+                      <button
+                        onClick={() => advanceToStage(activeStageIndex + 1)}
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition ${isLight ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/30"}`}
+                      >
+                        Next Floor ›
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <select
+                  value={destinationLocationKey}
+                  onChange={(e) => handleDestinationChange(e.target.value)}
+                  className={`w-full border text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400 transition-colors ${
+                    isLight ? "bg-slate-50 border-slate-300 text-emerald-900" : "bg-slate-950 border-slate-700 text-emerald-300"
+                  }`}
+                >
+                  {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
+                    <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
+                      {group.items.map(item => (
+                        <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
+                          🎯 {item.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Live Stage Guidance Header Banner */}
+            <div className={`border rounded-2xl p-3 text-xs space-y-1.5 shadow-xl transition-colors ${
+              isEmergency
+                ? "bg-red-950/80 border-red-600 text-white shadow-red-900/30"
+                : (isLight ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-slate-200" : "bg-indigo-950/80 border-indigo-500/50")
+            }`}>
+              <div className="font-black flex items-center justify-between">
+                <span className={`flex items-center gap-1.5 ${isLight && !isEmergency ? "text-indigo-900" : "text-indigo-200"}`}>
+                  <span className={`w-2 h-2 rounded-full ${isEmergency ? "bg-red-500 animate-ping" : "bg-indigo-500 animate-ping"}`}></span>
+                  Stage {activeStageIndex + 1} of {multiFloorPipeline.length}: {currentActiveStage.title}
+                </span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                  isLight && !isEmergency
+                    ? "bg-white text-emerald-800 border-emerald-300" 
+                    : "bg-emerald-950/80 text-emerald-400 border-emerald-500/30"
+                }`}>
+                  {activeMapPlan.label}
+                </span>
+              </div>
+              <p className={`text-[11px] font-semibold ${isLight && !isEmergency ? "text-slate-700" : "text-slate-300"}`}>
+                {currentActiveStage.description}
+              </p>
+              {currentActiveStage.switchPrompt && (
+                <div className={`flex items-center justify-between pt-1 border-t ${isLight && !isEmergency ? "border-indigo-200" : "border-indigo-900/60"}`}>
+                  <span className={`text-[10px] font-mono font-bold ${isLight && !isEmergency ? "text-amber-800" : "text-amber-400"}`}>
+                    ⚡ Auto-switches on arrival at target mark
+                  </span>
+                  <button
+                    onClick={() => advanceToStage(activeStageIndex + 1)}
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[9px] font-black shadow transition"
+                  >
+                    {currentActiveStage.switchPrompt}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SVG Map Canvas */}
+          <main className="flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[310px]">
+            <div className={`w-full border-2 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center transition-colors ${
+              isEmergency
+                ? "border-red-600 bg-red-950/40 shadow-red-600/50 animate-pulse"
+                : (isLight ? "bg-white border-slate-300 shadow-slate-300" : "bg-slate-900/90 border-slate-800")
+            }`}>
+              <svg viewBox="0 0 1000 650" className={`w-full h-full max-h-[330px] rounded-2xl border ${isLight ? "bg-white border-slate-300" : "bg-white border-slate-800"}`}>
+                {/* Background Floor Plan Image */}
+                <image
+                  href={activeMapPlan.src || "/assets/college-campus-layout.jpeg"}
+                  x="0"
+                  y="0"
+                  width="1000"
+                  height="650"
+                  preserveAspectRatio="xMidYMid meet"
+                />
+
+                {/* CAMPUS VIEW: Render Graph Routes & Waypoints */}
+                {selectedMapId === "campus" && (
+                  <>
+                    {/* Safe Assembly Places */}
+                    <g transform="translate(535,65)" onClick={() => notify("Playground Safe Area")} style={{ cursor: "pointer" }}>
+                      <circle r="28" fill="#059669" fillOpacity="0.9" stroke="#ffffff" strokeWidth="2.5" />
+                      <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">PLAYGROUND</text>
+                    </g>
+                    <g transform="translate(90,145)" onClick={() => notify("Back Yard Safe Area")} style={{ cursor: "pointer" }}>
+                      <circle r="28" fill="#059669" fillOpacity="0.9" stroke="#ffffff" strokeWidth="2.5" />
+                      <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">BACK YARD</text>
+                    </g>
+
+                    {/* Campus Graph Edges */}
+                    <g id="campus-edges">
+                      {campusEdges.map(edge => {
+                        const u = bData.nodes.find(n => n.id === edge.from);
+                        const v = bData.nodes.find(n => n.id === edge.to);
+                        if (!u || !v) return null;
+                        return (
+                          <line
+                            key={edge.id}
+                            x1={u.x}
+                            y1={u.y}
+                            x2={v.x}
+                            y2={v.y}
+                            stroke="transparent"
+                            strokeWidth="8"
+                          />
+                        );
+                      })}
+                    </g>
+
+                    {/* Active Dijkstra Calculated Campus Route */}
+                    {activeCampusRoute?.pathNodes?.length > 1 && (
+                      <g id="active-campus-route">
+                        {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
+                          const nextNode = activeCampusRoute.pathNodes[idx + 1];
+                          return (
+                            <g key={`route-seg-${idx}`}>
+                              <line
+                                x1={node.x}
+                                y1={node.y}
+                                x2={nextNode.x}
+                                y2={nextNode.y}
+                                stroke={isEmergency ? "#10b981" : "#6366f1"}
+                                strokeWidth="9"
+                                strokeLinecap="round"
+                                opacity="0.9"
+                              />
+                              <line
+                                x1={node.x}
+                                y1={node.y}
+                                x2={nextNode.x}
+                                y2={nextNode.y}
+                                stroke="#ffffff"
+                                strokeWidth="3.5"
+                                strokeDasharray="8 6"
+                                strokeLinecap="round"
+                                className="route-glow-dash"
+                              />
+                            </g>
+                          );
+                        })}
+                      </g>
+                    )}
+
+                    {/* Campus Waypoint Markers */}
+                    <g id="campus-nodes">
+                      {campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
+                        const isUserHere = campusOriginNodeId === node.id;
+                        const isDest = campusDestNodeId === node.id;
+                        return (
+                          <g
+                            key={node.id}
+                            transform={`translate(${node.x}, ${node.y})`}
+                            onClick={() => {
+                              handleOriginChange(`campus:${node.id}`);
+                            }}
+                            style={{ cursor: "pointer" }}
+                          >
+                            <circle
+                              r={isUserHere || isDest ? "16" : "9"}
+                              fill={isUserHere ? "#0284c7" : isDest ? "#059669" : "#1e293b"}
+                              stroke={isUserHere ? "#ffffff" : isDest ? "#ffffff" : "#64748b"}
+                              strokeWidth={isUserHere || isDest ? "3" : "1.5"}
+                            />
+                            {isDest && (
+                              <circle r="24" fill="#059669" fillOpacity="0.3" className="mobile-radar-pulse" />
+                            )}
+                          </g>
+                        );
+                      })}
+                    </g>
+                  </>
+                )}
+
+                {/* INDOOR BLOCK VIEW: Render Blue Dashed Path, Direction Arrow & Badges */}
+                {selectedMapId !== "campus" && currentActiveStage && (
+                  <>
+                    <rect x="20" y="10" width="960" height="38" rx="10" fill="#0f172a" />
+                    <text x="500" y="34" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">
+                      {activeMapPlan.group} — {activeMapPlan.label}
+                    </text>
+
+                    {currentActiveStage.d && (
+                      <g>
+                        <path
+                          d={currentActiveStage.d}
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="11"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity="0.95"
+                        />
+                        <path
+                          d={currentActiveStage.d}
+                          fill="none"
+                          stroke={isEmergency ? "#10b981" : "#2563eb"}
+                          strokeWidth="6"
+                          strokeDasharray="12 8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="route-glow-dash"
+                        />
+
+                        {/* Target End Point Badge (Stairs / Exit / Room) */}
+                        {currentActiveStage.endPoint && (
+                          <g transform={`translate(${currentActiveStage.endPoint[0]}, ${currentActiveStage.endPoint[1]})`}>
+                            <circle r="18" fill={isEmergency ? "#10b981" : (currentActiveStage.targetBadgeColor || "#f59e0b")} stroke="#ffffff" strokeWidth="3" />
+                            <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">
+                              {isEmergency ? "EXIT" : (currentActiveStage.targetBadge || "TARGET")}
+                            </text>
+                            <g transform="translate(0, 24)">
+                              <rect x="-70" y="-10" width="140" height="20" rx="7" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+                              <text y="4" textAnchor="middle" fill="#ffffff" fontSize="8.5" fontWeight="900">
+                                {currentActiveStage.targetLabel || "DESTINATION"}
+                              </text>
+                            </g>
+                          </g>
+                        )}
+
+                        {/* Bottom Status Banner */}
+                        <g transform="translate(500, 615)">
+                          <rect x="-175" y="-15" width="350" height="30" rx="10" fill="#0f172a" stroke={isEmergency ? "#10b981" : "#6366f1"} strokeWidth="2" />
+                          <text y="5" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="900" letterSpacing="0.5">
+                            {currentActiveStage.title.toUpperCase()}
+                          </text>
+                        </g>
+                      </g>
+                    )}
+                  </>
+                )}
+
+                {/* Live User Position Indicator */}
+                <g transform={`translate(${liveUserCoords[0]}, ${liveUserCoords[1]})`}>
+                  <circle r="36" fill="#0ea5e9" fillOpacity="0.3" className="mobile-radar-pulse" />
+                  <circle r="14" fill="#0284c7" stroke="#ffffff" strokeWidth="4" />
+                  
+                  {/* Compass Needle */}
+                  <g transform={`rotate(${compassHeading || 0})`}>
+                    <polygon points="0,-26 -7,-11 7,-11" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
+                  </g>
+                  <circle r="4" fill="#ffffff" />
+
+                  <g transform="translate(0, 26)">
+                    <rect x="-46" y="-9" width="92" height="18" rx="8" fill="#0284c7" stroke="#ffffff" strokeWidth="1.5" />
+                    <text y="4" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="900">
+                      {stageStepCount > 0 ? `👣 ${stageStepCount} STEPS` : "YOU ARE HERE"}
+                    </text>
+                  </g>
+                </g>
+              </svg>
+
+              {/* Telemetry HUD */}
+              <div className={`absolute top-5 left-5 px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border transition-colors ${
+                isLight ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-300" : "bg-slate-950/90 border-slate-800 text-slate-300"
+              }`}>
+                <span>👣 <b>{stageStepCount}</b> stage steps</span>
+                <span className="opacity-40">|</span>
+                <span>🧭 <b>{compassHeading}°</b></span>
+              </div>
+            </div>
+          </main>
+
+          {/* Turn-by-Turn Sequential Guidance Module */}
+          <section className="px-3.5 pt-1 space-y-2">
+            <div className={`border rounded-2xl p-3 shadow-xl space-y-2.5 transition-colors ${
+              isLight ? "bg-white border-slate-300 shadow-slate-200" : "bg-slate-900 border-slate-800"
+            }`}>
+              <div className={`flex items-center justify-between pb-2 border-b ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+                <button
+                  onClick={() => setShowDirectionsDrawer(!showDirectionsDrawer)}
+                  className={`flex items-center gap-2 text-xs font-black transition ${
+                    isLight ? "text-slate-900 hover:text-indigo-600" : "text-white hover:text-indigo-400"
+                  }`}
+                >
+                  <Icon name="list-ordered" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Turn-by-Turn Sequential Guidance</span>
+                  <Icon name={showDirectionsDrawer ? "chevron-up" : "chevron-down"} className="w-3.5 h-3.5 opacity-50" />
+                </button>
+
+                <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border ${
+                  isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"
+                }`}>
+                  ~{totalEstimatedMeters}m ({totalEstimatedSeconds}s)
+                </span>
+              </div>
+
+              {showDirectionsDrawer && (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {multiFloorPipeline.map((stage, idx) => {
+                    const isActive = idx === activeStageIndex;
+                    const isPassed = idx < activeStageIndex;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => advanceToStage(idx)}
+                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 transition cursor-pointer ${
+                          isActive
+                            ? (isLight ? "bg-indigo-50 border-indigo-400 shadow-md ring-1 ring-indigo-400/40" : "bg-indigo-950/80 border-indigo-500/60 shadow-lg ring-1 ring-indigo-500/40")
+                            : isPassed
+                            ? (isLight ? "bg-emerald-50/60 border-emerald-300 opacity-90" : "bg-emerald-950/20 border-emerald-800/30 opacity-70")
+                            : (isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950/50 border-slate-800/70")
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${
+                            isActive
+                              ? "bg-indigo-600 text-white shadow"
+                              : isPassed
+                              ? "bg-emerald-600 text-white"
+                              : (isLight ? "bg-slate-200 text-slate-700" : "bg-slate-800 text-slate-400")
+                          }`}
+                        >
+                          {isPassed ? "✓" : idx + 1}
+                        </div>
+
+                        <div className="space-y-0.5 text-xs flex-1 min-w-0">
+                          <div className={`font-bold flex items-center justify-between ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                            <span className="truncate pr-1">{stage.title}</span>
+                            {isActive && (
+                              <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 ${
+                                isLight ? "bg-indigo-100 text-indigo-800 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/40"
+                              }`}>
+                                ACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <div className={`text-[11px] leading-tight font-medium ${isLight ? "text-slate-700" : "text-slate-400"}`}>{stage.description}</div>
+                          
+                          {stage.mapId !== selectedMapId && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                advanceToStage(idx);
+                              }}
+                              className="mt-1 px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[9px] font-black transition"
+                            >
+                              View Floor Plan ➔
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Footer Controls */}
+          <footer className={`p-3 border-t sticky bottom-0 z-30 space-y-2 mt-2 transition-colors ${
+            isLight ? "bg-white border-slate-300 shadow-lg" : "bg-slate-900 border-slate-800"
+          }`}>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={takeStep}
+                className={`py-3 rounded-2xl font-black text-xs border flex items-center justify-center gap-1 transition ${
+                  isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 shadow-sm" : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                }`}
+              >
+                <span>🚶 Step (+1)</span>
+              </button>
+
+              {/* Auto-Walk with Speed Toggle */}
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={() => setAutoWalkActive(!autoWalkActive)}
+                  className={`py-2 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1 ${
+                    autoWalkActive
+                      ? "bg-amber-600/30 text-amber-600 dark:text-amber-300 border-amber-500/50 animate-pulse"
+                      : (isLight ? "bg-slate-100 text-slate-900 border-slate-300 shadow-sm" : "bg-slate-800 text-slate-300 border-slate-700")
+                  }`}
+                >
+                  <span>{autoWalkActive ? "⏸ Pause" : "▶ Auto-Walk"}</span>
+                </button>
+                <button
+                  onClick={() => setWalkSpeedMode(prev => prev === "1x" ? "2x" : "1x")}
+                  className={`text-[9px] font-black py-0.5 rounded-lg border transition ${
+                    isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-900 text-slate-400 border-slate-800"
+                  }`}
+                >
+                  Speed: <b>{walkSpeedMode === "1x" ? "1.4s (Normal)" : "0.7s (Fast)"}</b>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setIsSosModalOpen(true)}
+                className="py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-xs shadow-lg shadow-red-600/40 flex items-center justify-center gap-1 animate-pulse"
+              >
+                <span>🆘 SOS</span>
+              </button>
+            </div>
+
+            {/* Sensors Toggle Strip */}
+            <div className={`flex items-center justify-between px-1 text-[10px] ${isLight ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+              <button
+                onClick={toggleSensors}
+                className={`px-2.5 py-1 rounded-xl font-black border transition ${
+                  isMotionTracking
+                    ? "bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                    : (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700")
+                }`}
+              >
+                {isMotionTracking ? "🟢 Sensors: ACTIVE" : "📱 Enable Physical Sensors"}
+              </button>
+
+              <button
+                onClick={() => {
+                  setStageStepCount(0);
+                  setActiveStageIndex(0);
+                  notify("↺ Navigation restarted at Stage 1");
+                }}
+                className={`font-mono font-bold transition ${isLight ? "text-slate-600 hover:text-slate-900" : "text-slate-500 hover:text-slate-300"}`}
+              >
+                ↺ Restart Route
+              </button>
+            </div>
+          </footer>
+
+          {/* SOS Distress Modal */}
+          {isSosModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl">
+              <div className={`border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative ${isLight ? "bg-white text-slate-900" : "bg-slate-900 text-white"}`}>
+                <button
+                  onClick={() => { setIsSosModalOpen(false); setSosSent(false); }}
+                  className={`absolute top-4 right-4 p-1.5 rounded-xl text-xs font-black ${isLight ? "text-slate-500 hover:text-slate-900" : "text-slate-400 hover:text-white"}`}
+                  title="Close"
+                >
+                  ✕
+                </button>
+
+                <div className="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center font-black text-white text-2xl mx-auto animate-bounce shadow-2xl shadow-red-600/60">
+                  🆘
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className={`text-lg font-black ${isLight ? "text-slate-900" : "text-white"}`}>Emergency Trapped Signal</h3>
+                  <p className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                    Transmitting your location to the Campus Security Command Center:
+                  </p>
+                  <div className="p-3 bg-red-50 dark:bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-600 dark:text-red-400">
+                    📍 {activeOriginLocation?.name || "Campus"} &bull; {activeMapPlan.label}
+                  </div>
+                </div>
+
+                {sosSent ? (
+                  <div className="space-y-2.5">
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
+                      <Icon name="check" className="w-4 h-4 text-emerald-500" />
+                      Distress Beacon Active & Logged!
+                    </div>
+                    <button
+                      onClick={() => { setIsSosModalOpen(false); setSosSent(false); }}
+                      className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl text-xs font-black transition border border-slate-700 shadow-lg flex items-center justify-center gap-1.5"
+                    >
+                      <span>‹ Back to Navigation Map</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsSosModalOpen(false)}
+                      className={`flex-1 py-3 rounded-2xl text-xs font-bold ${isLight ? "bg-slate-200 hover:bg-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 text-slate-300"}`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={triggerSosDistress}
+                      className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-red-600/40"
+                    >
+                      SEND HELP
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const container = document.getElementById('root');
+    const root = ReactDOM.createRoot(container);
+    root.render(<MobileApp />);
+  </script>
+</body>
+</html>

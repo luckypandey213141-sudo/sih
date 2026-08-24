@@ -1,0 +1,22 @@
+{
+  "name": "aegispath",
+  "version": "3.0.0",
+  "description": "AegisPath — Intelligent Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
+  "type": "module",
+  "scripts": {
+    "start": "node local_server.js",
+    "test": "node tests/test_pathfinder.js"
+  },
+  "keywords": [
+    "indoor-navigation",
+    "emergency-evacuation",
+    "dijkstra",
+    "crowd-density",
+    "iot-sensors",
+    "esp32",
+    "smart-india-hackathon",
+    "sih-2026"
+  ],
+  "author": "SafeWay Engineering Team (SIH)",
+  "license": "MIT"
+}
