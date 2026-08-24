@@ -362,7 +362,10 @@ function Icon({
     })),
     play: /*#__PURE__*/React.createElement("polygon", {
       points: "5 3 19 12 5 21 5 3"
-    })
+    }),
+    sun: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", { cx: "12", cy: "12", r: "4" }), /*#__PURE__*/React.createElement("path", { d: "M12 2v2M12 20v2m-7.07-15.07 1.41 1.41m12.73 12.73 1.41 1.41M2 12h2m16 0h2m-17.66 5.66 1.41-1.41m12.73-12.73 1.41-1.41" })),
+    moon: /*#__PURE__*/React.createElement("path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" }),
+    sos: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", { cx: "12", cy: "12", r: "10" }), /*#__PURE__*/React.createElement("line", { x1: "12", y1: "8", x2: "12", y2: "12" }), /*#__PURE__*/React.createElement("line", { x1: "12", y1: "16", x2: "12.01", y2: "16" }))
   };
   return /*#__PURE__*/React.createElement("svg", {
     xmlns: "http://www.w3.org/2000/svg",
@@ -1064,6 +1067,59 @@ function App() {
   const [destinationNodeId, setDestinationNodeId] = useState("lobby");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem('aegispath_theme') || 'dark';
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('aegispath_theme', theme);
+    }
+    if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.body.style.background = '#f8fafc';
+      document.body.style.color = '#0f172a';
+    } else {
+      document.documentElement.classList.add('dark');
+      document.body.style.background = 'radial-gradient(circle at 50% 0%, #0f172a 0%, #020617 100%)';
+      document.body.style.color = '#f8fafc';
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const [isSosModalOpen, setIsSosModalOpen] = useState(false);
+  const [sosSent, setSosSent] = useState(false);
+  const [sosEmergencyType, setSosEmergencyType] = useState("Trapped in Room / Smoke");
+
+  const triggerSosDistress = () => {
+    if (SafeWay?.sendDistressSignal) {
+      SafeWay.sendDistressSignal({
+        userId: "aegispath-pc-terminal",
+        locationName: `${activeQuickCheckpoint?.name || userNode?.name || "Campus Ground"} (${displayedMapPlan.label})`,
+        nodeId: userLocationNodeId,
+        floor: displayedMapPlan.floor || 1,
+        zone: displayedMapPlan.group,
+        emergencyType: sosEmergencyType,
+        accessibilityUser: accessibilityMode
+      });
+    }
+    setSosSent(true);
+  };
+
+  const cancelSosDistress = () => {
+    if (SafeWay?.clearDistressSignal) {
+      SafeWay.clearDistressSignal("aegispath-pc-terminal");
+    }
+    setSosSent(false);
+    setIsSosModalOpen(false);
+  };
+
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrInputText, setQrInputText] = useState("");
   const [quickCheckpointKey, setQuickCheckpointKey] = useState("");
@@ -1467,9 +1523,9 @@ function App() {
   const displayedGuidanceSteps = isEmergency ? emergencyGuidanceSteps : internalGuidanceSteps;
   const showMapGuidance = isEmergency ? emergencyGuidanceSteps.length > 0 : selectedMapId !== "campus" && internalGuidanceSteps.length > 0;
   return /*#__PURE__*/React.createElement("div", {
-    className: "min-h-screen flex flex-col font-sans"
+    className: "min-h-screen flex flex-col font-sans transition-colors duration-300 " + (theme === 'light' ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100")
   }, /*#__PURE__*/React.createElement("header", {
-    className: "bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800 sticky top-0 z-40 px-4 sm:px-6 py-3"
+    className: (theme === 'light' ? "bg-white/95 border-slate-200 shadow-sm" : "bg-slate-900/90 border-slate-800") + " backdrop-blur-2xl border-b sticky top-0 z-40 px-4 sm:px-6 py-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1502,6 +1558,13 @@ function App() {
     name: "settings",
     className: "w-3.5 h-3.5 text-indigo-400"
   }), /*#__PURE__*/React.createElement("span", null, "Admin Security Console")), /*#__PURE__*/React.createElement("button", {
+    onClick: toggleTheme,
+    className: `p-2.5 rounded-2xl border text-xs font-bold transition flex items-center gap-1.5 ${theme === 'light' ? "bg-slate-200 text-amber-600 border-slate-300 hover:bg-slate-300" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700"}`,
+    title: theme === 'light' ? "Switch to Dark Mode" : "Switch to Light Mode"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: theme === 'light' ? "sun" : "moon",
+    className: "w-4 h-4"
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setSoundEnabled(!soundEnabled),
     className: `px-3 py-2 rounded-2xl border text-xs font-bold transition flex items-center gap-2 ${soundEnabled ? isEmergency ? "bg-red-600/30 text-red-300 border-red-500/60 shadow-lg" : "bg-indigo-600/20 text-indigo-300 border-indigo-500/40" : "bg-slate-800/80 text-slate-400 border-slate-700 hover:text-white"}`
   }, /*#__PURE__*/React.createElement(Icon, {
@@ -1515,7 +1578,14 @@ function App() {
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "accessibility",
     className: "w-4 h-4"
-  }), /*#__PURE__*/React.createElement("span", null, "\u267F Step-Free"))))), isEmergency && evacuationResult && /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement("span", null, "\u267F Step-Free")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setIsSosModalOpen(true),
+    className: "px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-black rounded-2xl shadow-lg shadow-red-600/40 transition flex items-center gap-1.5 animate-pulse",
+    title: "Transmit Emergency Trapped Distress Signal"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "sos",
+    className: "w-4 h-4"
+  }), /*#__PURE__*/React.createElement("span", null, "\uD83C\uDD98 SOS DISTRESS"))))), isEmergency && evacuationResult && /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-red-950 border-b-4 border-red-600 shadow-2xl p-4 sm:p-6 text-white"
   }, /*#__PURE__*/React.createElement("div", {
     className: "max-w-7xl mx-auto space-y-4"
@@ -2634,7 +2704,53 @@ function App() {
     fill: "#ffffff",
     fontSize: "16",
     fontWeight: "900"
-  }, "DESTINATION: ", internalDestination.toUpperCase())))))))), isQrModalOpen && /*#__PURE__*/React.createElement("div", {
+  }, "DESTINATION: ", internalDestination.toUpperCase())))))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/85 backdrop-blur-2xl"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-md w-full space-y-4 text-center relative"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => { setIsSosModalOpen(false); setSosSent(false); },
+    className: "absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 text-xs font-black",
+    title: "Close"
+  }, "✕"), /*#__PURE__*/React.createElement("div", {
+    className: "w-16 h-16 rounded-2xl bg-red-600 flex items-center justify-center font-black text-white text-3xl mx-auto animate-bounce shadow-2xl shadow-red-600/60"
+  }, "🆘"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-1"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "text-xl font-black text-white"
+  }, "Emergency Trapped Distress Signal"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-slate-300"
+  }, "Transmitting your terminal location to the Campus Security Operations Center:"), /*#__PURE__*/React.createElement("div", {
+    className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
+  }, "📍 ", activeQuickCheckpoint?.name || userNode?.name || "Campus Ground", " • ", displayedMapPlan.label)), /*#__PURE__*/React.createElement("div", {
+    className: "text-left space-y-1"
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "text-[11px] font-bold text-slate-400 block"
+  }, "Emergency Situation Category:"), /*#__PURE__*/React.createElement("select", {
+    value: sosEmergencyType,
+    onChange: (e) => setSosEmergencyType(e.target.value),
+    className: "w-full bg-slate-950 border border-slate-700 text-xs text-white rounded-xl p-2.5 outline-none font-bold"
+  }, /*#__PURE__*/React.createElement("option", { value: "Trapped in Room / Smoke" }, "🔥 Trapped in Room / Dense Smoke"), /*#__PURE__*/React.createElement("option", { value: "Medical Emergency" }, "🩺 Severe Medical Emergency"), /*#__PURE__*/React.createElement("option", { value: "Structural Blockage / Debris" }, "⚠️ Structural Blockage / Exit Collapsed"), /*#__PURE__*/React.createElement("option", { value: "General Distress" }, "🆘 General Distress / Immediate Assistance"))), sosSent ? /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, { name: "shield-check", className: "w-4 h-4 text-emerald-400" }), "Distress Beacon Active & Logged by Security Console!"), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: cancelSosDistress,
+    className: "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-bold transition border border-slate-700"
+  }, "Cancel Distress Beacon"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setIsSosModalOpen(false),
+    className: "flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-black transition shadow-lg"
+  }, "‹ Back to Map"))) : /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setIsSosModalOpen(false),
+    className: "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-bold"
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    onClick: triggerSosDistress,
+    className: "flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-red-600/40"
+  }, "DISPATCH SOS BEACON")))), isQrModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl max-w-lg w-full space-y-4"

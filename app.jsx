@@ -235,12 +235,12 @@ export function App() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight text-white">SafeWay</h1>
+                <h1 className="text-lg font-black tracking-tight text-white">AegisPath</h1>
                 <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
                   Indoor Navigation & Safety
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Smart Hazard-Aware Evacuation System</p>
+              <p className="text-xs text-slate-400 font-medium">Intelligent Hazard-Aware Evacuation System</p>
             </div>
           </div>
 
@@ -619,7 +619,7 @@ export function App() {
       {/* App Footer */}
       <footer className="mt-auto border-t border-slate-800/80 bg-slate-950 py-4 px-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-          <span>SafeWay Smart Indoor Navigation Prototype • Built for Safety & Evacuation Operations</span>
+          <span>AegisPath Intelligent Indoor Navigation • Built for Safety & Evacuation Operations</span>
           <span className="font-mono text-[11px]">Dijkstra/A* Graph Pathfinding Engine Active</span>
         </div>
       </footer>
