@@ -1,11 +1,11 @@
 {
-  "name": "SafeWay V3 — Smart Indoor Navigation & Evacuation",
-  "short_name": "SafeWay V3",
-  "description": "Smart Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
-  "start_url": "/",
+  "name": "AegisPath — Intelligent Indoor Navigation & Evacuation",
+  "short_name": "AegisPath",
+  "description": "Intelligent Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
+  "start_url": "/mobile.html",
   "display": "standalone",
   "background_color": "#020617",
-  "theme_color": "#0f172a",
+  "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
   "icons": [
     {

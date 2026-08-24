@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SafeWay V3 Mobile — Indoor Evacuation & Motion Guidance</title>
+  <title>AegisPath — Intelligent Indoor Evacuation & Motion Guidance</title>
 
   <!-- PWA & Mobile Phone Metadata -->
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#020617">
+  <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
@@ -42,8 +42,6 @@
 
   <style>
     body {
-      background: #020617;
-      color: #f8fafc;
       font-family: 'Outfit', sans-serif;
       overflow-x: hidden;
       touch-action: manipulation;
@@ -65,7 +63,7 @@
     .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between select-none">
+<body class="min-h-screen select-none transition-colors duration-300">
   <div id="root"></div>
 
   <script type="module">
@@ -406,8 +404,6 @@ const ROOM_ROUTE_TARGETS = {
     "Stairs 1": [220, 170]
   }
 };
-
-// Precise Floor Anchors for Vertical Stairs & Doorways across all blocks
 const FLOOR_VERTICAL_ANCHORS = {
   "ramanujan-first": {
     stairs: [800, 235],
@@ -498,8 +494,6 @@ const FLOOR_VERTICAL_ANCHORS = {
     hubX: 500
   }
 };
-
-// Complete Campus & Indoor Sub-Locations Hierarchy
 const ALL_CAMPUS_LOCATIONS_HIERARCHY = [{
   group: "🏫 Campus Outdoor Gates & Grounds",
   mapId: "campus",
@@ -702,7 +696,7 @@ function buildMultiFloorStagePipeline({
   const isOriginUpperOrLower = originMap.includes("first") || originMap.includes("basement");
   const isDestUpperOrLower = destMap.includes("first") || destMap.includes("basement");
 
-  // SCENARIO 1: Origin is on 1F or Basement -> Must Route Down to Ground Floor first!
+  // SCENARIO 1: Origin is on 1F or Basement -> Route Down to Ground Floor first
   if (isOriginUpperOrLower) {
     const originAnchor = FLOOR_VERTICAL_ANCHORS[originMap] || {
       stairs: [800, 235],
@@ -1006,6 +1000,30 @@ function Icon({
     }),
     "chevron-up": /*#__PURE__*/React.createElement("polyline", {
       points: "18 15 12 9 6 15"
+    }),
+    sun: /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("circle", {
+      cx: "12",
+      cy: "12",
+      r: "4"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M12 2v2"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M12 20v2"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "m4.93 4.93 1.41 1.41"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "m17.66 17.66 1.41 1.41"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M2 12h2"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M20 12h2"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "m6.34 17.66-1.41 1.41"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "m19.07 4.93-1.41 1.41"
+    })),
+    moon: /*#__PURE__*/React.createElement("path", {
+      d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
     })
   };
   return /*#__PURE__*/React.createElement("svg", {
@@ -1042,6 +1060,23 @@ function MobileApp() {
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showDirectionsDrawer, setShowDirectionsDrawer] = useState(true);
+
+  // Theme Management (Light / Dark / System)
+  const [theme, setTheme] = useState(() => localStorage.getItem('aegispath_theme') || 'dark');
+  useEffect(() => {
+    localStorage.setItem('aegispath_theme', theme);
+    if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.add('dark');
+    }
+  }, [theme]);
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  // Walking Speed Selection (Natural 1.4s vs Brisk 0.7s)
+  const [walkSpeedMode, setWalkSpeedMode] = useState("1x"); // '1x' = 1400ms, '2x' = 700ms
 
   // Multi-Floor Stage Index State
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -1132,6 +1167,19 @@ function MobileApp() {
     }
   };
 
+  // Anonymous Telemetry Heartbeat (Multi-User Fleet Density contribution)
+  useEffect(() => {
+    if (SafeWay?.registerActiveRoute && activeOriginLocation) {
+      SafeWay.registerActiveRoute({
+        userId: "aegispath-mobile-client",
+        origin: activeOriginLocation.key,
+        destination: activeDestLocation.key,
+        currentMapId: selectedMapId,
+        timestamp: Date.now()
+      });
+    }
+  }, [selectedMapId, activeOriginLocation, activeDestLocation]);
+
   // Campus Dijkstra Graph Path calculation
   const effectiveEdges = bData.edges.map(e => ({
     ...e,
@@ -1179,13 +1227,13 @@ function MobileApp() {
     }
   }, [activeStageIndex, currentActiveStage]);
 
-  // Stage steps required for current sub-stage (e.g. 18 steps for 1F stairs, 20 steps for ground exit, 40 steps for campus)
+  // Stage steps required for current sub-stage
   const stageTargetSteps = useMemo(() => {
     if (currentActiveStage?.mapId === "campus") {
       const dist = activeCampusRoute?.totalDistance || 45;
       return Math.max(15, Math.round(dist / 1.5));
     }
-    return 18; // ~15-20 steps for indoor corridors / stairways
+    return 18;
   }, [currentActiveStage, activeCampusRoute]);
 
   // Stage progress ratio (0.0 to 1.0)
@@ -1234,18 +1282,19 @@ function MobileApp() {
     }
   };
 
-  // Auto-Walk presentation
+  // Auto-Walk presentation with Natural 1.4s Stride
   useEffect(() => {
     let timer = null;
     if (autoWalkActive) {
+      const stepInterval = walkSpeedMode === "2x" ? 700 : 1400;
       timer = setInterval(() => {
         takeStep();
-      }, 700);
+      }, stepInterval);
     }
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [autoWalkActive, stageStepCount, activeStageIndex, stageTargetSteps, multiFloorPipeline]);
+  }, [autoWalkActive, walkSpeedMode, stageStepCount, activeStageIndex, stageTargetSteps, multiFloorPipeline]);
 
   // QR Code Location Resolution Handler
   const applyQrResolution = resolved => {
@@ -1350,7 +1399,7 @@ function MobileApp() {
   };
   const triggerSosDistress = () => {
     SafeWay.sendDistressSignal({
-      userId: "mobile-user-1",
+      userId: "aegispath-user-mobile",
       locationName: `${activeOriginLocation?.name || "Campus"} (${activeMapPlan.label})`,
       nodeId: "mobile-node",
       floor: activeMapPlan.floor || 1,
@@ -1367,10 +1416,11 @@ function MobileApp() {
   // Total estimated distance & ETA
   const totalEstimatedMeters = (activeCampusRoute?.totalDistance || 35) + multiFloorPipeline.length * 15;
   const totalEstimatedSeconds = Math.ceil(totalEstimatedMeters / 1.2);
+  const isLight = theme === 'light';
   return /*#__PURE__*/React.createElement("div", {
-    className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl pb-4"
+    className: `min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 ${isLight ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100"}`
   }, /*#__PURE__*/React.createElement("header", {
-    className: "p-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl"
+    className: `p-3.5 border-b flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl transition-colors ${isLight ? "bg-white/95 border-slate-200 shadow-sm" : "bg-slate-900/95 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2.5"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1379,55 +1429,62 @@ function MobileApp() {
     name: isEmergency ? "siren" : "navigation",
     className: "w-4 h-4 text-white"
   })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
-    className: "text-xs font-black text-white flex items-center gap-1.5"
-  }, "SafeWay V3 Mobile", /*#__PURE__*/React.createElement("span", {
-    className: `text-[9px] font-black px-2 py-0.5 rounded-full ${isEmergency ? "bg-red-500/30 text-red-300 border border-red-500/40" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"}`
+    className: `text-xs font-black flex items-center gap-1.5 ${isLight ? "text-slate-900" : "text-white"}`
+  }, "AegisPath", /*#__PURE__*/React.createElement("span", {
+    className: `text-[9px] font-black px-2 py-0.5 rounded-full ${isEmergency ? "bg-red-500/20 text-red-600 border border-red-500/30" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"}`
   }, isEmergency ? "🚨 EVACUATION" : `STAGE ${activeStageIndex + 1}/${multiFloorPipeline.length}`)), /*#__PURE__*/React.createElement("p", {
-    className: "text-[10px] text-slate-400 font-medium truncate max-w-[140px]"
+    className: `text-[10px] font-medium truncate max-w-[140px] ${isLight ? "text-slate-500" : "text-slate-400"}`
   }, activeMapPlan.group, " \u2022 ", /*#__PURE__*/React.createElement("b", {
-    className: "text-indigo-300"
+    className: "text-indigo-600 dark:text-indigo-300"
   }, activeMapPlan.label)))), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-1.5"
   }, /*#__PURE__*/React.createElement("button", {
+    onClick: toggleTheme,
+    className: `p-2 rounded-xl border text-xs transition ${isLight ? "bg-slate-100 text-amber-600 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700"}`,
+    title: isLight ? "Switch to Dark Mode" : "Switch to Light Mode"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: isLight ? "sun" : "moon",
+    className: "w-4 h-4"
+  })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setSoundEnabled(!soundEnabled),
-    className: `p-2 rounded-xl border text-xs transition ${soundEnabled ? "bg-indigo-600/30 text-indigo-300 border-indigo-500/40" : "bg-slate-800 text-slate-500 border-slate-700"}`,
+    className: `p-2 rounded-xl border text-xs transition ${soundEnabled ? "bg-indigo-600/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/40" : "bg-slate-800 text-slate-500 border-slate-700"}`,
     title: "Toggle Voice Alerts"
   }, /*#__PURE__*/React.createElement(Icon, {
-    name: soundEnabled ? "volume-2" : "volume-x",
+    name: "volume-2",
     className: "w-4 h-4"
   })), /*#__PURE__*/React.createElement("button", {
     onClick: () => setAccessibilityMode(!accessibilityMode),
-    className: `px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 ${accessibilityMode ? "bg-emerald-600 text-white border-emerald-400" : "bg-slate-800 text-slate-300 border-slate-700"}`,
+    className: `px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 ${accessibilityMode ? "bg-emerald-600 text-white border-emerald-400" : isLight ? "bg-slate-200 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"}`,
     title: "Step-Free Mode"
   }, /*#__PURE__*/React.createElement("span", null, "\u267F")), /*#__PURE__*/React.createElement("a", {
     href: "/index.html",
-    className: "px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-xl border border-slate-700 transition"
+    className: `px-2.5 py-1.5 text-[10px] font-bold rounded-xl border transition ${isLight ? "bg-slate-200 hover:bg-slate-300 text-slate-700 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700"}`
   }, "\uD83D\uDDA5\uFE0F PC"))), statusNotification && /*#__PURE__*/React.createElement("div", {
     className: "fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-indigo-600 text-white font-black text-xs px-4 py-2 rounded-full shadow-2xl border border-indigo-400 animate-bounce"
   }, statusNotification), /*#__PURE__*/React.createElement("div", {
     className: "px-3.5 pt-2.5 space-y-2.5"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-800 rounded-2xl p-2.5 flex items-center justify-between shadow-lg"
+    className: `border rounded-2xl p-2.5 flex items-center justify-between shadow-lg transition-colors ${isLight ? "bg-white border-slate-200 shadow-slate-200" : "bg-slate-900 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-1 min-w-0 pr-2"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "w-6 h-6 rounded-lg bg-indigo-600/30 text-indigo-400 flex items-center justify-center font-black text-xs shrink-0"
+    className: "w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-xs shrink-0"
   }, "\uD83D\uDCCD"), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 min-w-0"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] font-bold text-slate-400 block"
+    className: `text-[10px] font-bold block ${isLight ? "text-slate-500" : "text-slate-400"}`
   }, "1. CURRENT POSITION:"), /*#__PURE__*/React.createElement("select", {
     value: originLocationKey,
     onChange: e => handleOriginChange(e.target.value),
-    className: "w-full bg-transparent text-xs font-black text-white outline-none cursor-pointer truncate"
+    className: `w-full bg-transparent text-xs font-black outline-none cursor-pointer truncate ${isLight ? "text-slate-900" : "text-white"}`
   }, ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => /*#__PURE__*/React.createElement("optgroup", {
     key: group.group,
     label: group.group,
-    className: "bg-slate-900 text-indigo-300 font-bold"
+    className: isLight ? "bg-white text-indigo-700 font-bold" : "bg-slate-900 text-indigo-300 font-bold"
   }, group.items.map(item => /*#__PURE__*/React.createElement("option", {
     key: item.key,
     value: item.key,
-    className: "bg-slate-950 text-white font-medium"
+    className: isLight ? "bg-white text-slate-900 font-medium" : "bg-slate-950 text-white font-medium"
   }, "\uD83D\uDCCD ", item.name))))))), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsQrModalOpen(true);
@@ -1435,54 +1492,54 @@ function MobileApp() {
     },
     className: "px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-black rounded-xl shadow-md transition shrink-0"
   }, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-emerald-500/50 rounded-2xl p-2.5 shadow-lg"
+    className: `border rounded-2xl p-2.5 shadow-lg transition-colors ${isLight ? "bg-white border-emerald-500/40 shadow-slate-200" : "bg-slate-900 border-emerald-500/50"}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between pb-1"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] font-black text-emerald-400 flex items-center gap-1"
+    className: "text-[10px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1"
   }, "\uD83C\uDFAF 2. TARGET DESTINATION:"), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-1"
   }, activeStageIndex > 0 && /*#__PURE__*/React.createElement("button", {
     onClick: () => advanceToStage(activeStageIndex - 1),
-    className: "text-[10px] text-slate-400 font-bold bg-slate-800 px-1.5 py-0.5 rounded-lg border border-slate-700"
+    className: `text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition ${isLight ? "bg-slate-200 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700"}`
   }, "\u2039 Prev Floor"), activeStageIndex < multiFloorPipeline.length - 1 && /*#__PURE__*/React.createElement("button", {
     onClick: () => advanceToStage(activeStageIndex + 1),
-    className: "text-[10px] text-indigo-300 font-bold bg-indigo-950 px-1.5 py-0.5 rounded-lg border border-indigo-500/40"
+    className: "text-[10px] text-indigo-500 dark:text-indigo-300 font-bold bg-indigo-100 dark:bg-indigo-950 px-1.5 py-0.5 rounded-lg border border-indigo-500/30"
   }, "Next Floor \u203A"))), /*#__PURE__*/React.createElement("select", {
     value: destinationLocationKey,
     onChange: e => handleDestinationChange(e.target.value),
-    className: "w-full bg-slate-950 border border-slate-700 text-emerald-300 text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400"
+    className: `w-full border text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400 transition-colors ${isLight ? "bg-slate-50 border-slate-200 text-emerald-700" : "bg-slate-950 border-slate-700 text-emerald-300"}`
   }, ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => /*#__PURE__*/React.createElement("optgroup", {
     key: group.group,
     label: group.group,
-    className: "bg-slate-900 text-indigo-300 font-bold"
+    className: isLight ? "bg-white text-indigo-700 font-bold" : "bg-slate-900 text-indigo-300 font-bold"
   }, group.items.map(item => /*#__PURE__*/React.createElement("option", {
     key: item.key,
     value: item.key,
-    className: "bg-slate-950 text-white font-medium"
+    className: isLight ? "bg-white text-slate-900 font-medium" : "bg-slate-950 text-white font-medium"
   }, "\uD83C\uDFAF ", item.name)))))), /*#__PURE__*/React.createElement("div", {
-    className: "bg-indigo-950/80 border border-indigo-500/50 rounded-2xl p-3 text-xs space-y-1.5 shadow-xl"
+    className: `border rounded-2xl p-3 text-xs space-y-1.5 shadow-xl transition-colors ${isLight ? "bg-indigo-50 border-indigo-200 text-indigo-950" : "bg-indigo-950/80 border-indigo-500/50"}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-indigo-200 flex items-center justify-between"
+    className: "font-black flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "flex items-center gap-1.5"
+    className: `flex items-center gap-1.5 ${isLight ? "text-indigo-900" : "text-indigo-200"}`
   }, /*#__PURE__*/React.createElement("span", {
-    className: "w-2 h-2 rounded-full bg-indigo-400 animate-ping"
+    className: "w-2 h-2 rounded-full bg-indigo-500 animate-ping"
   }), "Stage ", activeStageIndex + 1, " of ", multiFloorPipeline.length, ": ", currentActiveStage.title), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-500/30"
+    className: `text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${isLight ? "bg-white text-emerald-700 border-emerald-200" : "bg-emerald-950/80 text-emerald-400 border-emerald-500/30"}`
   }, activeMapPlan.label)), /*#__PURE__*/React.createElement("p", {
-    className: "text-[11px] text-slate-300 font-medium"
+    className: `text-[11px] font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`
   }, currentActiveStage.description), currentActiveStage.switchPrompt && /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between pt-1 border-t border-indigo-900/60"
+    className: `flex items-center justify-between pt-1 border-t ${isLight ? "border-indigo-200/80" : "border-indigo-900/60"}`
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-amber-400 font-mono"
+    className: `text-[10px] font-mono font-semibold ${isLight ? "text-amber-700" : "text-amber-400"}`
   }, "\u26A1 Auto-switches on arrival at target mark"), /*#__PURE__*/React.createElement("button", {
     onClick: () => advanceToStage(activeStageIndex + 1),
     className: "px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[9px] font-black shadow transition"
   }, currentActiveStage.switchPrompt)))), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[310px]"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center"
+    className: `w-full border rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center transition-colors ${isLight ? "bg-white border-slate-200 shadow-slate-300" : "bg-slate-900/90 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 1000 650",
     className: "w-full h-full max-h-[330px] rounded-2xl bg-white border border-slate-800"
@@ -1714,26 +1771,26 @@ function MobileApp() {
     fontSize: "8",
     fontWeight: "900"
   }, stageStepCount > 0 ? `👣 ${stageStepCount} STEPS` : "YOU ARE HERE")))), /*#__PURE__*/React.createElement("div", {
-    className: "absolute top-5 left-5 bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 shadow-xl flex items-center gap-2"
+    className: `absolute top-5 left-5 px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border transition-colors ${isLight ? "bg-white/95 border-slate-200 text-slate-700 shadow-slate-200" : "bg-slate-950/90 border-slate-800 text-slate-300"}`
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC63 ", /*#__PURE__*/React.createElement("b", null, stageStepCount), " stage steps"), /*#__PURE__*/React.createElement("span", {
-    className: "text-slate-600"
+    className: "opacity-40"
   }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83E\uDDED ", /*#__PURE__*/React.createElement("b", null, compassHeading, "\xB0"))))), /*#__PURE__*/React.createElement("section", {
     className: "px-3.5 pt-1 space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-xl space-y-2.5"
+    className: `border rounded-2xl p-3 shadow-xl space-y-2.5 transition-colors ${isLight ? "bg-white border-slate-200 shadow-slate-200" : "bg-slate-900 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between pb-2 border-b border-slate-800"
+    className: `flex items-center justify-between pb-2 border-b ${isLight ? "border-slate-200" : "border-slate-800"}`
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowDirectionsDrawer(!showDirectionsDrawer),
-    className: "flex items-center gap-2 text-xs font-black text-white hover:text-indigo-400 transition"
+    className: `flex items-center gap-2 text-xs font-black transition ${isLight ? "text-slate-900 hover:text-indigo-600" : "text-white hover:text-indigo-400"}`
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "list-ordered",
-    className: "w-4 h-4 text-emerald-400"
+    className: "w-4 h-4 text-emerald-600 dark:text-emerald-400"
   }), /*#__PURE__*/React.createElement("span", null, "Turn-by-Turn Sequential Guidance"), /*#__PURE__*/React.createElement(Icon, {
     name: showDirectionsDrawer ? "chevron-up" : "chevron-down",
-    className: "w-3.5 h-3.5 text-slate-400"
+    className: "w-3.5 h-3.5 opacity-50"
   })), /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/30"
+    className: `text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border ${isLight ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"}`
   }, "~", totalEstimatedMeters, "m (", totalEstimatedSeconds, "s)")), showDirectionsDrawer && /*#__PURE__*/React.createElement("div", {
     className: "space-y-2 max-h-56 overflow-y-auto pr-1"
   }, multiFloorPipeline.map((stage, idx) => {
@@ -1742,29 +1799,29 @@ function MobileApp() {
     return /*#__PURE__*/React.createElement("div", {
       key: idx,
       onClick: () => advanceToStage(idx),
-      className: `p-2.5 rounded-xl border flex items-start gap-2.5 transition cursor-pointer ${isActive ? "bg-indigo-950/80 border-indigo-500/60 shadow-lg ring-1 ring-indigo-500/40" : isPassed ? "bg-emerald-950/20 border-emerald-800/30 opacity-70" : "bg-slate-950/50 border-slate-800/70"}`
+      className: `p-2.5 rounded-xl border flex items-start gap-2.5 transition cursor-pointer ${isActive ? isLight ? "bg-indigo-50 border-indigo-400 shadow-md ring-1 ring-indigo-400/40" : "bg-indigo-950/80 border-indigo-500/60 shadow-lg ring-1 ring-indigo-500/40" : isPassed ? isLight ? "bg-emerald-50/60 border-emerald-200 opacity-80" : "bg-emerald-950/20 border-emerald-800/30 opacity-70" : isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950/50 border-slate-800/70"}`
     }, /*#__PURE__*/React.createElement("div", {
-      className: `w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${isActive ? "bg-indigo-600 text-white shadow" : isPassed ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-400"}`
+      className: `w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${isActive ? "bg-indigo-600 text-white shadow" : isPassed ? "bg-emerald-600 text-white" : isLight ? "bg-slate-200 text-slate-600" : "bg-slate-800 text-slate-400"}`
     }, isPassed ? "✓" : idx + 1), /*#__PURE__*/React.createElement("div", {
       className: "space-y-0.5 text-xs flex-1 min-w-0"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "font-bold text-slate-100 flex items-center justify-between"
+      className: `font-bold flex items-center justify-between ${isLight ? "text-slate-900" : "text-slate-100"}`
     }, /*#__PURE__*/React.createElement("span", {
       className: "truncate pr-1"
     }, stage.title), isActive && /*#__PURE__*/React.createElement("span", {
-      className: "text-[9px] font-black text-indigo-300 bg-indigo-950 px-1.5 py-0.2 rounded border border-indigo-500/40 shrink-0"
+      className: `text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 ${isLight ? "bg-indigo-100 text-indigo-700 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/40"}`
     }, "ACTIVE")), /*#__PURE__*/React.createElement("div", {
-      className: "text-[11px] text-slate-400 leading-tight"
+      className: `text-[11px] leading-tight ${isLight ? "text-slate-600" : "text-slate-400"}`
     }, stage.description), stage.mapId !== selectedMapId && /*#__PURE__*/React.createElement("button", {
       type: "button",
       onClick: e => {
         e.stopPropagation();
         advanceToStage(idx);
       },
-      className: "mt-1 px-2 py-0.5 bg-indigo-600/80 hover:bg-indigo-600 text-white rounded-md text-[9px] font-black transition"
+      className: "mt-1 px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[9px] font-black transition"
     }, "View Floor Plan \u2794")));
   })))), /*#__PURE__*/React.createElement("footer", {
-    className: "p-3 bg-slate-900 border-t border-slate-800 sticky bottom-0 z-30 space-y-2 mt-2"
+    className: `p-3 border-t sticky bottom-0 z-30 space-y-2 mt-2 transition-colors ${isLight ? "bg-white border-slate-200" : "bg-slate-900 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-4 gap-1.5"
   }, /*#__PURE__*/React.createElement("button", {
@@ -1775,48 +1832,53 @@ function MobileApp() {
     className: "py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-[11px] shadow-lg shadow-indigo-600/30 flex flex-col items-center justify-center gap-0.5"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDCF7 QR Scan")), /*#__PURE__*/React.createElement("button", {
     onClick: takeStep,
-    className: "py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-2xl font-black text-[11px] border border-slate-700 flex flex-col items-center justify-center gap-0.5"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step (+1)")), /*#__PURE__*/React.createElement("button", {
+    className: `py-2.5 rounded-2xl font-black text-[11px] border flex flex-col items-center justify-center gap-0.5 transition ${isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300" : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"}`
+  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step (+1)")), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col gap-0.5"
+  }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setAutoWalkActive(!autoWalkActive),
-    className: `py-2.5 rounded-2xl font-black text-[11px] border transition flex flex-col items-center justify-center gap-0.5 ${autoWalkActive ? "bg-amber-600/30 text-amber-300 border-amber-500/50 animate-pulse" : "bg-slate-800 text-slate-300 border-slate-700"}`
+    className: `py-2 rounded-2xl font-black text-[11px] border transition flex items-center justify-center gap-1 ${autoWalkActive ? "bg-amber-600/30 text-amber-500 dark:text-amber-300 border-amber-500/50 animate-pulse" : isLight ? "bg-slate-100 text-slate-800 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700"}`
   }, /*#__PURE__*/React.createElement("span", null, autoWalkActive ? "⏸ Pause" : "▶ Auto-Walk")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setWalkSpeedMode(prev => prev === "1x" ? "2x" : "1x"),
+    className: `text-[9px] font-bold py-0.5 rounded-lg border transition ${isLight ? "bg-slate-200 text-slate-600 border-slate-300" : "bg-slate-900 text-slate-400 border-slate-800"}`
+  }, "Speed: ", /*#__PURE__*/React.createElement("b", null, walkSpeedMode === "1x" ? "1.4s (Natural)" : "0.7s (Fast)"))), /*#__PURE__*/React.createElement("button", {
     onClick: () => setIsSosModalOpen(true),
     className: "py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-[11px] shadow-lg shadow-red-600/40 flex flex-col items-center justify-center gap-0.5"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83C\uDD98 SOS"))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between px-1 text-[10px] text-slate-400"
+    className: `flex items-center justify-between px-1 text-[10px] ${isLight ? "text-slate-600" : "text-slate-400"}`
   }, /*#__PURE__*/React.createElement("button", {
     onClick: toggleSensors,
-    className: `px-2.5 py-1 rounded-xl font-bold border transition ${isMotionTracking ? "bg-emerald-600/30 text-emerald-300 border-emerald-500/40" : "bg-slate-800 text-slate-400 border-slate-700"}`
+    className: `px-2.5 py-1 rounded-xl font-bold border transition ${isMotionTracking ? "bg-emerald-600/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/40" : isLight ? "bg-slate-100 text-slate-600 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700"}`
   }, isMotionTracking ? "🟢 Phone Sensors: ACTIVE" : "📱 Enable Physical Phone Sensors"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setStageStepCount(0);
       setActiveStageIndex(0);
       notify("↺ Navigation restarted at Stage 1");
     },
-    className: "text-slate-500 hover:text-slate-300 font-mono"
+    className: `font-mono transition ${isLight ? "text-slate-500 hover:text-slate-800" : "text-slate-500 hover:text-slate-300"}`
   }, "\u21BA Restart Route"))), isQrModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto"
+    className: `border rounded-3xl p-5 shadow-2xl max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto ${isLight ? "bg-white border-slate-200" : "bg-slate-900 border-slate-800"}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center justify-between pb-2 border-b border-slate-800"
+    className: `flex items-center justify-between pb-2 border-b ${isLight ? "border-slate-200" : "border-slate-800"}`
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-sm font-black text-white flex items-center gap-2"
+    className: `text-sm font-black flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "qr-code",
-    className: "w-4 h-4 text-indigo-400"
-  }), "Indoor QR Code Scanner"), /*#__PURE__*/React.createElement("button", {
+    className: "w-4 h-4 text-indigo-500"
+  }), "AegisPath QR Waypoint Scanner"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsQrModalOpen(false);
       setScannerActive(false);
     },
-    className: "text-slate-400 hover:text-white font-black text-sm p-1"
+    className: `font-black text-sm p-1 ${isLight ? "text-slate-400 hover:text-slate-800" : "text-slate-400 hover:text-white"}`
   }, "\u2715")), /*#__PURE__*/React.createElement("div", {
     className: "space-y-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-xs font-bold text-slate-300"
+    className: `text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-300"}`
   }, "\uD83D\uDCF7 Real Camera Scanner:"), /*#__PURE__*/React.createElement("button", {
     type: "button",
     onClick: () => setScannerActive(!scannerActive),
@@ -1832,11 +1894,11 @@ function MobileApp() {
     className: "text-[10px] text-slate-300 mt-0.5"
   }, "Please allow Camera Permissions in your browser, or use the manual code/checkpoint below.")), /*#__PURE__*/React.createElement("p", {
     className: "text-[10px] text-slate-400 mt-1"
-  }, "Point your camera at any campus QR waypoint sticker"))), /*#__PURE__*/React.createElement("form", {
+  }, "Point camera at AegisPath waypoint QR code"))), /*#__PURE__*/React.createElement("form", {
     onSubmit: handleManualQrSubmit,
-    className: "space-y-1.5 pt-2 border-t border-slate-800"
+    className: `space-y-1.5 pt-2 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`
   }, /*#__PURE__*/React.createElement("label", {
-    className: "text-[11px] font-bold text-slate-400 block"
+    className: `text-[11px] font-bold block ${isLight ? "text-slate-600" : "text-slate-400"}`
   }, "Or Type Scanned QR Code:"), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-2"
   }, /*#__PURE__*/React.createElement("input", {
@@ -1844,53 +1906,53 @@ function MobileApp() {
     placeholder: "e.g. SW-RAM-G-R1 or SW-ROOM204",
     value: qrInputText,
     onChange: e => setQrInputText(e.target.value),
-    className: "flex-1 bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono uppercase outline-none focus:border-indigo-500"
+    className: `flex-1 border rounded-xl p-2.5 text-xs font-mono uppercase outline-none focus:border-indigo-500 ${isLight ? "bg-slate-50 border-slate-300 text-slate-900" : "bg-slate-950 border-slate-700 text-white"}`
   }), /*#__PURE__*/React.createElement("button", {
     type: "submit",
     className: "px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black transition"
   }, "Set"))), qrPresets.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "space-y-1.5 pt-2 border-t border-slate-800"
+    className: `space-y-1.5 pt-2 border-t ${isLight ? "border-slate-200" : "border-slate-800"}`
   }, /*#__PURE__*/React.createElement("label", {
-    className: "text-[11px] font-bold text-slate-400 block"
+    className: `text-[11px] font-bold block ${isLight ? "text-slate-600" : "text-slate-400"}`
   }, "Quick Checkpoints (1-Tap Simulation):"), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1"
   }, qrPresets.map(p => /*#__PURE__*/React.createElement("button", {
     key: p.code,
     type: "button",
     onClick: () => applyQrResolution(p),
-    className: "p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 rounded-xl text-left transition"
+    className: `p-2 border rounded-xl text-left transition ${isLight ? "bg-slate-50 hover:bg-slate-100 border-slate-200" : "bg-slate-950 hover:bg-slate-800 border-slate-800 hover:border-indigo-500/50"}`
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-[11px] font-black text-white block truncate"
+    className: `text-[11px] font-black block truncate ${isLight ? "text-slate-900" : "text-white"}`
   }, p.name), /*#__PURE__*/React.createElement("span", {
-    className: "text-[9px] text-indigo-400 font-mono block"
+    className: "text-[9px] text-indigo-500 dark:text-indigo-400 font-mono block"
   }, p.code))))))), isSosModalOpen && /*#__PURE__*/React.createElement("div", {
     className: "fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "bg-slate-900 border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative"
+    className: `border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative ${isLight ? "bg-white" : "bg-slate-900"}`
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsSosModalOpen(false);
       setSosSent(false);
     },
-    className: "absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 text-xs font-black",
+    className: "absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl text-xs font-black",
     title: "Close"
   }, "\u2715"), /*#__PURE__*/React.createElement("div", {
     className: "w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center font-black text-white text-2xl mx-auto animate-bounce shadow-2xl shadow-red-600/60"
   }, "\uD83C\uDD98"), /*#__PURE__*/React.createElement("div", {
     className: "space-y-1"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "text-lg font-black text-white"
+    className: `text-lg font-black ${isLight ? "text-slate-900" : "text-white"}`
   }, "Emergency Trapped Signal"), /*#__PURE__*/React.createElement("p", {
-    className: "text-xs text-slate-300"
+    className: `text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`
   }, "Transmitting your location to the Campus Security Command Center:"), /*#__PURE__*/React.createElement("div", {
-    className: "p-3 bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-400"
+    className: "p-3 bg-red-50 dark:bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-600 dark:text-red-400"
   }, "\uD83D\uDCCD ", activeOriginLocation?.name || "Campus", " \u2022 ", activeMapPlan.label)), sosSent ? /*#__PURE__*/React.createElement("div", {
     className: "space-y-2.5"
   }, /*#__PURE__*/React.createElement("div", {
-    className: "p-3 bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
+    className: "p-3 bg-emerald-50 dark:bg-emerald-950 border border-emerald-500/50 rounded-2xl text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center justify-center gap-2"
   }, /*#__PURE__*/React.createElement(Icon, {
     name: "check",
-    className: "w-4 h-4 text-emerald-400"
+    className: "w-4 h-4 text-emerald-500"
   }), "Distress Beacon Active & Logged!"), /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       setIsSosModalOpen(false);
@@ -1901,7 +1963,7 @@ function MobileApp() {
     className: "flex gap-2"
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setIsSosModalOpen(false),
-    className: "flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-bold"
+    className: `flex-1 py-3 rounded-2xl text-xs font-bold ${isLight ? "bg-slate-200 hover:bg-slate-300 text-slate-700" : "bg-slate-800 hover:bg-slate-700 text-slate-300"}`
   }, "Cancel"), /*#__PURE__*/React.createElement("button", {
     onClick: triggerSosDistress,
     className: "flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-2xl text-xs font-black shadow-xl shadow-red-600/40"

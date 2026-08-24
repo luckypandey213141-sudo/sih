@@ -1,7 +1,7 @@
 {
-  "name": "safeway-v3",
+  "name": "aegispath",
   "version": "3.0.0",
-  "description": "SafeWay V3 — Smart Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
+  "description": "AegisPath — Intelligent Indoor Navigation & Crowd-Aware Emergency Evacuation System (SIH Prototype)",
   "type": "module",
   "scripts": {
     "start": "node local_server.js",
