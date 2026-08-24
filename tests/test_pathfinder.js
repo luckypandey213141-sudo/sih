@@ -92,6 +92,20 @@ const sc8 = findSafestEvacuationPath("room-202", INITIAL_BUILDING_DATA.nodes, IN
 assert(sc8.isRefugeRoute === true, "Enforces life-safety fire policy: ordinary elevators disabled, routes to Area of Refuge");
 assert(sc8.bestRoute.pathNodeIds.includes("refuge-2b") || sc8.bestRoute.pathNodeIds.includes("refuge-2a"), "Successfully routes wheelchair user to 2-hour fire rated safe haven");
 
+// --- SCENARIO 9: All Ground Exits Blocked -> Zero-Crash Area of Refuge Fallback ---
+console.log("\n▶ [Scenario 9] All Ground Exits Compromised (Deadlock / Trapped Safety)");
+const allExitsClosed = INITIAL_BUILDING_DATA.exits.map(x => ({ ...x, isOpen: false }));
+const sc9 = findSafestEvacuationPath("lobby", INITIAL_BUILDING_DATA.nodes, INITIAL_BUILDING_DATA.edges, allExitsClosed, INITIAL_BUILDING_DATA.assemblyAreas, { isEmergency: true });
+assert(sc9.isTrapped === true || sc9.isRefugeRoute === true, "Trapped deadlock detected safely");
+assert(sc9.bestRoute !== null, "Fail-safe route generated to Area of Refuge without runtime null crash");
+
+// --- SCENARIO 10: Multi-Tier Corridor Obstruction Detour ---
+console.log("\n▶ [Scenario 10] Dynamic Corridor Blockage Detour");
+const edgesWithBlockedCorridor = INITIAL_BUILDING_DATA.edges.map(e => e.id === "e1-ent-j1" ? { ...e, blocked: true } : e);
+const sc10 = findShortestPath("ent-main", "admin", INITIAL_BUILDING_DATA.nodes, edgesWithBlockedCorridor, { isEmergency: false });
+assert(sc10 !== null, "Alternative detour path found when primary entrance corridor is blocked");
+assert(!sc10.edges.some(e => e.id === "e1-ent-j1"), "Avoids physically blocked corridor edge");
+
 console.log("\n========================================================");
 console.log(`  Test Results: ${passed} / ${total} Scenarios Passed (${Math.round((passed/total)*100)}%)`);
 console.log("========================================================\n");
@@ -101,3 +115,4 @@ if (passed === total) {
 } else {
   process.exit(1);
 }
+

@@ -371,7 +371,27 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
   const validResults = results.filter(r => r.path !== null && r.cost < Infinity);
   validResults.sort((a, b) => a.cost - b.cost);
 
-  const bestOption = validResults.length > 0 ? validResults[0] : null;
+  let bestOption = validResults.length > 0 ? validResults[0] : null;
+
+  // FAIL-SAFE DEADLOCK PROTECTION: If all building exits are blocked, find closest reachable refuge zone
+  if (!bestOption) {
+    const refugeNodes = nodes.filter(n => n.type === "refuge" || n.type === "assembly");
+    for (const refNode of refugeNodes) {
+      const refPath = findShortestPath(startNodeId, refNode.id, nodes, edges, options, crowdInput, zoneHazardMap, emergencyPolicies);
+      if (refPath && refPath.totalCost < Infinity) {
+        return {
+          bestRoute: refPath,
+          recommendedExit: null,
+          recommendedAssembly: null,
+          isRefugeRoute: true,
+          refugeNode: refNode,
+          isTrapped: true,
+          safetyGuidance: "All primary building exits compromised. Proceed to marked Fire Refuge Zone and await rescue team.",
+          allExitEvaluations: results
+        };
+      }
+    }
+  }
 
   return {
     bestRoute: bestOption ? bestOption.path : null,

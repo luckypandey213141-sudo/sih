@@ -212,21 +212,109 @@
       }
     };
 
-    const FLOOR_VERTICAL_ANCHORS = {
-      "ramanujan-first": { stairs: [800, 235], stairsLabel: "EAST STAIRS", corridorY: 325, hubX: 520 },
-      "ramanujan-ground": { stairs: [760, 250], stairsLabel: "CENTRAL STAIRWELL", mainExit: [250, 590], exitLabel: "MAIN ENTRY / EXIT 1", corridorY: 455, hubX: 500 },
-      "ramanujan-basement": { stairs: [720, 260], stairsLabel: "BASEMENT STAIRS", corridorY: 300, hubX: 500 },
-      "bhabha-first": { stairs: [755, 175], stairsLabel: "STAIRS", corridorY: 300, hubX: 500 },
-      "bhabha-ground": { stairs: [755, 175], stairsLabel: "STAIRS", mainExit: [500, 590], exitLabel: "MAIN RECEPTION EXIT", corridorY: 420, hubX: 500 },
-      "bhabha-basement": { stairs: [500, 420], stairsLabel: "LIBRARY STAIRS", corridorY: 335, hubX: 500 },
-      "kalpana-first": { stairs: [145, 325], stairsLabel: "STAIRS / EXIT", corridorY: 325, hubX: 500 },
-      "kalpana-ground": { stairs: [385, 220], stairsLabel: "MAIN STAIRS", mainExit: [500, 590], exitLabel: "SOUTH MAIN EXIT", corridorY: 400, hubX: 500 },
-      "kalpana-basement": { stairs: [500, 590], stairsLabel: "BASEMENT STAIRS", corridorY: 290, hubX: 500 },
-      "raman-first": { stairs: [755, 260], stairsLabel: "STAIRS", corridorY: 270, hubX: 520 },
-      "raman-ground": { stairs: [755, 260], stairsLabel: "STAIRS", mainExit: [650, 590], exitLabel: "RAMAN MAIN EXIT 1", corridorY: 350, hubX: 500 },
-      "aryabhatta-basement": { stairs: [220, 170], stairsLabel: "STAIRS", corridorY: 330, hubX: 500 },
-      "aryabhatta-ground": { stairs: [430, 505], stairsLabel: "CENTRAL STAIRS", mainExit: [500, 590], exitLabel: "MAIN CAMPUS EXIT", corridorY: 390, hubX: 500 }
+    const BLOCK_EGRESS_OPTIONS = {
+      "ramanujan-ground": [
+        { id: "Entry / Exit 1", key: "door:ramanujan-ground:Entry / Exit 1", label: "MAIN EXIT 1 (South-West)", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500, defaultPriority: 1 },
+        { id: "Entry / Exit 2", key: "door:ramanujan-ground:Entry / Exit 2", label: "EXIT 2 (East Wing)", point: [920, 300], campusNode: "auditorium", corridorY: 300, hubX: 650, defaultPriority: 2 },
+        { id: "Entry / Exit 3", key: "door:ramanujan-ground:Entry / Exit 3", label: "EXIT 3 (South-East)", point: [760, 590], campusNode: "lift-1", corridorY: 455, hubX: 650, defaultPriority: 3 }
+      ],
+      "bhabha-ground": [
+        { id: "Entry", key: "door:bhabha-ground:Entry", label: "MAIN RECEPTION EXIT", point: [500, 590], campusNode: "lobby", corridorY: 420, hubX: 500, defaultPriority: 1 },
+        { id: "Rear Egress", key: "door:bhabha-ground:Rear Egress", label: "REAR EXIT GATE", point: [720, 590], campusNode: "gate-2-destination", corridorY: 420, hubX: 650, defaultPriority: 2 }
+      ],
+      "kalpana-ground": [
+        { id: "Entry", key: "door:kalpana-ground:Entry", label: "SOUTH MAIN EXIT", point: [500, 590], campusNode: "restroom-1", corridorY: 400, hubX: 500, defaultPriority: 1 },
+        { id: "Emergency Exit", key: "door:kalpana-ground:Emergency Exit", label: "NORTH EMERGENCY FIRE EXIT", point: [500, 120], campusNode: "ent-north", corridorY: 220, hubX: 500, defaultPriority: 2 }
+      ],
+      "raman-ground": [
+        { id: "Entry / Exit 1", key: "door:raman-ground:Entry / Exit 1", label: "RAMAN MAIN EXIT 1", point: [650, 590], campusNode: "lab-101", corridorY: 350, hubX: 500, defaultPriority: 1 },
+        { id: "Entry / Exit 2", key: "door:raman-ground:Entry / Exit 2", label: "RAMAN CORRIDOR EXIT 2", point: [920, 300], campusNode: "auditorium", corridorY: 350, hubX: 750, defaultPriority: 2 }
+      ],
+      "aryabhatta-ground": [
+        { id: "Entry / Exit", key: "door:aryabhatta-ground:Entry / Exit", label: "MAIN CAMPUS EXIT", point: [500, 590], campusNode: "cafeteria", corridorY: 390, hubX: 500, defaultPriority: 1 },
+        { id: "Stairs 2 Exit", key: "door:aryabhatta-ground:Stairs 2", label: "EAST STAIRS EXIT", point: [650, 505], campusNode: "gate-2-destination", corridorY: 390, hubX: 600, defaultPriority: 2 }
+      ]
     };
+
+    const BLOCK_STAIRS_OPTIONS = {
+      "ramanujan-first": [
+        { id: "East Stairs", key: "corridor:ramanujan-first:stair-east", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] },
+        { id: "West Lobby", key: "corridor:ramanujan-first:lift", label: "WEST STAIRS / LOBBY", point: [190, 235], corridorY: 325, hubX: 350, groundStairs: [190, 235] }
+      ],
+      "ramanujan-basement": [
+        { id: "Stairs 1", key: "corridor:ramanujan-basement:stairs-1", label: "BASEMENT STAIRS 1", point: [550, 260], corridorY: 300, hubX: 500, groundStairs: [760, 250] },
+        { id: "Stairs 2", key: "corridor:ramanujan-basement:stairs-2", label: "BASEMENT STAIRS 2", point: [720, 260], corridorY: 300, hubX: 650, groundStairs: [760, 250] }
+      ],
+      "bhabha-first": [
+        { id: "Stairs", key: "corridor:bhabha-first:stairs", label: "CENTRAL STAIRS", point: [755, 175], corridorY: 300, hubX: 500, groundStairs: [755, 175] }
+      ],
+      "bhabha-basement": [
+        { id: "Library Stairs", key: "corridor:bhabha-basement:stairs", label: "LIBRARY STAIRS", point: [500, 420], corridorY: 335, hubX: 500, groundStairs: [500, 590] }
+      ],
+      "kalpana-first": [
+        { id: "Entry / Exit", key: "corridor:kalpana-first:entry-exit", label: "MAIN STAIRS", point: [145, 325], corridorY: 325, hubX: 300, groundStairs: [385, 220] },
+        { id: "Emergency Exit", key: "corridor:kalpana-first:emergency-exit", label: "NORTH ESCAPE STAIRS", point: [175, 300], corridorY: 300, hubX: 300, groundStairs: [500, 120] }
+      ],
+      "kalpana-basement": [
+        { id: "Basement Stairs", key: "corridor:kalpana-basement:stairs", label: "BASEMENT STAIRS", point: [500, 590], corridorY: 290, hubX: 500, groundStairs: [500, 590] }
+      ],
+      "raman-first": [
+        { id: "Stairs", key: "corridor:raman-first:stairs", label: "FIRST FLOOR STAIRS", point: [755, 260], corridorY: 270, hubX: 520, groundStairs: [755, 260] }
+      ],
+      "aryabhatta-basement": [
+        { id: "Stairs 1", key: "corridor:aryabhatta-basement:stairs-1", label: "BASEMENT STAIRS", point: [220, 170], corridorY: 330, hubX: 500, groundStairs: [430, 505] }
+      ]
+    };
+
+    function selectBestEgressDoor(groundMapId, liveState) {
+      const options = BLOCK_EGRESS_OPTIONS[groundMapId] || [];
+      if (options.length === 0) {
+        return { id: "Exit", label: "MAIN EXIT", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500 };
+      }
+
+      const viable = options.filter(opt => {
+        if (liveState?.exits?.[opt.id]?.isOpen === false) return false;
+        if (liveState?.exits?.[opt.key]?.isOpen === false) return false;
+        if (liveState?.hazards?.[opt.key] === "high" || liveState?.hazards?.[opt.id] === "high" || liveState?.hazards?.[groundMapId + ":" + opt.id] === "high") return false;
+        if (liveState?.blockedEdges?.[opt.key] || liveState?.blockedEdges?.[opt.id]) return false;
+        return true;
+      });
+
+      if (viable.length === 0) {
+        return {
+          id: "Area of Refuge",
+          label: "SAFE AREA OF REFUGE (ALL EXITS BLOCKED)",
+          point: [500, 390],
+          campusNode: "admin",
+          corridorY: 400,
+          hubX: 500,
+          isTrapped: true
+        };
+      }
+
+      viable.sort((a, b) => {
+        const crowdA = liveState?.crowds?.[a.id] === "High" ? 50 : (liveState?.crowds?.[a.id] === "Medium" ? 20 : 0);
+        const crowdB = liveState?.crowds?.[b.id] === "High" ? 50 : (liveState?.crowds?.[b.id] === "Medium" ? 20 : 0);
+        return (crowdA + (a.defaultPriority || 1)) - (crowdB + (b.defaultPriority || 1));
+      });
+
+      return viable[0];
+    }
+
+    function selectBestStairs(upperMapId, liveState) {
+      const options = BLOCK_STAIRS_OPTIONS[upperMapId] || [];
+      if (options.length === 0) {
+        return { id: "Stairs", label: "STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] };
+      }
+
+      const viable = options.filter(opt => {
+        if (liveState?.hazards?.[opt.key] === "high" || liveState?.hazards?.[opt.id] === "high") return false;
+        if (liveState?.blockedEdges?.[opt.key]) return false;
+        return true;
+      });
+
+      return viable.length > 0 ? viable[0] : options[0];
+    }
 
     const ALL_CAMPUS_LOCATIONS_HIERARCHY = [
       {
@@ -245,80 +333,80 @@
       {
         group: "📐 Ramanujan Block — Ground Floor",
         mapId: "ramanujan-ground",
-        items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2"]
-          .map(r => ({ key: `ramanujan-ground:${r}`, name: `Ramanujan Ground — ${r}`, mapId: "ramanujan-ground", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || [350, 455] }))
+        items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2", "Entry / Exit 3"]
+          .map(r => ({ key: "ramanujan-ground:" + r, name: "Ramanujan Ground — " + r, mapId: "ramanujan-ground", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || [350, 455] }))
       },
       {
         group: "📐 Ramanujan Block — First Floor",
         mapId: "ramanujan-first",
         items: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"]
-          .map(r => ({ key: `ramanujan-first:${r}`, name: `Ramanujan 1F — ${r}`, mapId: "ramanujan-first", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || [500, 325] }))
+          .map(r => ({ key: "ramanujan-first:" + r, name: "Ramanujan 1F — " + r, mapId: "ramanujan-first", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || [500, 325] }))
       },
       {
         group: "📐 Ramanujan Block — Basement",
         mapId: "ramanujan-basement",
         items: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"]
-          .map(r => ({ key: `ramanujan-basement:${r}`, name: `Ramanujan Basement — ${r}`, mapId: "ramanujan-basement", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || [600, 275] }))
+          .map(r => ({ key: "ramanujan-basement:" + r, name: "Ramanujan Basement — " + r, mapId: "ramanujan-basement", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || [600, 275] }))
       },
       {
         group: "⚛️ Bhabha Block — Ground Floor",
         mapId: "bhabha-ground",
-        items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2"]
-          .map(r => ({ key: `bhabha-ground:${r}`, name: `Bhabha Ground — ${r}`, mapId: "bhabha-ground", room: r, point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || [300, 320] }))
+        items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2", "Entry"]
+          .map(r => ({ key: "bhabha-ground:" + r, name: "Bhabha Ground — " + r, mapId: "bhabha-ground", room: r, point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || [300, 320] }))
       },
       {
         group: "⚛️ Bhabha Block — First Floor",
         mapId: "bhabha-first",
         items: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Stairs"]
-          .map(r => ({ key: `bhabha-first:${r}`, name: `Bhabha 1F — ${r}`, mapId: "bhabha-first", room: r, point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || [300, 300] }))
+          .map(r => ({ key: "bhabha-first:" + r, name: "Bhabha 1F — " + r, mapId: "bhabha-first", room: r, point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || [300, 300] }))
       },
       {
         group: "⚛️ Bhabha Block — Basement",
         mapId: "bhabha-basement",
         items: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate"]
-          .map(r => ({ key: `bhabha-basement:${r}`, name: `Bhabha Basement — ${r}`, mapId: "bhabha-basement", room: r, point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || [300, 335] }))
+          .map(r => ({ key: "bhabha-basement:" + r, name: "Bhabha Basement — " + r, mapId: "bhabha-basement", room: r, point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || [300, 335] }))
       },
       {
         group: "🚀 Kalpana Chawla Block — Ground Floor",
         mapId: "kalpana-ground",
-        items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs"]
-          .map(r => ({ key: `kalpana-ground:${r}`, name: `Kalpana Ground — ${r}`, mapId: "kalpana-ground", room: r, point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || [640, 220] }))
+        items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs", "Entry", "Emergency Exit"]
+          .map(r => ({ key: "kalpana-ground:" + r, name: "Kalpana Ground — " + r, mapId: "kalpana-ground", room: r, point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || [640, 220] }))
       },
       {
         group: "🚀 Kalpana Chawla Block — First Floor",
         mapId: "kalpana-first",
         items: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store"]
-          .map(r => ({ key: `kalpana-first:${r}`, name: `Kalpana 1F — ${r}`, mapId: "kalpana-first", room: r, point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || [300, 325] }))
+          .map(r => ({ key: "kalpana-first:" + r, name: "Kalpana 1F — " + r, mapId: "kalpana-first", room: r, point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || [300, 325] }))
       },
       {
         group: "🚀 Kalpana Chawla Block — Basement",
         mapId: "kalpana-basement",
         items: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift"]
-          .map(r => ({ key: `kalpana-basement:${r}`, name: `Kalpana Basement — ${r}`, mapId: "kalpana-basement", room: r, point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || [320, 290] }))
+          .map(r => ({ key: "kalpana-basement:" + r, name: "Kalpana Basement — " + r, mapId: "kalpana-basement", room: r, point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || [320, 290] }))
       },
       {
         group: "🔬 Raman Block — Ground Floor",
         mapId: "raman-ground",
-        items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs"]
-          .map(r => ({ key: `raman-ground:${r}`, name: `Raman Ground — ${r}`, mapId: "raman-ground", room: r, point: ROOM_ROUTE_TARGETS["raman-ground"][r] || [380, 350] }))
+        items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"]
+          .map(r => ({ key: "raman-ground:" + r, name: "Raman Ground — " + r, mapId: "raman-ground", room: r, point: ROOM_ROUTE_TARGETS["raman-ground"][r] || [380, 350] }))
       },
       {
         group: "🔬 Raman Block — First Floor",
         mapId: "raman-first",
         items: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Lift", "Stairs"]
-          .map(r => ({ key: `raman-first:${r}`, name: `Raman 1F — ${r}`, mapId: "raman-first", room: r, point: ROOM_ROUTE_TARGETS["raman-first"][r] || [500, 270] }))
+          .map(r => ({ key: "raman-first:" + r, name: "Raman 1F — " + r, mapId: "raman-first", room: r, point: ROOM_ROUTE_TARGETS["raman-first"][r] || [500, 270] }))
       },
       {
         group: "🔭 Aryabhatta Block — Ground Floor",
         mapId: "aryabhatta-ground",
-        items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2"]
-          .map(r => ({ key: `aryabhatta-ground:${r}`, name: `Aryabhatta Ground — ${r}`, mapId: "aryabhatta-ground", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || [440, 290] }))
+        items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
+          .map(r => ({ key: "aryabhatta-ground:" + r, name: "Aryabhatta Ground — " + r, mapId: "aryabhatta-ground", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || [440, 290] }))
       },
       {
         group: "🔭 Aryabhatta Block — Basement",
         mapId: "aryabhatta-basement",
         items: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Lift", "Stairs 1"]
-          .map(r => ({ key: `aryabhatta-basement:${r}`, name: `Aryabhatta Basement — ${r}`, mapId: "aryabhatta-basement", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || [300, 330] }))
+          .map(r => ({ key: "aryabhatta-basement:" + r, name: "Aryabhatta Basement — " + r, mapId: "aryabhatta-basement", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || [300, 330] }))
       }
     ];
 
@@ -336,7 +424,9 @@
     function buildMultiFloorStagePipeline({
       activeOriginLocation,
       activeDestLocation,
-      activeCampusRoute
+      activeCampusRoute,
+      liveState,
+      accessibilityMode
     }) {
       const stages = [];
       const originMap = activeOriginLocation.mapId;
@@ -348,183 +438,199 @@
       const isOriginUpperOrLower = originMap.includes("first") || originMap.includes("basement");
       const isDestUpperOrLower = destMap.includes("first") || destMap.includes("basement");
 
+      // Dynamic Egress Selection
+      const chosenStairs = isOriginUpperOrLower ? selectBestStairs(originMap, liveState) : null;
+      const groundMapId = originBlockPrefix ? (originBlockPrefix + "-ground") : "campus";
+      const chosenEgressDoor = selectBestEgressDoor(groundMapId, liveState);
+
+      // SCENARIO 1: Origin is on 1F or Basement -> Route Down to Ground Floor first
       if (isOriginUpperOrLower) {
-        const originAnchor = FLOOR_VERTICAL_ANCHORS[originMap] || { stairs: [800, 235], corridorY: 325, hubX: 520 };
         const roomPt = activeOriginLocation.point || [500, 325];
-        const stairsPt = originAnchor.stairs;
+        const stairsPt = chosenStairs?.point || [800, 235];
+        const corridorY = chosenStairs?.corridorY || 325;
+        const hubX = chosenStairs?.hubX || 520;
 
         const p1 = [
           roomPt,
-          [roomPt[0], originAnchor.corridorY],
-          [originAnchor.hubX, originAnchor.corridorY],
-          [stairsPt[0], originAnchor.corridorY],
+          [roomPt[0], corridorY],
+          [hubX, corridorY],
+          [stairsPt[0], corridorY],
           stairsPt
         ];
 
         stages.push({
           stageKey: "origin-upper",
           mapId: originMap,
-          title: `Step 1: Depart ${activeOriginLocation.name.split('—')[1] || "Room"}`,
-          description: `Walk along corridor to ${originAnchor.stairsLabel || "Stairs"}.`,
+          title: "Step 1: Depart " + (activeOriginLocation.name.split('—')[1] || "Room"),
+          description: "Walk along corridor to " + (chosenStairs?.label || "Stairs") + ".",
           targetBadge: "STAIRS",
           targetBadgeColor: "#f59e0b",
-          targetLabel: originAnchor.stairsLabel || "STAIRS",
+          targetLabel: chosenStairs?.label || "STAIRS",
           startPoint: roomPt,
           endPoint: stairsPt,
           points: p1,
-          d: `M ${p1.map(p => p.join(" ")).join(" L ")}`,
+          d: "M " + p1.map(p => p.join(" ")).join(" L "),
           pixelLength: calculatePolylineLength(p1),
-          nextMapId: `${originBlockPrefix}-ground`,
+          nextMapId: groundMapId,
           switchPrompt: "Descend to Ground Floor ➔",
-          voiceAnnouncement: `Descended to ${originBlockPrefix} Ground Floor. Showing path to building exit.`
+          voiceAnnouncement: "Descended to " + originBlockPrefix + " Ground Floor. Showing path to " + chosenEgressDoor.label + "."
         });
 
-        const groundMapId = `${originBlockPrefix}-ground`;
-        const groundAnchor = FLOOR_VERTICAL_ANCHORS[groundMapId] || { stairs: [760, 250], mainExit: [250, 590], exitLabel: "MAIN EXIT", corridorY: 455, hubX: 500 };
-        const gStairsPt = groundAnchor.stairs;
-        const gExitPt = groundAnchor.mainExit || [250, 590];
+        // Stage 2: Ground Floor of Origin Block (Stairs to Dynamic Egress Door)
+        const gStairsPt = chosenStairs?.groundStairs || [760, 250];
+        const gExitPt = chosenEgressDoor.point || [250, 590];
+        const gCorridorY = chosenEgressDoor.corridorY || 455;
+        const gHubX = chosenEgressDoor.hubX || 500;
 
         const p2 = [
           gStairsPt,
-          [gStairsPt[0], groundAnchor.corridorY],
-          [groundAnchor.hubX, groundAnchor.corridorY],
-          [gExitPt[0], groundAnchor.corridorY],
+          [gStairsPt[0], gCorridorY],
+          [gHubX, gCorridorY],
+          [gExitPt[0], gCorridorY],
           gExitPt
         ];
 
         stages.push({
           stageKey: "origin-ground",
           mapId: groundMapId,
-          title: `Step 2: Ground Floor Egress`,
-          description: `Walk from stairwell to ${groundAnchor.exitLabel || "Main Exit Door"}.`,
-          targetBadge: "EXIT",
-          targetBadgeColor: "#10b981",
-          targetLabel: groundAnchor.exitLabel || "MAIN EXIT DOOR",
+          title: chosenEgressDoor.isTrapped ? "Emergency: Safe Refuge Zone" : "Step 2: Ground Floor Egress",
+          description: chosenEgressDoor.isTrapped ? "All exits compromised. Proceed to designated Safe Refuge Zone." : ("Walk from stairwell to " + chosenEgressDoor.label + "."),
+          targetBadge: chosenEgressDoor.isTrapped ? "REFUGE" : "EXIT",
+          targetBadgeColor: chosenEgressDoor.isTrapped ? "#ef4444" : "#10b981",
+          targetLabel: chosenEgressDoor.label,
           startPoint: gStairsPt,
           endPoint: gExitPt,
           points: p2,
-          d: `M ${p2.map(p => p.join(" ")).join(" L ")}`,
+          d: "M " + p2.map(p => p.join(" ")).join(" L "),
           pixelLength: calculatePolylineLength(p2),
           nextMapId: (destMap === groundMapId) ? groundMapId : "campus",
-          switchPrompt: "Exit to Campus Ground ➔",
-          voiceAnnouncement: `Exited ${originBlockPrefix} Block. Showing outdoor campus map.`
+          switchPrompt: chosenEgressDoor.isTrapped ? null : "Exit to Campus Ground ➔",
+          voiceAnnouncement: "Exited " + originBlockPrefix + " Block via " + chosenEgressDoor.label + ". Showing outdoor campus map."
         });
       } else if (originMap.includes("ground")) {
-        const groundAnchor = FLOOR_VERTICAL_ANCHORS[originMap] || { stairs: [760, 250], mainExit: [250, 590], exitLabel: "MAIN EXIT", corridorY: 455, hubX: 500 };
+        // Origin is on Ground Floor
         const roomPt = activeOriginLocation.point || [350, 455];
-        const gExitPt = (destMap === originMap) ? (activeDestLocation.point || [830, 455]) : (groundAnchor.mainExit || [250, 590]);
+        const gExitPt = (destMap === originMap) ? (activeDestLocation.point || [830, 455]) : (chosenEgressDoor.point || [250, 590]);
+        const gCorridorY = chosenEgressDoor.corridorY || 455;
+        const gHubX = chosenEgressDoor.hubX || 500;
 
         const p = [
           roomPt,
-          [roomPt[0], groundAnchor.corridorY],
-          [groundAnchor.hubX, groundAnchor.corridorY],
-          [gExitPt[0], groundAnchor.corridorY],
+          [roomPt[0], gCorridorY],
+          [gHubX, gCorridorY],
+          [gExitPt[0], gCorridorY],
           gExitPt
         ];
 
         stages.push({
           stageKey: "origin-ground",
           mapId: originMap,
-          title: (destMap === originMap) ? `Walk to ${activeDestLocation.room || "Destination"}` : `Exit ${activeOriginLocation.name.split('—')[0]}`,
-          description: (destMap === originMap) ? `Follow corridor to destination room.` : `Walk along hallway to ${groundAnchor.exitLabel || "Main Exit"}.`,
+          title: (destMap === originMap) ? ("Walk to " + (activeDestLocation.room || "Destination")) : ("Exit " + activeOriginLocation.name.split('—')[0] + " via " + chosenEgressDoor.label),
+          description: (destMap === originMap) ? "Follow corridor to destination room." : ("Walk along hallway to " + chosenEgressDoor.label + "."),
           targetBadge: (destMap === originMap) ? "TARGET" : "EXIT",
           targetBadgeColor: (destMap === originMap) ? "#2563eb" : "#10b981",
-          targetLabel: (destMap === originMap) ? (activeDestLocation.room || "ROOM") : (groundAnchor.exitLabel || "MAIN EXIT"),
+          targetLabel: (destMap === originMap) ? (activeDestLocation.room || "ROOM") : chosenEgressDoor.label,
           startPoint: roomPt,
           endPoint: gExitPt,
           points: p,
-          d: `M ${p.map(p => p.join(" ")).join(" L ")}`,
+          d: "M " + p.map(p => p.join(" ")).join(" L "),
           pixelLength: calculatePolylineLength(p),
           nextMapId: (destMap === originMap) ? originMap : "campus",
           switchPrompt: (destMap === originMap) ? null : "Exit to Campus Ground ➔",
-          voiceAnnouncement: `Exited ${originBlockPrefix} Block. Showing campus route.`
+          voiceAnnouncement: "Exited " + originBlockPrefix + " Block. Showing campus route."
         });
       }
 
-      if (destMap === "campus" || destBlockPrefix !== originBlockPrefix) {
+      // SCENARIO 2: Campus Circulation Stage
+      if (!chosenEgressDoor.isTrapped && (destMap === "campus" || destBlockPrefix !== originBlockPrefix)) {
         const campusPts = activeCampusRoute?.pathNodes?.map(n => [n.x, n.y]) || [[355, 206], [760, 490]];
         const targetBlockName = activeDestLocation.name.split('—')[0];
 
         stages.push({
           stageKey: "campus-walk",
           mapId: "campus",
-          title: `Campus Walkway: Approach ${destMap === "campus" ? activeDestLocation.name : targetBlockName}`,
-          description: `Follow illuminated pathway across campus grounds.`,
+          title: "Campus Walkway: Approach " + (destMap === "campus" ? activeDestLocation.name : targetBlockName),
+          description: "Follow illuminated pathway across campus grounds.",
           targetBadge: destMap === "campus" ? "DESTINATION" : "GATE",
           targetBadgeColor: destMap === "campus" ? "#059669" : "#6366f1",
-          targetLabel: destMap === "campus" ? activeDestLocation.name : `${targetBlockName} ENTRANCE`,
+          targetLabel: destMap === "campus" ? activeDestLocation.name : (targetBlockName + " ENTRANCE"),
           startPoint: campusPts[0],
           endPoint: campusPts[campusPts.length - 1],
           points: campusPts,
-          d: `M ${campusPts.map(p => p.join(" ")).join(" L ")}`,
+          d: "M " + campusPts.map(p => p.join(" ")).join(" L "),
           pixelLength: calculatePolylineLength(campusPts),
-          nextMapId: destMap !== "campus" ? `${destBlockPrefix}-ground` : "campus",
-          switchPrompt: destMap !== "campus" ? `Enter ${targetBlockName} ➔` : null,
-          voiceAnnouncement: destMap !== "campus" ? `Arrived at ${targetBlockName} entrance. Showing Ground Floor plan.` : `Arrived at ${activeDestLocation.name}!`
+          nextMapId: destMap !== "campus" ? (destBlockPrefix + "-ground") : "campus",
+          switchPrompt: destMap !== "campus" ? ("Enter " + targetBlockName + " ➔") : null,
+          voiceAnnouncement: destMap !== "campus" ? ("Arrived at " + targetBlockName + " entrance. Showing Ground Floor plan.") : ("Arrived at " + activeDestLocation.name + "!")
         });
       }
 
-      if (destMap !== "campus" && (destBlockPrefix !== originBlockPrefix || (originMap === "campus"))) {
-        const targetGroundMapId = `${destBlockPrefix}-ground`;
-        const targetGroundAnchor = FLOOR_VERTICAL_ANCHORS[targetGroundMapId] || { stairs: [760, 250], mainExit: [250, 590], corridorY: 455, hubX: 500 };
-        const entryPt = targetGroundAnchor.mainExit || [250, 590];
-        const targetEndPt = isDestUpperOrLower ? targetGroundAnchor.stairs : (activeDestLocation.point || [830, 455]);
+      // SCENARIO 3: Target Block Ingress (Ground Floor -> Target Room / Stairs)
+      if (!chosenEgressDoor.isTrapped && destMap !== "campus" && (destBlockPrefix !== originBlockPrefix || (originMap === "campus"))) {
+        const targetGroundMapId = destBlockPrefix + "-ground";
+        const targetChosenDoor = selectBestEgressDoor(targetGroundMapId, liveState);
+        const entryPt = targetChosenDoor.point || [250, 590];
+        const targetEndPt = isDestUpperOrLower ? (selectBestStairs(destMap, liveState)?.groundStairs || [760, 250]) : (activeDestLocation.point || [830, 455]);
+        const tCorridorY = targetChosenDoor.corridorY || 455;
+        const tHubX = targetChosenDoor.hubX || 500;
 
         const pInGround = [
           entryPt,
-          [entryPt[0], targetGroundAnchor.corridorY],
-          [targetGroundAnchor.hubX, targetGroundAnchor.corridorY],
-          [targetEndPt[0], targetGroundAnchor.corridorY],
+          [entryPt[0], tCorridorY],
+          [tHubX, tCorridorY],
+          [targetEndPt[0], tCorridorY],
           targetEndPt
         ];
 
         stages.push({
           stageKey: "target-ground",
           mapId: targetGroundMapId,
-          title: isDestUpperOrLower ? `Enter Ground Floor & Head to Stairs` : `Enter Ground Floor to ${activeDestLocation.room || "Room"}`,
-          description: isDestUpperOrLower ? `Walk through ground lobby to stairwell.` : `Follow corridor to room doorway.`,
+          title: isDestUpperOrLower ? "Enter Ground Floor & Head to Stairs" : ("Enter Ground Floor to " + (activeDestLocation.room || "Room")),
+          description: isDestUpperOrLower ? "Walk through ground lobby to stairwell." : "Follow corridor to room doorway.",
           targetBadge: isDestUpperOrLower ? "STAIRS" : "TARGET",
           targetBadgeColor: isDestUpperOrLower ? "#f59e0b" : "#2563eb",
-          targetLabel: isDestUpperOrLower ? (targetGroundAnchor.stairsLabel || "STAIRS") : (activeDestLocation.room || "ROOM"),
+          targetLabel: isDestUpperOrLower ? "STAIRS" : (activeDestLocation.room || "ROOM"),
           startPoint: entryPt,
           endPoint: targetEndPt,
           points: pInGround,
-          d: `M ${pInGround.map(p => p.join(" ")).join(" L ")}`,
+          d: "M " + pInGround.map(p => p.join(" ")).join(" L "),
           pixelLength: calculatePolylineLength(pInGround),
           nextMapId: destMap,
-          switchPrompt: isDestUpperOrLower ? `Ascend to ${activeDestLocation.name.split('—')[1]} ➔` : null,
-          voiceAnnouncement: isDestUpperOrLower ? `Ascended to ${activeDestLocation.name.split('—')[1]}. Showing final floor route.` : `Arrived at ${activeDestLocation.room}!`
+          switchPrompt: isDestUpperOrLower ? ("Ascend to " + activeDestLocation.name.split('—')[1] + " ➔") : null,
+          voiceAnnouncement: isDestUpperOrLower ? ("Ascended to " + activeDestLocation.name.split('—')[1] + ". Showing final floor route.") : ("Arrived at " + activeDestLocation.room + "!")
         });
 
         if (isDestUpperOrLower) {
-          const targetAnchor = FLOOR_VERTICAL_ANCHORS[destMap] || { stairs: [800, 235], corridorY: 325, hubX: 520 };
-          const tStairsPt = targetAnchor.stairs;
+          const targetStairs = selectBestStairs(destMap, liveState);
+          const tStairsPt = targetStairs?.point || [800, 235];
           const tRoomPt = activeDestLocation.point || [500, 325];
+          const finalCorridorY = targetStairs?.corridorY || 325;
+          const finalHubX = targetStairs?.hubX || 520;
 
           const pFinal = [
             tStairsPt,
-            [tStairsPt[0], targetAnchor.corridorY],
-            [targetAnchor.hubX, targetAnchor.corridorY],
-            [tRoomPt[0], targetAnchor.corridorY],
+            [tStairsPt[0], finalCorridorY],
+            [finalHubX, finalCorridorY],
+            [tRoomPt[0], finalCorridorY],
             tRoomPt
           ];
 
           stages.push({
             stageKey: "target-final",
             mapId: destMap,
-            title: `Final Approach: ${activeDestLocation.room || activeDestLocation.name}`,
-            description: `Walk along corridor to room entrance.`,
+            title: "Final Approach: " + (activeDestLocation.room || activeDestLocation.name),
+            description: "Walk along corridor to room entrance.",
             targetBadge: "DESTINATION",
             targetBadgeColor: "#059669",
             targetLabel: activeDestLocation.room || "TARGET ROOM",
             startPoint: tStairsPt,
             endPoint: tRoomPt,
             points: pFinal,
-            d: `M ${pFinal.map(p => p.join(" ")).join(" L ")}`,
+            d: "M " + pFinal.map(p => p.join(" ")).join(" L "),
             pixelLength: calculatePolylineLength(pFinal),
             nextMapId: destMap,
             switchPrompt: null,
-            voiceAnnouncement: `Arrived at destination: ${activeDestLocation.room}!`
+            voiceAnnouncement: "Arrived at destination: " + activeDestLocation.room + "!"
           });
         }
       }
@@ -533,15 +639,15 @@
         {
           stageKey: "fallback",
           mapId: originMap,
-          title: `Navigate to ${activeDestLocation.name}`,
-          description: `Follow guidance path.`,
+          title: "Navigate to " + activeDestLocation.name,
+          description: "Follow guidance path.",
           targetBadge: "TARGET",
           targetBadgeColor: "#2563eb",
           targetLabel: activeDestLocation.name,
           startPoint: [440, 565],
           endPoint: [760, 490],
           points: [[440, 565], [760, 490]],
-          d: `M 440 565 L 760 490`,
+          d: "M 440 565 L 760 490",
           pixelLength: 300,
           nextMapId: destMap
         }
@@ -716,6 +822,12 @@
         return ALL_CAMPUS_LOCATIONS_HIERARCHY[0].items[5]; // Garden
       }, [destinationLocationKey]);
 
+      // Dynamic Egress Selection for Campus Handoff
+      const originGroundMapId = activeOriginLocation.mapId !== "campus" ? (activeOriginLocation.mapId.split("-")[0] + "-ground") : "campus";
+      const dynamicEgressDoor = useMemo(() => {
+        return selectBestEgressDoor(originGroundMapId, liveState);
+      }, [originGroundMapId, liveState]);
+
       // Determine Target Block Entrance Node on Campus Map
       const targetBlockEntranceNodeId = useMemo(() => {
         if (!activeDestLocation) return null;
@@ -732,8 +844,8 @@
             setStageStepCount(0);
             setActiveStageIndex(0);
             if (item.mapId) setSelectedMapId(item.mapId);
-            notify(`📍 Origin: ${item.name}`);
-            speakText(`Current position: ${item.name}`);
+            notify("📍 Origin: " + item.name);
+            speakText("Current position: " + item.name);
             break;
           }
         }
@@ -747,8 +859,8 @@
           if (item) {
             setStageStepCount(0);
             setActiveStageIndex(0);
-            notify(`🎯 Target: ${item.name}`);
-            speakText(`Route plotted to ${item.name}`);
+            notify("🎯 Target: " + item.name);
+            speakText("Route plotted to " + item.name);
             break;
           }
         }
@@ -780,9 +892,10 @@
         zones: liveState.crowds
       };
 
+      // Campus start node dynamically anchored to the chosen egress door!
       const campusOriginNodeId = activeOriginLocation.mapId === "campus" 
         ? activeOriginLocation.nodeId 
-        : (BLOCK_CAMPUS_ENTRANCE_NODES[activeOriginLocation.mapId] || "admin");
+        : (dynamicEgressDoor?.campusNode || BLOCK_CAMPUS_ENTRANCE_NODES[activeOriginLocation.mapId] || "admin");
       const campusDestNodeId = targetBlockEntranceNodeId || "admin";
 
       const normalRoute = !isEmergency && window.SafeWay?.findShortestPath ? window.SafeWay.findShortestPath(
@@ -810,14 +923,16 @@
 
       const activeCampusRoute = isEmergency ? evacuationResult?.bestRoute : normalRoute;
 
-      // Build True Multi-Floor Sequential Pipeline
+      // Build True Multi-Floor Dynamic Egress Pipeline
       const multiFloorPipeline = useMemo(() => {
         return buildMultiFloorStagePipeline({
           activeOriginLocation,
           activeDestLocation,
-          activeCampusRoute
+          activeCampusRoute,
+          liveState,
+          accessibilityMode
         });
-      }, [activeOriginLocation, activeDestLocation, activeCampusRoute]);
+      }, [activeOriginLocation, activeDestLocation, activeCampusRoute, liveState, accessibilityMode]);
 
       // Current active stage object in pipeline
       const currentActiveStage = multiFloorPipeline[activeStageIndex] || multiFloorPipeline[0];
@@ -862,7 +977,7 @@
           const nextStage = multiFloorPipeline[targetIndex];
           setSelectedMapId(nextStage.mapId);
           if (nextStage.voiceAnnouncement) speakText(nextStage.voiceAnnouncement);
-          notify(`⚡ Stage ${targetIndex + 1}: ${nextStage.title}`);
+          notify("⚡ Stage " + (targetIndex + 1) + ": " + nextStage.title);
         }
       };
 
@@ -876,8 +991,8 @@
           if (activeStageIndex < multiFloorPipeline.length - 1) {
             advanceToStage(activeStageIndex + 1);
           } else {
-            notify(`🎯 Arrived at ${activeDestLocation.name}!`);
-            speakText(`You have arrived at your destination: ${activeDestLocation.name}.`);
+            notify("🎯 Arrived at " + activeDestLocation.name + "!");
+            speakText("You have arrived at your destination: " + activeDestLocation.name + ".");
             setAutoWalkActive(false);
           }
         }
@@ -925,7 +1040,7 @@
         if (window.SafeWay?.sendDistressSignal) {
           window.SafeWay.sendDistressSignal({
             userId: "aegispath-user-mobile",
-            locationName: `${activeOriginLocation?.name || "Campus"} (${activeMapPlan.label})`,
+            locationName: (activeOriginLocation?.name || "Campus") + " (" + activeMapPlan.label + ")",
             nodeId: "mobile-node",
             floor: activeMapPlan.floor || 1,
             zone: activeMapPlan.group
@@ -945,27 +1060,25 @@
       const isLight = theme === 'light';
 
       return (
-        <div className={`min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 ${
-          isLight ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100"
-        }`}>
+        <div className={"min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 " + (isLight ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100")}>
           {/* Top Header */}
-          <header className={`p-3.5 border-b flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl transition-colors ${
+          <header className={"p-3.5 border-b flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl transition-colors " + (
             isEmergency 
               ? "bg-red-950/95 border-red-600 text-white shadow-xl shadow-red-600/30 animate-pulse"
               : (isLight ? "bg-white/95 border-slate-200 shadow-sm text-slate-900" : "bg-slate-900/95 border-slate-800 text-white")
-          }`}>
+          )}>
             <div className="flex items-center gap-2.5">
-              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-white shadow-lg ${isEmergency ? "bg-red-600 animate-bounce" : "bg-indigo-600"}`}>
+              <div className={"w-8 h-8 rounded-xl flex items-center justify-center font-black text-white shadow-lg " + (isEmergency ? "bg-red-600 animate-bounce" : "bg-indigo-600")}>
                 <Icon name={isEmergency ? "siren" : "navigation"} className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className={`text-xs font-black flex items-center gap-1.5 ${isEmergency ? "text-white" : (isLight ? "text-slate-900" : "text-white")}`}>
+                <h1 className={"text-xs font-black flex items-center gap-1.5 " + (isEmergency ? "text-white" : (isLight ? "text-slate-900" : "text-white"))}>
                   AegisPath
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${isEmergency ? "bg-red-600 text-white border border-red-400 animate-pulse" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"}`}>
-                    {isEmergency ? "🚨 EVACUATION ACTIVE" : `STAGE ${activeStageIndex + 1}/${multiFloorPipeline.length}`}
+                  <span className={"text-[9px] font-black px-2 py-0.5 rounded-full " + (isEmergency ? "bg-red-600 text-white border border-red-400 animate-pulse" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30")}>
+                    {isEmergency ? "🚨 EVACUATION ACTIVE" : ("STAGE " + (activeStageIndex + 1) + "/" + multiFloorPipeline.length)}
                   </span>
                 </h1>
-                <p className={`text-[10px] font-medium truncate max-w-[140px] ${isEmergency ? "text-red-200" : (isLight ? "text-slate-600" : "text-slate-400")}`}>
+                <p className={"text-[10px] font-medium truncate max-w-[140px] " + (isEmergency ? "text-red-200" : (isLight ? "text-slate-600" : "text-slate-400"))}>
                   {activeMapPlan.group} &bull; <b className={isEmergency ? "text-white" : "text-indigo-600 dark:text-indigo-300"}>{activeMapPlan.label}</b>
                 </p>
               </div>
@@ -975,11 +1088,11 @@
               {/* Admin Security Console Button */}
               <a
                 href="/admin/login.html"
-                className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition flex items-center gap-1 ${
+                className={"px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition flex items-center gap-1 " + (
                   isLight
                     ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 shadow-sm"
                     : "bg-slate-800 hover:bg-slate-700 text-indigo-300 border-slate-700"
-                }`}
+                )}
                 title="Open Admin Security Console"
               >
                 <span>🛡️ Admin</span>
@@ -988,7 +1101,7 @@
               {/* Universal Theme Switcher Button */}
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-xl border text-xs transition ${isLight ? "bg-slate-100 text-amber-600 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700"}`}
+                className={"p-2 rounded-xl border text-xs transition " + (isLight ? "bg-slate-100 text-amber-600 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700")}
                 title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
               >
                 <Icon name={isLight ? "sun" : "moon"} className="w-4 h-4" />
@@ -996,11 +1109,11 @@
 
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`p-2 rounded-xl border text-xs transition ${
+                className={"p-2 rounded-xl border text-xs transition " + (
                   soundEnabled
                     ? (isEmergency ? "bg-red-600 text-white border-red-400" : "bg-indigo-600/20 text-indigo-700 dark:text-indigo-300 border-indigo-500/40")
                     : (isLight ? "bg-slate-100 text-slate-400 border-slate-300" : "bg-slate-800 text-slate-500 border-slate-700")
-                }`}
+                )}
                 title={soundEnabled ? "Mute Siren Alerts" : "Enable Siren Alerts"}
               >
                 <Icon name="volume-2" className="w-4 h-4" />
@@ -1008,11 +1121,11 @@
 
               <button
                 onClick={() => setAccessibilityMode(!accessibilityMode)}
-                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 ${
+                className={"px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 " + (
                   accessibilityMode
                     ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
                     : (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700")
-                }`}
+                )}
                 title="Step-Free Mode"
               >
                 <span>♿</span>
@@ -1063,10 +1176,10 @@
                       <Icon name="shield" className="w-3.5 h-3.5 text-emerald-400" />
                       {evacuationResult.isRefugeRoute ? "FIRE POLICY: SAFE REFUGE ASSIGNED" : "NEAREST SAFE DESTINATION"}
                     </span>
-                    <span className="font-mono text-emerald-300 font-bold">~{evacuationResult.bestRoute?.totalDistance || 25}m</span>
+                    <span className="font-mono text-emerald-300 font-bold">~{(evacuationResult.bestRoute?.totalDistance || 25) + "m"}</span>
                   </div>
                   <div className="text-sm font-black text-emerald-300 leading-snug">
-                    Proceed to {evacuationResult.recommendedExit?.name || evacuationResult.recommendedAssembly?.name || evacuationResult.refugeNode?.name || "Designated Safe Zone"}
+                    {"Proceed to " + (evacuationResult.recommendedExit?.name || evacuationResult.recommendedAssembly?.name || evacuationResult.refugeNode?.name || "Designated Safe Zone")}
                   </div>
                   <p className="text-[11px] text-slate-300 font-medium">
                     {evacuationResult.safetyGuidance || "Follow green route markings. Avoid elevators and proceed calmly."}
@@ -1079,23 +1192,23 @@
           {/* Navigation Controls */}
           <div className="px-3.5 pt-2.5 space-y-2.5">
             {/* 1. CURRENT POSITION */}
-            <div className={`border rounded-2xl p-2.5 flex items-center justify-between shadow-lg transition-colors ${
+            <div className={"border rounded-2xl p-2.5 flex items-center justify-between shadow-lg transition-colors " + (
               isLight ? "bg-white border-slate-300 shadow-slate-200" : "bg-slate-900 border-slate-800"
-            }`}>
+            )}>
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <span className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-black text-xs shrink-0">📍</span>
                 <div className="flex-1 min-w-0">
-                  <span className={`text-[10px] font-black block ${isLight ? "text-slate-700" : "text-slate-400"}`}>1. CURRENT POSITION:</span>
+                  <span className={"text-[10px] font-black block " + (isLight ? "text-slate-700" : "text-slate-400")}>1. CURRENT POSITION:</span>
                   <select
                     value={originLocationKey}
                     onChange={(e) => handleOriginChange(e.target.value)}
-                    className={`w-full bg-transparent text-xs font-black outline-none cursor-pointer truncate ${isLight ? "text-slate-900" : "text-white"}`}
+                    className={"w-full bg-transparent text-xs font-black outline-none cursor-pointer truncate " + (isLight ? "text-slate-900" : "text-white")}
                   >
                     {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
                       <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
                         {group.items.map(item => (
                           <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
-                            📍 {item.name}
+                            {"📍 " + item.name}
                           </option>
                         ))}
                       </optgroup>
@@ -1107,18 +1220,18 @@
 
             {/* 2. TARGET DESTINATION */}
             {!isEmergency && (
-              <div className={`border rounded-2xl p-2.5 shadow-lg transition-colors ${
+              <div className={"border rounded-2xl p-2.5 shadow-lg transition-colors " + (
                 isLight ? "bg-white border-emerald-400 shadow-slate-200" : "bg-slate-900 border-emerald-500/50"
-              }`}>
+              )}>
                 <div className="flex items-center justify-between pb-1">
-                  <span className={`text-[10px] font-black flex items-center gap-1 ${isLight ? "text-emerald-800" : "text-emerald-400"}`}>
+                  <span className={"text-[10px] font-black flex items-center gap-1 " + (isLight ? "text-emerald-800" : "text-emerald-400")}>
                     🎯 2. TARGET DESTINATION:
                   </span>
                   <div className="flex items-center gap-1">
                     {activeStageIndex > 0 && (
                       <button
                         onClick={() => advanceToStage(activeStageIndex - 1)}
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition ${isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700"}`}
+                        className={"text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition " + (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700")}
                       >
                         ‹ Prev Floor
                       </button>
@@ -1126,7 +1239,7 @@
                     {activeStageIndex < multiFloorPipeline.length - 1 && (
                       <button
                         onClick={() => advanceToStage(activeStageIndex + 1)}
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition ${isLight ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/30"}`}
+                        className={"text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition " + (isLight ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/30")}
                       >
                         Next Floor ›
                       </button>
@@ -1136,15 +1249,15 @@
                 <select
                   value={destinationLocationKey}
                   onChange={(e) => handleDestinationChange(e.target.value)}
-                  className={`w-full border text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400 transition-colors ${
+                  className={"w-full border text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400 transition-colors " + (
                     isLight ? "bg-slate-50 border-slate-300 text-emerald-900" : "bg-slate-950 border-slate-700 text-emerald-300"
-                  }`}
+                  )}
                 >
                   {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
                     <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
                       {group.items.map(item => (
                         <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
-                          🎯 {item.name}
+                          {"🎯 " + item.name}
                         </option>
                       ))}
                     </optgroup>
@@ -1154,30 +1267,30 @@
             )}
 
             {/* Live Stage Guidance Header Banner */}
-            <div className={`border rounded-2xl p-3 text-xs space-y-1.5 shadow-xl transition-colors ${
+            <div className={"border rounded-2xl p-3 text-xs space-y-1.5 shadow-xl transition-colors " + (
               isEmergency
                 ? "bg-red-950/80 border-red-600 text-white shadow-red-900/30"
                 : (isLight ? "bg-indigo-50 border-indigo-300 text-indigo-950 shadow-slate-200" : "bg-indigo-950/80 border-indigo-500/50")
-            }`}>
+            )}>
               <div className="font-black flex items-center justify-between">
-                <span className={`flex items-center gap-1.5 ${isLight && !isEmergency ? "text-indigo-900" : "text-indigo-200"}`}>
-                  <span className={`w-2 h-2 rounded-full ${isEmergency ? "bg-red-500 animate-ping" : "bg-indigo-500 animate-ping"}`}></span>
-                  Stage {activeStageIndex + 1} of {multiFloorPipeline.length}: {currentActiveStage.title}
+                <span className={"flex items-center gap-1.5 " + (isLight && !isEmergency ? "text-indigo-900" : "text-indigo-200")}>
+                  <span className={"w-2 h-2 rounded-full " + (isEmergency ? "bg-red-500 animate-ping" : "bg-indigo-500 animate-ping")}></span>
+                  {"Stage " + (activeStageIndex + 1) + " of " + multiFloorPipeline.length + ": " + currentActiveStage.title}
                 </span>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                <span className={"text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border " + (
                   isLight && !isEmergency
                     ? "bg-white text-emerald-800 border-emerald-300" 
                     : "bg-emerald-950/80 text-emerald-400 border-emerald-500/30"
-                }`}>
+                )}>
                   {activeMapPlan.label}
                 </span>
               </div>
-              <p className={`text-[11px] font-semibold ${isLight && !isEmergency ? "text-slate-700" : "text-slate-300"}`}>
+              <p className={"text-[11px] font-semibold " + (isLight && !isEmergency ? "text-slate-700" : "text-slate-300")}>
                 {currentActiveStage.description}
               </p>
               {currentActiveStage.switchPrompt && (
-                <div className={`flex items-center justify-between pt-1 border-t ${isLight && !isEmergency ? "border-indigo-200" : "border-indigo-900/60"}`}>
-                  <span className={`text-[10px] font-mono font-bold ${isLight && !isEmergency ? "text-amber-800" : "text-amber-400"}`}>
+                <div className={"flex items-center justify-between pt-1 border-t " + (isLight && !isEmergency ? "border-indigo-200" : "border-indigo-900/60")}>
+                  <span className={"text-[10px] font-mono font-bold " + (isLight && !isEmergency ? "text-amber-800" : "text-amber-400")}>
                     ⚡ Auto-switches on arrival at target mark
                   </span>
                   <button
@@ -1193,12 +1306,12 @@
 
           {/* SVG Map Canvas */}
           <main className="flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[310px]">
-            <div className={`w-full border-2 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center transition-colors ${
+            <div className={"w-full border-2 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center transition-colors " + (
               isEmergency
                 ? "border-red-600 bg-red-950/40 shadow-red-600/50 animate-pulse"
                 : (isLight ? "bg-white border-slate-300 shadow-slate-300" : "bg-slate-900/90 border-slate-800")
-            }`}>
-              <svg viewBox="0 0 1000 650" className={`w-full h-full max-h-[330px] rounded-2xl border ${isLight ? "bg-white border-slate-300" : "bg-white border-slate-800"}`}>
+            )}>
+              <svg viewBox="0 0 1000 650" className={"w-full h-full max-h-[330px] rounded-2xl border " + (isLight ? "bg-white border-slate-300" : "bg-white border-slate-800")}>
                 {/* Background Floor Plan Image */}
                 <image
                   href={activeMapPlan.src || "/assets/college-campus-layout.jpeg"}
@@ -1248,7 +1361,7 @@
                         {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
                           const nextNode = activeCampusRoute.pathNodes[idx + 1];
                           return (
-                            <g key={`route-seg-${idx}`}>
+                            <g key={"route-seg-" + idx}>
                               <line
                                 x1={node.x}
                                 y1={node.y}
@@ -1284,9 +1397,9 @@
                         return (
                           <g
                             key={node.id}
-                            transform={`translate(${node.x}, ${node.y})`}
+                            transform={"translate(" + node.x + ", " + node.y + ")"}
                             onClick={() => {
-                              handleOriginChange(`campus:${node.id}`);
+                              handleOriginChange("campus:" + node.id);
                             }}
                             style={{ cursor: "pointer" }}
                           >
@@ -1311,7 +1424,7 @@
                   <>
                     <rect x="20" y="10" width="960" height="38" rx="10" fill="#0f172a" />
                     <text x="500" y="34" textAnchor="middle" fill="#ffffff" fontSize="15" fontWeight="900">
-                      {activeMapPlan.group} — {activeMapPlan.label}
+                      {activeMapPlan.group + " — " + activeMapPlan.label}
                     </text>
 
                     {currentActiveStage.d && (
@@ -1338,7 +1451,7 @@
 
                         {/* Target End Point Badge (Stairs / Exit / Room) */}
                         {currentActiveStage.endPoint && (
-                          <g transform={`translate(${currentActiveStage.endPoint[0]}, ${currentActiveStage.endPoint[1]})`}>
+                          <g transform={"translate(" + currentActiveStage.endPoint[0] + ", " + currentActiveStage.endPoint[1] + ")"}>
                             <circle r="18" fill={isEmergency ? "#10b981" : (currentActiveStage.targetBadgeColor || "#f59e0b")} stroke="#ffffff" strokeWidth="3" />
                             <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">
                               {isEmergency ? "EXIT" : (currentActiveStage.targetBadge || "TARGET")}
@@ -1365,12 +1478,12 @@
                 )}
 
                 {/* Live User Position Indicator */}
-                <g transform={`translate(${liveUserCoords[0]}, ${liveUserCoords[1]})`}>
+                <g transform={"translate(" + liveUserCoords[0] + ", " + liveUserCoords[1] + ")"}>
                   <circle r="36" fill="#0ea5e9" fillOpacity="0.3" className="mobile-radar-pulse" />
                   <circle r="14" fill="#0284c7" stroke="#ffffff" strokeWidth="4" />
                   
                   {/* Compass Needle */}
-                  <g transform={`rotate(${compassHeading || 0})`}>
+                  <g transform={"rotate(" + (compassHeading || 0) + ")"}>
                     <polygon points="0,-26 -7,-11 7,-11" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
                   </g>
                   <circle r="4" fill="#ffffff" />
@@ -1378,16 +1491,16 @@
                   <g transform="translate(0, 26)">
                     <rect x="-46" y="-9" width="92" height="18" rx="8" fill="#0284c7" stroke="#ffffff" strokeWidth="1.5" />
                     <text y="4" textAnchor="middle" fill="#ffffff" fontSize="8" fontWeight="900">
-                      {stageStepCount > 0 ? `👣 ${stageStepCount} STEPS` : "YOU ARE HERE"}
+                      {stageStepCount > 0 ? ("👣 " + stageStepCount + " STEPS") : "YOU ARE HERE"}
                     </text>
                   </g>
                 </g>
               </svg>
 
               {/* Telemetry HUD */}
-              <div className={`absolute top-5 left-5 px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border transition-colors ${
+              <div className={"absolute top-5 left-5 px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border transition-colors " + (
                 isLight ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-300" : "bg-slate-950/90 border-slate-800 text-slate-300"
-              }`}>
+              )}>
                 <span>👣 <b>{stageStepCount}</b> stage steps</span>
                 <span className="opacity-40">|</span>
                 <span>🧭 <b>{compassHeading}°</b></span>
@@ -1397,25 +1510,25 @@
 
           {/* Turn-by-Turn Sequential Guidance Module */}
           <section className="px-3.5 pt-1 space-y-2">
-            <div className={`border rounded-2xl p-3 shadow-xl space-y-2.5 transition-colors ${
+            <div className={"border rounded-2xl p-3 shadow-xl space-y-2.5 transition-colors " + (
               isLight ? "bg-white border-slate-300 shadow-slate-200" : "bg-slate-900 border-slate-800"
-            }`}>
-              <div className={`flex items-center justify-between pb-2 border-b ${isLight ? "border-slate-200" : "border-slate-800"}`}>
+            )}>
+              <div className={"flex items-center justify-between pb-2 border-b " + (isLight ? "border-slate-200" : "border-slate-800")}>
                 <button
                   onClick={() => setShowDirectionsDrawer(!showDirectionsDrawer)}
-                  className={`flex items-center gap-2 text-xs font-black transition ${
+                  className={"flex items-center gap-2 text-xs font-black transition " + (
                     isLight ? "text-slate-900 hover:text-indigo-600" : "text-white hover:text-indigo-400"
-                  }`}
+                  )}
                 >
                   <Icon name="list-ordered" className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>Turn-by-Turn Sequential Guidance</span>
                   <Icon name={showDirectionsDrawer ? "chevron-up" : "chevron-down"} className="w-3.5 h-3.5 opacity-50" />
                 </button>
 
-                <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border ${
+                <span className={"text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border " + (
                   isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"
-                }`}>
-                  ~{totalEstimatedMeters}m ({totalEstimatedSeconds}s)
+                )}>
+                  {"~" + totalEstimatedMeters + "m (" + totalEstimatedSeconds + "s)"}
                 </span>
               </div>
 
@@ -1428,38 +1541,38 @@
                       <div
                         key={idx}
                         onClick={() => advanceToStage(idx)}
-                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 transition cursor-pointer ${
+                        className={"p-2.5 rounded-xl border flex items-start gap-2.5 transition cursor-pointer " + (
                           isActive
                             ? (isLight ? "bg-indigo-50 border-indigo-400 shadow-md ring-1 ring-indigo-400/40" : "bg-indigo-950/80 border-indigo-500/60 shadow-lg ring-1 ring-indigo-500/40")
                             : isPassed
                             ? (isLight ? "bg-emerald-50/60 border-emerald-300 opacity-90" : "bg-emerald-950/20 border-emerald-800/30 opacity-70")
                             : (isLight ? "bg-slate-50 border-slate-200" : "bg-slate-950/50 border-slate-800/70")
-                        }`}
+                        )}
                       >
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${
+                          className={"w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 " + (
                             isActive
                               ? "bg-indigo-600 text-white shadow"
                               : isPassed
                               ? "bg-emerald-600 text-white"
                               : (isLight ? "bg-slate-200 text-slate-700" : "bg-slate-800 text-slate-400")
-                          }`}
+                          )}
                         >
-                          {isPassed ? "✓" : idx + 1}
+                          {isPassed ? "✓" : (idx + 1)}
                         </div>
 
                         <div className="space-y-0.5 text-xs flex-1 min-w-0">
-                          <div className={`font-bold flex items-center justify-between ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                          <div className={"font-bold flex items-center justify-between " + (isLight ? "text-slate-900" : "text-slate-100")}>
                             <span className="truncate pr-1">{stage.title}</span>
                             {isActive && (
-                              <span className={`text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 ${
+                              <span className={"text-[9px] font-black px-1.5 py-0.2 rounded border shrink-0 " + (
                                 isLight ? "bg-indigo-100 text-indigo-800 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/40"
-                              }`}>
+                              )}>
                                 ACTIVE
                               </span>
                             )}
                           </div>
-                          <div className={`text-[11px] leading-tight font-medium ${isLight ? "text-slate-700" : "text-slate-400"}`}>{stage.description}</div>
+                          <div className={"text-[11px] leading-tight font-medium " + (isLight ? "text-slate-700" : "text-slate-400")}>{stage.description}</div>
                           
                           {stage.mapId !== selectedMapId && (
                             <button
@@ -1483,15 +1596,15 @@
           </section>
 
           {/* Footer Controls */}
-          <footer className={`p-3 border-t sticky bottom-0 z-30 space-y-2 mt-2 transition-colors ${
+          <footer className={"p-3 border-t sticky bottom-0 z-30 space-y-2 mt-2 transition-colors " + (
             isLight ? "bg-white border-slate-300 shadow-lg" : "bg-slate-900 border-slate-800"
-          }`}>
+          )}>
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={takeStep}
-                className={`py-3 rounded-2xl font-black text-xs border flex items-center justify-center gap-1 transition ${
+                className={"py-3 rounded-2xl font-black text-xs border flex items-center justify-center gap-1 transition " + (
                   isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 shadow-sm" : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
-                }`}
+                )}
               >
                 <span>🚶 Step (+1)</span>
               </button>
@@ -1500,19 +1613,19 @@
               <div className="flex flex-col gap-0.5">
                 <button
                   onClick={() => setAutoWalkActive(!autoWalkActive)}
-                  className={`py-2 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1 ${
+                  className={"py-2 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1 " + (
                     autoWalkActive
                       ? "bg-amber-600/30 text-amber-600 dark:text-amber-300 border-amber-500/50 animate-pulse"
                       : (isLight ? "bg-slate-100 text-slate-900 border-slate-300 shadow-sm" : "bg-slate-800 text-slate-300 border-slate-700")
-                  }`}
+                  )}
                 >
                   <span>{autoWalkActive ? "⏸ Pause" : "▶ Auto-Walk"}</span>
                 </button>
                 <button
                   onClick={() => setWalkSpeedMode(prev => prev === "1x" ? "2x" : "1x")}
-                  className={`text-[9px] font-black py-0.5 rounded-lg border transition ${
+                  className={"text-[9px] font-black py-0.5 rounded-lg border transition " + (
                     isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-900 text-slate-400 border-slate-800"
-                  }`}
+                  )}
                 >
                   Speed: <b>{walkSpeedMode === "1x" ? "1.4s (Normal)" : "0.7s (Fast)"}</b>
                 </button>
@@ -1527,14 +1640,14 @@
             </div>
 
             {/* Sensors Toggle Strip */}
-            <div className={`flex items-center justify-between px-1 text-[10px] ${isLight ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+            <div className={"flex items-center justify-between px-1 text-[10px] " + (isLight ? "text-slate-700 font-medium" : "text-slate-400")}>
               <button
                 onClick={toggleSensors}
-                className={`px-2.5 py-1 rounded-xl font-black border transition ${
+                className={"px-2.5 py-1 rounded-xl font-black border transition " + (
                   isMotionTracking
                     ? "bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
                     : (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700")
-                }`}
+                )}
               >
                 {isMotionTracking ? "🟢 Sensors: ACTIVE" : "📱 Enable Physical Sensors"}
               </button>
@@ -1545,7 +1658,7 @@
                   setActiveStageIndex(0);
                   notify("↺ Navigation restarted at Stage 1");
                 }}
-                className={`font-mono font-bold transition ${isLight ? "text-slate-600 hover:text-slate-900" : "text-slate-500 hover:text-slate-300"}`}
+                className={"font-mono font-bold transition " + (isLight ? "text-slate-600 hover:text-slate-900" : "text-slate-500 hover:text-slate-300")}
               >
                 ↺ Restart Route
               </button>
@@ -1555,10 +1668,10 @@
           {/* SOS Distress Modal */}
           {isSosModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/90 backdrop-blur-2xl">
-              <div className={`border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative ${isLight ? "bg-white text-slate-900" : "bg-slate-900 text-white"}`}>
+              <div className={"border-2 border-red-600 rounded-3xl p-6 shadow-2xl max-w-sm w-full space-y-4 text-center relative " + (isLight ? "bg-white text-slate-900" : "bg-slate-900 text-white")}>
                 <button
                   onClick={() => { setIsSosModalOpen(false); setSosSent(false); }}
-                  className={`absolute top-4 right-4 p-1.5 rounded-xl text-xs font-black ${isLight ? "text-slate-500 hover:text-slate-900" : "text-slate-400 hover:text-white"}`}
+                  className={"absolute top-4 right-4 p-1.5 rounded-xl text-xs font-black " + (isLight ? "text-slate-500 hover:text-slate-900" : "text-slate-400 hover:text-white")}
                   title="Close"
                 >
                   ✕
@@ -1569,12 +1682,12 @@
                 </div>
 
                 <div className="space-y-1">
-                  <h3 className={`text-lg font-black ${isLight ? "text-slate-900" : "text-white"}`}>Emergency Trapped Signal</h3>
-                  <p className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  <h3 className={"text-lg font-black " + (isLight ? "text-slate-900" : "text-white")}>Emergency Trapped Signal</h3>
+                  <p className={"text-xs " + (isLight ? "text-slate-700" : "text-slate-300")}>
                     Transmitting your location to the Campus Security Command Center:
                   </p>
                   <div className="p-3 bg-red-50 dark:bg-slate-950 rounded-2xl border border-red-500/40 text-xs font-mono font-black text-red-600 dark:text-red-400">
-                    📍 {activeOriginLocation?.name || "Campus"} &bull; {activeMapPlan.label}
+                    {"📍 " + (activeOriginLocation?.name || "Campus") + " • " + activeMapPlan.label}
                   </div>
                 </div>
 
@@ -1595,7 +1708,7 @@
                   <div className="flex gap-2">
                     <button
                       onClick={() => setIsSosModalOpen(false)}
-                      className={`flex-1 py-3 rounded-2xl text-xs font-bold ${isLight ? "bg-slate-200 hover:bg-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 text-slate-300"}`}
+                      className={"flex-1 py-3 rounded-2xl text-xs font-bold " + (isLight ? "bg-slate-200 hover:bg-slate-300 text-slate-800" : "bg-slate-800 hover:bg-slate-700 text-slate-300")}
                     >
                       Cancel
                     </button>
