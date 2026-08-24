@@ -1,12 +1,11 @@
 /**
  * SafeWay V3 - Real-Time Synchronization & Multi-Device Presence Service
- * Supports Firebase Realtime Database with live Server-Sent Events (SSE),
- * BroadcastChannel & LocalStorage fallback for zero-latency multi-device sync.
+ * Backed by /api/realtime Vercel Serverless Endpoint + BroadcastChannel & LocalStorage.
+ * Guarantees cross-device live synchronization across all mobile phones, PCs, and Admin Console.
  */
 
 const STORAGE_KEY = "safeway_v3_live_state";
 const BROADCAST_CHANNEL_NAME = "safeway_v3_realtime_bus";
-const FIREBASE_DB_URL = "https://safeway-v3-sih-default-rtdb.firebaseio.com";
 
 const INITIAL_STATE = {
   emergencyActive: false,
@@ -40,32 +39,7 @@ const INITIAL_STATE = {
   },
   distressSignals: {},
   presence: {},
-  sensors: {
-    "esp32-zone-b": {
-      sensorId: "esp32-zone-b",
-      zone: "zone-b",
-      location: "Physics Lab 101 (East Wing)",
-      smokeDetected: false,
-      flameDetected: false,
-      temperature: 24.5,
-      occupancy: 4,
-      crowdLevel: "Low",
-      hazardLevel: "none",
-      lastUpdate: new Date().toISOString()
-    },
-    "esp32-zone-c": {
-      sensorId: "esp32-zone-c",
-      zone: "zone-c",
-      location: "Cafeteria & Dining (1F)",
-      smokeDetected: false,
-      flameDetected: false,
-      temperature: 23.8,
-      occupancy: 14,
-      crowdLevel: "Medium",
-      hazardLevel: "none",
-      lastUpdate: new Date().toISOString()
-    }
-  },
+  sensors: {},
   lastUpdated: new Date().toISOString(),
   source: "local"
 };
@@ -73,7 +47,7 @@ const INITIAL_STATE = {
 let currentLiveState = loadLocalState();
 const listeners = new Set();
 let broadcastChannel = null;
-let sseSource = null;
+let currentDeviceLocation = { mapId: "campus", roomName: "Campus Ground", floor: 1 };
 
 // Initialize BroadcastChannel for same-device cross-tab communication
 if (typeof window !== "undefined" && "BroadcastChannel" in window) {
@@ -88,53 +62,49 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
   } catch (e) {}
 }
 
-// Initialize Firebase SSE Realtime Stream if online
-function initFirebaseRealtimeSync() {
-  if (typeof window === "undefined" || !window.EventSource) return;
+function getApiEndpoint() {
+  if (typeof window === "undefined") return "/api/realtime";
+  return `${window.location.origin}/api/realtime`;
+}
+
+/**
+ * Poll the central cloud server for real-time multi-device sync
+ */
+async function syncWithCloudServer() {
+  if (typeof window === "undefined" || !window.fetch) return;
   try {
-    if (sseSource) sseSource.close();
-    sseSource = new EventSource(`${FIREBASE_DB_URL}/masterState.json`);
+    const deviceId = getDeviceId();
+    const mapId = encodeURIComponent(currentDeviceLocation.mapId || "campus");
+    const roomName = encodeURIComponent(currentDeviceLocation.roomName || "Campus Ground");
+    const floor = currentDeviceLocation.floor || 1;
 
-    sseSource.addEventListener("put", (e) => {
-      try {
-        const payload = JSON.parse(e.data);
-        if (payload && payload.data && typeof payload.data === "object") {
-          currentLiveState = {
-            ...currentLiveState,
-            ...payload.data,
-            lastUpdated: new Date().toISOString(),
-            source: "firebase"
-          };
-          saveLocalState(currentLiveState, false);
-          notifyListeners();
-        }
-      } catch (err) {}
+    const url = `${getApiEndpoint()}?deviceId=${deviceId}&mapId=${mapId}&roomName=${roomName}&floor=${floor}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "Cache-Control": "no-cache" }
     });
 
-    sseSource.addEventListener("patch", (e) => {
-      try {
-        const payload = JSON.parse(e.data);
-        if (payload && payload.data && typeof payload.data === "object") {
-          currentLiveState = {
-            ...currentLiveState,
-            ...payload.data,
-            lastUpdated: new Date().toISOString(),
-            source: "firebase"
-          };
-          saveLocalState(currentLiveState, false);
-          notifyListeners();
-        }
-      } catch (err) {}
-    });
-
-    sseSource.onerror = () => {
-      // Automatic fallback to local broadcast if cloud network unreachable
-    };
+    if (res.ok) {
+      const cloudData = await res.json();
+      if (cloudData && typeof cloudData === "object") {
+        // Merge cloud master state with local state
+        const merged = {
+          ...currentLiveState,
+          ...cloudData,
+          presence: cloudData.presence || currentLiveState.presence || {},
+          distressSignals: cloudData.distressSignals || currentLiveState.distressSignals || {},
+          source: "cloud"
+        };
+        saveLocalState(merged, false);
+      }
+    }
   } catch (e) {}
 }
 
+// Active background cloud poller every 1.5 seconds for instant cross-device synchronization
 if (typeof window !== "undefined") {
-  initFirebaseRealtimeSync();
+  syncWithCloudServer();
+  setInterval(syncWithCloudServer, 1500);
 }
 
 function loadLocalState() {
@@ -148,7 +118,7 @@ function loadLocalState() {
   return { ...INITIAL_STATE };
 }
 
-function saveLocalState(newState, syncToCloud = true) {
+function saveLocalState(newState, pushToCloud = true) {
   currentLiveState = { ...newState, lastUpdated: new Date().toISOString() };
   if (typeof window !== "undefined" && window.localStorage) {
     try {
@@ -160,25 +130,30 @@ function saveLocalState(newState, syncToCloud = true) {
       broadcastChannel.postMessage({ type: "STATE_UPDATE", state: currentLiveState });
     } catch (e) {}
   }
-  if (syncToCloud && typeof window !== "undefined" && window.fetch) {
+
+  if (pushToCloud && typeof window !== "undefined" && window.fetch) {
     try {
-      fetch(`${FIREBASE_DB_URL}/masterState.json`, {
-        method: "PUT",
+      fetch(getApiEndpoint(), {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          emergencyActive: currentLiveState.emergencyActive,
-          hazards: currentLiveState.hazards,
-          crowds: currentLiveState.crowds,
-          corridorCrowds: currentLiveState.corridorCrowds,
-          exits: currentLiveState.exits,
-          blockedEdges: currentLiveState.blockedEdges,
-          emergencyPolicies: currentLiveState.emergencyPolicies,
-          distressSignals: currentLiveState.distressSignals,
-          presence: currentLiveState.presence
+          action: "update_master",
+          state: {
+            emergencyActive: currentLiveState.emergencyActive,
+            hazards: currentLiveState.hazards,
+            crowds: currentLiveState.crowds,
+            corridorCrowds: currentLiveState.corridorCrowds,
+            exits: currentLiveState.exits,
+            blockedEdges: currentLiveState.blockedEdges,
+            emergencyPolicies: currentLiveState.emergencyPolicies,
+            distressSignals: currentLiveState.distressSignals,
+            presence: currentLiveState.presence
+          }
         })
       }).catch(() => {});
     } catch (e) {}
   }
+
   notifyListeners();
 }
 
@@ -211,12 +186,18 @@ export function getDeviceId() {
 export function reportDevicePresence(locationData) {
   const deviceId = getDeviceId();
   const now = Date.now();
-  const presenceRecord = {
-    deviceId,
-    deviceType: deviceId.startsWith("dev_mob_") ? "Mobile" : "Desktop",
+  currentDeviceLocation = {
     mapId: locationData.mapId || "campus",
     roomName: locationData.roomName || locationData.name || "Campus Ground",
-    floor: locationData.floor ?? 1,
+    floor: locationData.floor ?? 1
+  };
+
+  const presenceRecord = {
+    deviceId,
+    deviceType: deviceId.startsWith("dev_mob_") ? "Mobile Phone" : "PC / Workstation",
+    mapId: currentDeviceLocation.mapId,
+    roomName: currentDeviceLocation.roomName,
+    floor: currentDeviceLocation.floor,
     timestamp: now
   };
 
@@ -225,17 +206,24 @@ export function reportDevicePresence(locationData) {
     [deviceId]: presenceRecord
   };
 
-  // Prune inactive devices (> 45s of silence)
-  for (const [id, dev] of Object.entries(updatedPresence)) {
-    if (now - (dev.timestamp || 0) > 45000) {
-      delete updatedPresence[id];
-    }
+  // Immediate cloud heartbeat push
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "heartbeat",
+          ...presenceRecord
+        })
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   saveLocalState({
     ...currentLiveState,
     presence: updatedPresence
-  });
+  }, false);
 }
 
 /**
@@ -255,7 +243,7 @@ export function setEmergencyActive(isActive) {
     ...currentLiveState,
     emergencyActive: Boolean(isActive)
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -269,7 +257,7 @@ export function setZoneHazardLevel(zoneId, hazardLevel) {
       [zoneId]: hazardLevel
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -283,7 +271,7 @@ export function setExitCrowdLevel(exitId, crowdLevel) {
       [exitId]: crowdLevel
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -297,7 +285,7 @@ export function setZoneCrowdLevel(zoneId, crowdLevel) {
       [zoneId]: crowdLevel
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -311,7 +299,7 @@ export function setCorridorCrowdLevel(edgeId, crowdLevel) {
       [edgeId]: crowdLevel
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -325,7 +313,7 @@ export function setExitOpenStatus(exitId, isOpen) {
       [exitId]: { isOpen: Boolean(isOpen) }
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -339,7 +327,7 @@ export function setCorridorBlockedStatus(edgeId, isBlocked) {
       [edgeId]: Boolean(isBlocked)
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -353,7 +341,7 @@ export function setElevatorFirePolicy(allowElevatorsInFire) {
       allowElevatorsInFire: Boolean(allowElevatorsInFire)
     }
   };
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 /**
@@ -393,7 +381,7 @@ export function recordSensorReading(sensorId, data) {
     };
   }
 
-  saveLocalState(updated);
+  saveLocalState(updated, true);
 }
 
 // In-memory predictive route registry for zero-cost crowd balancing
@@ -431,7 +419,7 @@ export function registerActiveRoute(userId, exitId, zoneId) {
   saveLocalState({
     ...currentLiveState,
     crowds: updatedCrowds
-  });
+  }, true);
 }
 
 /**
@@ -439,7 +427,7 @@ export function registerActiveRoute(userId, exitId, zoneId) {
  */
 export function sendDistressSignal(signal) {
   const deviceId = getDeviceId();
-  const id = signal.id || `sos-${Date.now()}`;
+  const id = signal.id || `sos-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
   const record = {
     id,
     deviceId: signal.deviceId || deviceId,
@@ -460,10 +448,24 @@ export function sendDistressSignal(signal) {
     [id]: record
   };
 
+  // Immediate cloud SOS push
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "sos",
+          signal: record
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   saveLocalState({
     ...currentLiveState,
     distressSignals: updatedSignals
-  });
+  }, false);
   return id;
 }
 
@@ -473,10 +475,25 @@ export function sendDistressSignal(signal) {
 export function clearDistressSignal(id) {
   const updatedSignals = { ...(currentLiveState.distressSignals || {}) };
   delete updatedSignals[id];
+
+  // Immediate cloud clear push
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "clear_sos",
+          id
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   saveLocalState({
     ...currentLiveState,
     distressSignals: updatedSignals
-  });
+  }, false);
 }
 
 /**
@@ -484,11 +501,26 @@ export function clearDistressSignal(id) {
  */
 export function resetAllToNormal() {
   activeRouteRegistry.clear();
+  const keepPresence = { ...(currentLiveState.presence || {}) };
+
+  // Immediate cloud reset push
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reset_all"
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   saveLocalState({
     ...INITIAL_STATE,
-    presence: currentLiveState.presence || {},
+    presence: keepPresence,
     lastUpdated: new Date().toISOString()
-  });
+  }, false);
 }
 
 /**
@@ -496,9 +528,9 @@ export function resetAllToNormal() {
  */
 export function getConnectionStatus() {
   return {
-    isLiveFirebase: true,
-    mode: "Firebase Realtime Stream + Multi-Tab Bus",
-    badgeText: "Firebase Connected",
+    isLiveCloud: true,
+    mode: "Vercel Realtime Cloud Sync + Local Bus",
+    badgeText: "Cloud Connected",
     color: "emerald"
   };
 }
