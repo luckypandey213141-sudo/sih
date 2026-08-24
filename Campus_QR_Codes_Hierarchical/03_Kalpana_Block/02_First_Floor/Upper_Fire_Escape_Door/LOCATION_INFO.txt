@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Upper Fire Escape Door
+Canonical Code  : SW-KAL-1-EMERG
+Positioning URI : kalpana-first:Emergency Exit
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Emergency Exit
+Description     : External fire escape stair tower access door.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

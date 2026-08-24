@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Room 201 Lecture Hall (2F)
+Canonical Code  : SW-ROOM201
+Positioning URI : campus:room-201
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone D
+Category        : Classroom
+Description     : West Wing 2F primary lecture hall.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

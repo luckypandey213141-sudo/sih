@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Basement Ramp Exit
+Canonical Code  : SW-KAL-B-EXIT
+Positioning URI : kalpana-basement:Entry / Exit
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Emergency Exit
+Description     : Emergency equipment ramp to ground.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

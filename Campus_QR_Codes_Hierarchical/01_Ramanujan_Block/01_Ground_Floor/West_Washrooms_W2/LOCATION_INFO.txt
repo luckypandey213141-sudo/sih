@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : West Washrooms (W2)
+Canonical Code  : SW-RAM-G-W2
+Positioning URI : ramanujan-ground:W2
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone E
+Category        : Restroom
+Description     : West corridor washrooms and sanitation facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Stairwell A / Gate 2 Path (1F)
+Canonical Code  : SW-STAIRA1
+Positioning URI : campus:stair-a-1
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone B
+Category        : Stairwell
+Description     : East perimeter stairwell leading to 2F East Wing.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

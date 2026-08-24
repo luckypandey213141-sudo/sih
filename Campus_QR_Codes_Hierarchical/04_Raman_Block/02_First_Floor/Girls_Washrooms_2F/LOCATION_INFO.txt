@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Girls Washrooms 2F
+Canonical Code  : SW-RAMAN-1-GWC
+Positioning URI : raman-first:Girls W/C
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Restroom
+Description     : Auditorium foyer female washroom.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

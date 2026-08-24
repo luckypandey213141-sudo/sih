@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Campus Auditorium (1F)
+Canonical Code  : SW-AUDITORIUM
+Positioning URI : campus:auditorium
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone C
+Category        : Auditorium
+Description     : Main assembly auditorium and garden pavilion.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

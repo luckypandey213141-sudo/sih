@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Campus Junction (QR 2)
+Canonical Code  : SW-CAMPUS-CENTRAL
+Positioning URI : campus:lift-1
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : Central Plaza
+Category        : Arterial Junction
+Description     : Main crossroads connecting Bhabha, Ramanujan, and Aryabhatta blocks.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

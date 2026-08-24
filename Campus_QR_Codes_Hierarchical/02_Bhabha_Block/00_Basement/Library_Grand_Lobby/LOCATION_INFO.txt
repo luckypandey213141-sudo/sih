@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Library Grand Lobby
+Canonical Code  : SW-BHAB-B-LOBBY
+Positioning URI : bhabha-basement:Lobby / Corridor
+Block / Area    : Bhabha Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Lobby
+Description     : Circulation desk, issue counter, and reading lobby.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

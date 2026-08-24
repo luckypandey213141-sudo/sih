@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Girls Washrooms 1F
+Canonical Code  : SW-ARYA-G-GWC
+Positioning URI : aryabhatta-ground:Girls Washroom
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Restroom
+Description     : Ground floor female sanitation facilities.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

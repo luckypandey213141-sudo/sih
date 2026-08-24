@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Elevator (2F)
+Canonical Code  : SW-LIFT2
+Positioning URI : campus:lift-2
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone D
+Category        : Vertical Transit
+Description     : Upper Level central passenger elevator station.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

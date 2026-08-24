@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Drinking Water Kiosk
+Canonical Code  : SW-BHAB-G-WATER
+Positioning URI : bhabha-ground:Drinking Water
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Facility
+Description     : Filtered drinking water station and chiller unit.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Computer Lab 2
+Canonical Code  : SW-RAM-B-LAB2
+Positioning URI : ramanujan-basement:Lab 2
+Block / Area    : Ramanujan Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Lab
+Description     : Basement Computing Lab 2 workstation room.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

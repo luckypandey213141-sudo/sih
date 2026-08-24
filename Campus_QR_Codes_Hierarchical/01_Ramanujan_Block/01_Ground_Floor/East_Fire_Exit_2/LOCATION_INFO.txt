@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : East Fire Exit 2
+Canonical Code  : SW-RAM-G-ENT2
+Positioning URI : ramanujan-ground:Entry / Exit 2
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Emergency Exit
+Description     : East fire exit door opening to campus arterial pathway.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

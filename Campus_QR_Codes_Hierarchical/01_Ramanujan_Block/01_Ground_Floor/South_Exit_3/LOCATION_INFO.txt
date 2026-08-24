@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : South Exit 3
+Canonical Code  : SW-RAM-G-ENT3
+Positioning URI : ramanujan-ground:Entry / Exit 3
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone C
+Category        : Emergency Exit
+Description     : South exit door connecting to Central Campus Plaza.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

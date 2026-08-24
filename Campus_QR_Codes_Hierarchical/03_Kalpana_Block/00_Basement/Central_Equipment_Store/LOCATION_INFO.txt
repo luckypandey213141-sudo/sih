@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Equipment Store
+Canonical Code  : SW-KAL-B-STORE
+Positioning URI : kalpana-basement:Store Room
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Facility
+Description     : Laboratory supplies, inventory, and spares store.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

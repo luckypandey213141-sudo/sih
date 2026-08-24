@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Lecture Theatre LT 3
+Canonical Code  : SW-RAM-1-LT3
+Positioning URI : ramanujan-first:LT 3
+Block / Area    : Ramanujan Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Lecture Hall
+Description     : Tiered Lecture Theatre LT 3 (Capacity 120 students).
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : West Stairway Exit
+Canonical Code  : SW-KAL-1-EXIT
+Positioning URI : kalpana-first:Entry / Exit
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Exit
+Description     : West wing stairwell connection to ground exit.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Back Yard Safe Area (QR 6)
+Canonical Code  : SW-CAMPUS-SAFE2
+Positioning URI : campus:assembly-b
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : North-West Yard
+Category        : Emergency Assembly
+Description     : Designated Open-Air Safe Assembly Area B behind Ramanujan block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

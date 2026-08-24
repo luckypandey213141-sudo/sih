@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Main Entrance Gate (QR 1)
+Canonical Code  : SW-CAMPUS-GATE1
+Positioning URI : campus:ent-main
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : Perimeter South
+Category        : Main Gate / Access
+Description     : Primary campus vehicle and pedestrian gateway on South boundary.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

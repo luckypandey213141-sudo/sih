@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : West Stairwell (Stairs 1)
+Canonical Code  : SW-BHAB-G-STAIR1
+Positioning URI : bhabha-ground:Stairs 1
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Stairwell
+Description     : West wing stairwell leading to Upper Floors and Basement.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

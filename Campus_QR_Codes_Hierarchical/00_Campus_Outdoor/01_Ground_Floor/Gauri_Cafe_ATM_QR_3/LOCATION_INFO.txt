@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Gauri Cafe & ATM (QR 3)
+Canonical Code  : SW-CAMPUS-CAFE
+Positioning URI : campus:reception
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : Central Plaza
+Category        : Dining / Services
+Description     : Campus cafe corner, seating pavilion, and banking ATM kiosk.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

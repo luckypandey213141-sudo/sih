@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : East Stairwell Landing
+Canonical Code  : SW-RAM-1-STAIR
+Positioning URI : ramanujan-first:Stairs
+Block / Area    : Ramanujan Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Stairwell
+Description     : Primary fire stairwell leading to ground exit.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

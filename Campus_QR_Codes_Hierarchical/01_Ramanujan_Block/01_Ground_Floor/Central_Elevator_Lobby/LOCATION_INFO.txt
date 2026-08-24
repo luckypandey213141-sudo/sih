@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Elevator Lobby
+Canonical Code  : SW-RAM-G-LIFT
+Positioning URI : ramanujan-ground:Lift
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone C
+Category        : Vertical Transit
+Description     : Ground Floor central lift lobby with accessible ramps.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

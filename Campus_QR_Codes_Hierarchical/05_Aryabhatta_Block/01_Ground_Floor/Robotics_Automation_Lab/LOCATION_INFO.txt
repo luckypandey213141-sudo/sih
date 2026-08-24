@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Robotics & Automation Lab
+Canonical Code  : SW-ARYA-G-LAB
+Positioning URI : aryabhatta-ground:Lab
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Lab
+Description     : Mechatronics, drone testing, and robotics arena.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

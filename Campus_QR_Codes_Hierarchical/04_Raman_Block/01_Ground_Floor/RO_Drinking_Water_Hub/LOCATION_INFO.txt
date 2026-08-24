@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : RO Drinking Water Hub
+Canonical Code  : SW-RAMAN-G-WATER
+Positioning URI : raman-ground:Drinking Water
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Facility
+Description     : Purified water station and dispenser.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

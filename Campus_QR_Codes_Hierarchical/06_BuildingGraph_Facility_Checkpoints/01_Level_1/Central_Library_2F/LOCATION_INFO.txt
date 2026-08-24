@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Library (2F)
+Canonical Code  : SW-LIBRARY
+Positioning URI : campus:library
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone E
+Category        : Library
+Description     : East Wing 2F central library and stack rooms.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

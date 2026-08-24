@@ -1477,13 +1477,50 @@ function App() {
   };
   const handleQrSubmit = e => {
     if (e) e.preventDefault();
-    const res = SafeWay.resolveQrCode(qrInputText);
-    if (res && res.nodeId) {
-      handleLocationChange(res.nodeId);
+    if (!qrInputText.trim()) return;
+    const res = SafeWay.resolveQrCode(qrInputText.trim());
+    if (res) {
+      setActiveQuickCheckpoint(res);
+      if (res.nodeId) {
+        setUserLocationNodeId(res.nodeId);
+      }
+      if (res.mapId) {
+        setSelectedMapId(res.mapId);
+        setGuidanceMapOverride(res.mapId);
+      }
+      if (res.floor !== undefined) {
+        setCurrentFloor(res.floor === 0 ? 1 : res.floor);
+      }
+      if (res.room) {
+        setInternalDestination(res.room);
+      }
+      setFollowPositionMap(true);
+      setActiveGuidanceStep(0);
       setIsQrModalOpen(false);
       setQrInputText("");
     }
   };
+
+  // URL parameter QR support for desktop (e.g. ?qr=SW-RAM-G-R1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const qrParam = params.get('qr');
+    if (qrParam && SafeWay.resolveQrCode) {
+      const res = SafeWay.resolveQrCode(qrParam);
+      if (res) {
+        setActiveQuickCheckpoint(res);
+        if (res.nodeId) setUserLocationNodeId(res.nodeId);
+        if (res.mapId) {
+          setSelectedMapId(res.mapId);
+          setGuidanceMapOverride(res.mapId);
+        }
+        if (res.floor !== undefined) setCurrentFloor(res.floor === 0 ? 1 : res.floor);
+        if (res.room) setInternalDestination(res.room);
+        setFollowPositionMap(true);
+        setActiveGuidanceStep(0);
+      }
+    }
+  }, []);
   const currentNodes = bData.nodes.filter(n => n.floor === currentFloor || n.type === "assembly");
   const currentEdges = bData.edges.filter(e => {
     const u = bData.nodes.find(n => n.id === e.from);

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : North Stairwell 1
+Canonical Code  : SW-KAL-B-STAIR1
+Positioning URI : kalpana-basement:Stair 1
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Stairwell
+Description     : North stairwell to ground level.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

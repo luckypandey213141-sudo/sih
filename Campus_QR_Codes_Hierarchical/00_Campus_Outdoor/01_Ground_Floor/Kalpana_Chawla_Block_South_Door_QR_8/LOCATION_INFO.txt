@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Kalpana Chawla Block South Door (QR 8)
+Canonical Code  : SW-CAMPUS-KALPANA
+Positioning URI : campus:restroom-1
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : North-Central Wing
+Category        : Building Entry
+Description     : Main ground foyer entrance to Kalpana Chawla Technology Block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

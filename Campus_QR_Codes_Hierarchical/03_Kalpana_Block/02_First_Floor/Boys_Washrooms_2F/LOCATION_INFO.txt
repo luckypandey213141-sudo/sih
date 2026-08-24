@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Boys Washrooms 2F
+Canonical Code  : SW-KAL-1-BWC
+Positioning URI : kalpana-first:Boys W/C
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Restroom
+Description     : Upper level male washroom facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

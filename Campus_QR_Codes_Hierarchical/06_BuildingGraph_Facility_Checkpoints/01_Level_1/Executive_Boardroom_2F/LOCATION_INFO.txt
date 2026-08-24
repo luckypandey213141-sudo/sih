@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Executive Boardroom (2F)
+Canonical Code  : SW-BOARDROOM
+Positioning URI : campus:boardroom
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone E
+Category        : Executive
+Description     : Upper Level executive boardroom.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

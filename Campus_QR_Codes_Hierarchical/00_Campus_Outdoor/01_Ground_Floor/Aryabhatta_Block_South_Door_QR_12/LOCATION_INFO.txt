@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Aryabhatta Block South Door (QR 12)
+Canonical Code  : SW-CAMPUS-ARYA
+Positioning URI : campus:cafeteria
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : East Quad
+Category        : Building Entry
+Description     : Main entrance foyer to Aryabhatta Block and Central Dining Hall.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

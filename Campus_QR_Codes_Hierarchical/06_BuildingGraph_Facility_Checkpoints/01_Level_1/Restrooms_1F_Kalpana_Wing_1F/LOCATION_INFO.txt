@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Restrooms 1F / Kalpana Wing (1F)
+Canonical Code  : SW-RESTROOM1
+Positioning URI : campus:restroom-1
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone C
+Category        : Restroom
+Description     : Level 1 central restroom complex.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

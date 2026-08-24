@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : North Emergency Fire Exit
+Canonical Code  : SW-KAL-G-EMERG
+Positioning URI : kalpana-ground:Emergency Exit
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Emergency Exit
+Description     : Direct outward opening fire egress door to Safe Playground Area.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

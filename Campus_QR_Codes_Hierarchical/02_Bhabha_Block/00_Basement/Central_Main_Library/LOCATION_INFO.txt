@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Main Library
+Canonical Code  : SW-BHAB-B-MAINLIB
+Positioning URI : bhabha-basement:Main Library
+Block / Area    : Bhabha Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Library
+Description     : Main book lending collection and reading rooms.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

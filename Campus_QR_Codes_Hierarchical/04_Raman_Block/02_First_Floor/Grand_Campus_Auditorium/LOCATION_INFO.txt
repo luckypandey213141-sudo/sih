@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Grand Campus Auditorium
+Canonical Code  : SW-RAMAN-1-AUD
+Positioning URI : raman-first:Auditorium Hall
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Auditorium
+Description     : 500-seat multi-purpose auditorium, stage, and AV control room.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

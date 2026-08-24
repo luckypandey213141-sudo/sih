@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : East Fire Exit 2
+Canonical Code  : SW-RAMAN-G-EXIT2
+Positioning URI : raman-ground:Entry / Exit 2
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Emergency Exit
+Description     : East perimeter fire escape exit door to Gate 2 path.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

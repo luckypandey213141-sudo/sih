@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Kalpana Block Main Entry
+Canonical Code  : SW-KAL-G-ENTRY
+Positioning URI : kalpana-ground:Entry
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Main Entrance
+Description     : Ground Floor main entrance foyer from campus arterial road.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

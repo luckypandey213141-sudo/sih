@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Electronics & Comm (ECE) Lab
+Canonical Code  : SW-BHAB-1-ECELAB
+Positioning URI : bhabha-first:ECE Lab
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Lab
+Description     : VLSI design, circuits, and communication systems lab.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

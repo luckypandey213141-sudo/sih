@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Area of Refuge 2F (West)
+Canonical Code  : SW-REFUGE2B
+Positioning URI : campus:refuge-2b
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone D
+Category        : Fire Refuge
+Description     : 2-hour fire rated rescue assistance refuge with intercom.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

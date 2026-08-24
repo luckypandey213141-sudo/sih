@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : South Stairwell 2
+Canonical Code  : SW-KAL-B-STAIR2
+Positioning URI : kalpana-basement:Stair 2
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Stairwell
+Description     : South fire stairwell to exterior.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

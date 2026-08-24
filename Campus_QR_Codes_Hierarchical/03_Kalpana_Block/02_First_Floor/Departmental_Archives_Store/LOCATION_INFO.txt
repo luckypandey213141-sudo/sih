@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Departmental Archives & Store
+Canonical Code  : SW-KAL-1-STORE
+Positioning URI : kalpana-first:Store
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Facility
+Description     : Academic records, exam archives, and stationary store.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

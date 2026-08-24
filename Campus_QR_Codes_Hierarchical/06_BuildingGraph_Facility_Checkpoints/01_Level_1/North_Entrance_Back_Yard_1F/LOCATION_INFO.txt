@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : North Entrance / Back Yard (1F)
+Canonical Code  : SW-ENT-NORTH
+Positioning URI : campus:ent-north
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone A
+Category        : Entrance
+Description     : North garden gateway to Back Yard safe area.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

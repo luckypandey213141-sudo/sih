@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Stairwell Landing
+Canonical Code  : SW-BHAB-1-STAIR
+Positioning URI : bhabha-first:Stairs
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Stairwell
+Description     : Primary descent stairwell to ground exit.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

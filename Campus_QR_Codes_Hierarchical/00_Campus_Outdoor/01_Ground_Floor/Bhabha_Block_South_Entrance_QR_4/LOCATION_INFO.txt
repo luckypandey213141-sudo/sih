@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Bhabha Block South Entrance (QR 4)
+Canonical Code  : SW-CAMPUS-BHABHA
+Positioning URI : campus:lobby
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : West Quad
+Category        : Building Entry
+Description     : Primary ground entrance to Bhabha Engineering & Administration Block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

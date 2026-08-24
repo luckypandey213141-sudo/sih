@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Director Secretariat
+Canonical Code  : SW-BHAB-G-DIRECTOR
+Positioning URI : bhabha-ground:Director Office
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Executive
+Description     : Director executive chamber and conference boardroom.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

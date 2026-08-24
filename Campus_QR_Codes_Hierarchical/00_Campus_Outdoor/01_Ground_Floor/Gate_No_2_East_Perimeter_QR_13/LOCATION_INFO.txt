@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Gate No. 2 (East Perimeter) (QR 13)
+Canonical Code  : SW-CAMPUS-GATE2
+Positioning URI : campus:gate-2-destination
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : East Perimeter
+Category        : Emergency Exit / Gate
+Description     : Secondary campus vehicle and emergency evacuation gate on East boundary.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

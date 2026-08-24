@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Admin Office & Ramanujan Wing (1F)
+Canonical Code  : SW-ADMIN
+Positioning URI : campus:admin
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone A
+Category        : Admin
+Description     : Central administration building entrance.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

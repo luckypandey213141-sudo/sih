@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Playground Entry 1 (QR 7)
+Canonical Code  : SW-CAMPUS-SAFE1
+Positioning URI : campus:assembly-a
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : North Playfield
+Category        : Emergency Assembly
+Description     : Designated Open-Air Safe Assembly Area A via West Sports Field gate.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

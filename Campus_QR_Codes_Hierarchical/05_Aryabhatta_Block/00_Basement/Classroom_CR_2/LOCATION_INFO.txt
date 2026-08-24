@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Classroom CR 2
+Canonical Code  : SW-ARYA-B-CR2
+Positioning URI : aryabhatta-basement:Classroom 2
+Block / Area    : Aryabhatta Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Classroom
+Description     : Basement tutorial classroom 2.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

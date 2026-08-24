@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Admission & Counselling Cell
+Canonical Code  : SW-BHAB-G-ADMISSION
+Positioning URI : bhabha-ground:Admission Cell
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Admin
+Description     : Student admission desk, fees office, and counseling rooms.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

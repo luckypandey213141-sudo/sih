@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Library Emergency Fire Exit
+Canonical Code  : SW-BHAB-B-EXIT
+Positioning URI : bhabha-basement:Exit
+Block / Area    : Bhabha Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Emergency Exit
+Description     : Direct emergency egress door from stack rooms.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

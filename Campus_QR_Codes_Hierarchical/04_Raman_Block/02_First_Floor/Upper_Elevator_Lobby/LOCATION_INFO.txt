@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Upper Elevator Lobby
+Canonical Code  : SW-RAMAN-1-LIFT
+Positioning URI : raman-first:Lift
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Vertical Transit
+Description     : First Floor elevator lobby with accessible ramp.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

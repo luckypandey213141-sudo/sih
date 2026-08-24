@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Executive Seminar Hall
+Canonical Code  : SW-RAMAN-1-LH
+Positioning URI : raman-first:Lecture Hall
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Lecture Hall
+Description     : Executive symposium hall with video conferencing.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

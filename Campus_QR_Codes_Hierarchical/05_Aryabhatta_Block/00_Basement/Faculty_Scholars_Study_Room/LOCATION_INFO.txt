@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Faculty & Scholars Study Room
+Canonical Code  : SW-ARYA-B-ROOM
+Positioning URI : aryabhatta-basement:Room
+Block / Area    : Aryabhatta Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Faculty
+Description     : Research scholar cubicles and quiet study space.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Auditorium Main Portal
+Canonical Code  : SW-RAMAN-1-EXIT1
+Positioning URI : raman-first:Entry / Exit 1
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Main Entrance
+Description     : Double doors into the auditorium seating hall.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Dining Cafeteria (1F)
+Canonical Code  : SW-CAFE
+Positioning URI : campus:cafeteria
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone C
+Category        : Dining
+Description     : Central dining hall at Aryabhatta block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

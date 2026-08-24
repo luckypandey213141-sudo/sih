@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Automobile Engineering Lab
+Canonical Code  : SW-KAL-B-AUTO
+Positioning URI : kalpana-basement:Automobile Lab
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Lab
+Description     : IC engines, chassis, and automotive mechanics bay.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

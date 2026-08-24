@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Classroom R5
+Canonical Code  : SW-ARYA-G-R5
+Positioning URI : aryabhatta-ground:Room 5
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Classroom
+Description     : Ground Floor classroom R5.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

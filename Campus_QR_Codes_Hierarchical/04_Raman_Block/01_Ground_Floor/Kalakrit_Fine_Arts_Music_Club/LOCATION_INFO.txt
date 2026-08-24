@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Kalakrit Fine Arts & Music Club
+Canonical Code  : SW-RAMAN-G-KALAKRIT
+Positioning URI : raman-ground:Kalakrit Club
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Club / Activity
+Description     : Cultural society studio, instruments room, and art space.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

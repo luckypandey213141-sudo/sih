@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Main Entrance Gate (1F)
+Canonical Code  : SW-ENT-MAIN
+Positioning URI : campus:ent-main
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone A
+Category        : Entrance
+Description     : College Main Gate entrance portal.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

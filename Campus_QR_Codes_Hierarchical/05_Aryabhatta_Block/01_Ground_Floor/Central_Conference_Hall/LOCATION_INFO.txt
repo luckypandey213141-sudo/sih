@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Conference Hall
+Canonical Code  : SW-ARYA-G-LARGEROOM
+Positioning URI : aryabhatta-ground:Large Room
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Conference
+Description     : Executive multi-purpose conference and presentation hall.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

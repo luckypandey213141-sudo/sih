@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Lecture Hall LH 2
+Canonical Code  : SW-BHAB-G-LH2
+Positioning URI : bhabha-ground:Lecture Hall 2
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Lecture Hall
+Description     : Ground Floor multimedia lecture theatre 2.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

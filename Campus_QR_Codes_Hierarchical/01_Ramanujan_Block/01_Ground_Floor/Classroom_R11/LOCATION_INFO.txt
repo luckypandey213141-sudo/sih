@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Classroom R11
+Canonical Code  : SW-RAM-G-R11
+Positioning URI : ramanujan-ground:R11
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone E
+Category        : Classroom
+Description     : Advanced Study Hall R11.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

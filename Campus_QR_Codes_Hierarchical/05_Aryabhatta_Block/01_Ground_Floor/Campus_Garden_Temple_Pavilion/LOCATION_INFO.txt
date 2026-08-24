@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Campus Garden & Temple Pavilion
+Canonical Code  : SW-ARYA-G-TEMPLE
+Positioning URI : aryabhatta-ground:Temple
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Cultural
+Description     : Tranquil outdoor courtyard, pond, and prayer pavilion.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Aryabhatta Block West Stairs (QR 11)
+Canonical Code  : SW-CAMPUS-ARYA-W
+Positioning URI : campus:campus-ary-left
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : East Quad
+Category        : Building Entry / Stair
+Description     : West perimeter stairwell access into Aryabhatta Academic Block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Lecture Theatre LT 1
+Canonical Code  : SW-BHAB-1-LT1
+Positioning URI : bhabha-first:LT 1
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Lecture Hall
+Description     : Upper Level tiered lecture classroom 1.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

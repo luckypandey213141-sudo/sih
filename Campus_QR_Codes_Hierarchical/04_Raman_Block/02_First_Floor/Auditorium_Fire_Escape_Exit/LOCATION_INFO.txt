@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Auditorium Fire Escape Exit
+Canonical Code  : SW-RAMAN-1-EXIT2
+Positioning URI : raman-first:Entry / Exit 2
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Emergency Exit
+Description     : Direct emergency fire escape route to exterior stairs.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

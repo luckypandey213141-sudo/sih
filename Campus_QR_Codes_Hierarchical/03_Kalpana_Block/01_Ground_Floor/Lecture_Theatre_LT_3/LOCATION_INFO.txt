@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Lecture Theatre LT 3
+Canonical Code  : SW-KAL-G-LT3
+Positioning URI : kalpana-ground:LT 3
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Lecture Hall
+Description     : Smart lecture theatre 3 with multimedia projector.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

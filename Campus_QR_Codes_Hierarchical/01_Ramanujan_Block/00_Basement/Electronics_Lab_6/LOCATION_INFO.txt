@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Electronics Lab 6
+Canonical Code  : SW-RAM-B-LAB6
+Positioning URI : ramanujan-basement:Lab 6
+Block / Area    : Ramanujan Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Lab
+Description     : Basement Embedded Systems Lab 6.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Campus Medical Center & First Aid
+Canonical Code  : SW-RAMAN-G-MED
+Positioning URI : raman-ground:Medical Room
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Medical / Health
+Description     : Emergency medical room, nurse station, and first-aid beds.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

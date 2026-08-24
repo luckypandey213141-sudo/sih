@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Stairwell 1F
+Canonical Code  : SW-KAL-G-STAIR
+Positioning URI : kalpana-ground:Stairs
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Stairwell
+Description     : Central stairwell connecting all 3 levels.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

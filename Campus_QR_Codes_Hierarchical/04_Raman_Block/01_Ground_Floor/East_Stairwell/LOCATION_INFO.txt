@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : East Stairwell
+Canonical Code  : SW-RAMAN-G-STAIR
+Positioning URI : raman-ground:Stairs
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Stairwell
+Description     : Staircase leading to First Floor Auditorium.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

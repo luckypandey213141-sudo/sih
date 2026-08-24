@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Ground Floor Elevator Lobby
+Canonical Code  : SW-KAL-G-LIFT
+Positioning URI : kalpana-ground:Lift
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Vertical Transit
+Description     : Central passenger elevator station.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

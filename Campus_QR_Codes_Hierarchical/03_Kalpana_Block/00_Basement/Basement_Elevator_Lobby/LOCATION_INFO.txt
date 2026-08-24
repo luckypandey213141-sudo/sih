@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Basement Elevator Lobby
+Canonical Code  : SW-KAL-B-LIFT
+Positioning URI : kalpana-basement:Lift
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Vertical Transit
+Description     : Basement elevator station.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

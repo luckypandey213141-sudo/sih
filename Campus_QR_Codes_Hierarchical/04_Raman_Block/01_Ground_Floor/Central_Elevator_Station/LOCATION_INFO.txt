@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Elevator Station
+Canonical Code  : SW-RAMAN-G-LIFT
+Positioning URI : raman-ground:Lift
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Vertical Transit
+Description     : Ground floor passenger elevator station.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

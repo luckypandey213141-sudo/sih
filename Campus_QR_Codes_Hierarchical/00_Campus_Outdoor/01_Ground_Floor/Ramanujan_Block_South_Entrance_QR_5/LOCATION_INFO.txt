@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Ramanujan Block South Entrance (QR 5)
+Canonical Code  : SW-CAMPUS-RAMAN
+Positioning URI : campus:admin
+Block / Area    : Campus Outdoor Grounds
+Floor Level     : Outdoor Ground Level
+Zone            : North-West Wing
+Category        : Building Entry
+Description     : Main entrance foyer to Ramanujan Academic & Computing Block.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

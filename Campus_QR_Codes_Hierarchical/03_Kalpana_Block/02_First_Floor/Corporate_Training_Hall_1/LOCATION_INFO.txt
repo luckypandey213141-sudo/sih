@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Corporate Training Hall 1
+Canonical Code  : SW-KAL-1-TH1
+Positioning URI : kalpana-first:Training Hall 1
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Seminar
+Description     : Large conference training room for workshops.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

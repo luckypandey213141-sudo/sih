@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Stairwell B (2F)
+Canonical Code  : SW-STAIRB2
+Positioning URI : campus:stair-b-2
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone D
+Category        : Stairwell
+Description     : West Wing fire descent stairwell.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Stairwell B / Bhabha Path (1F)
+Canonical Code  : SW-STAIRB1
+Positioning URI : campus:stair-b-1
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone A
+Category        : Stairwell
+Description     : West wing stairwell leading to 2F West Wing.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

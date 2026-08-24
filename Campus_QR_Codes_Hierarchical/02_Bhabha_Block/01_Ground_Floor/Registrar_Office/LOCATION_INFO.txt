@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Registrar Office
+Canonical Code  : SW-BHAB-G-REGISTRAR
+Positioning URI : bhabha-ground:Registrar
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Admin
+Description     : Academic records, examinations, and registrar office.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

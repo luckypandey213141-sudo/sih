@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Boys Restroom 1F
+Canonical Code  : SW-RAM-1-BWC
+Positioning URI : ramanujan-first:Boys W/C
+Block / Area    : Ramanujan Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Restroom
+Description     : First floor boys washroom facilities.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

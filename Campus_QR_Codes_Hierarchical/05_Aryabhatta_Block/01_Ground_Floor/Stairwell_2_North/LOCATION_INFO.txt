@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Stairwell 2 (North)
+Canonical Code  : SW-ARYA-G-STAIR2
+Positioning URI : aryabhatta-ground:Stairs 2
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Stairwell
+Description     : North wing stairwell leading to upper floors.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

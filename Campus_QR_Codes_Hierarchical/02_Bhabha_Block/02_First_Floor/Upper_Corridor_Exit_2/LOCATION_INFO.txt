@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Upper Corridor Exit 2
+Canonical Code  : SW-BHAB-1-EXIT2
+Positioning URI : bhabha-first:Entry / Exit 2
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Exit
+Description     : East bridge connection to adjacent Academic Wing.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : North Stairwell 1
+Canonical Code  : SW-RAM-B-STAIR1
+Positioning URI : ramanujan-basement:Stairs 1
+Block / Area    : Ramanujan Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Stairwell
+Description     : North stairwell leading to Ground and First floors.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

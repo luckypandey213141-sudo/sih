@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Networks Lab 5
+Canonical Code  : SW-RAM-B-LAB5
+Positioning URI : ramanujan-basement:Lab 5
+Block / Area    : Ramanujan Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Lab
+Description     : Basement Network Systems Lab 5.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Classroom CR 4
+Canonical Code  : SW-KAL-1-CR4
+Positioning URI : kalpana-first:Class Room 4
+Block / Area    : Kalpana Chawla Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Classroom
+Description     : First Floor tutorial classroom 4.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

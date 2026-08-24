@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Drinking Water Hub 2F
+Canonical Code  : SW-RAMAN-1-WATER
+Positioning URI : raman-first:Drinking Water
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Facility
+Description     : Upper Level drinking water kiosk.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Bhabha Main Foyer Entry
+Canonical Code  : SW-BHAB-G-ENTRY
+Positioning URI : bhabha-ground:Entry
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Main Entrance
+Description     : Primary Ground Floor ceremonial entrance and lobby.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

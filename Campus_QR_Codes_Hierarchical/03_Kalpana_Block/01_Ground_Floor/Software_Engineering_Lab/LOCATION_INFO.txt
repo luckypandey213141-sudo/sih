@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Software Engineering Lab
+Canonical Code  : SW-KAL-G-CS1
+Positioning URI : kalpana-ground:Computer Lab 1
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Lab
+Description     : Software systems, compilers, and coding lab.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

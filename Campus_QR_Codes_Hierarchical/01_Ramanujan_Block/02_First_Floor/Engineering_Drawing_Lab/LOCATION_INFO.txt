@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Engineering Drawing Lab
+Canonical Code  : SW-RAM-1-DRAW
+Positioning URI : ramanujan-first:Drawing Lab
+Block / Area    : Ramanujan Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Lab
+Description     : First Floor Engineering Drawing and CAD studio.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

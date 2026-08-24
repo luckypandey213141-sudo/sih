@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Head of Dept Mechanical Eng
+Canonical Code  : SW-BHAB-1-HODME
+Positioning URI : bhabha-first:HOD ME
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Faculty
+Description     : Mechanical Engineering Department HOD office.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

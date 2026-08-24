@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Badminton Court Atrium
+Canonical Code  : SW-RAM-G-COURT
+Positioning URI : ramanujan-ground:Badminton Court
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone C
+Category        : Sports / Atrium
+Description     : Open indoor sports court and central recreation atrium.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

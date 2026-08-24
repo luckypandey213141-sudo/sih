@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Aryabhatta Main Entry / Exit
+Canonical Code  : SW-ARYA-G-EXIT
+Positioning URI : aryabhatta-ground:Entry / Exit
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Main Entrance
+Description     : Primary Ground Floor lobby entrance from East Campus Loop.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

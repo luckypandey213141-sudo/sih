@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Reception & Helpdesk
+Canonical Code  : SW-BHAB-G-RECEP
+Positioning URI : bhabha-ground:Reception
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Admin
+Description     : Visitor reception, information helpdesk, and security.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

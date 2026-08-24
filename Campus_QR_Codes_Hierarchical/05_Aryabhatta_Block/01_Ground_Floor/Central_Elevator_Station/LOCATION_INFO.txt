@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Central Elevator Station
+Canonical Code  : SW-ARYA-G-LIFT
+Positioning URI : aryabhatta-ground:Lift
+Block / Area    : Aryabhatta Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Vertical Transit
+Description     : Ground Floor passenger elevator lobby.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

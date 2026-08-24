@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Quiet Study Lounge (2F)
+Canonical Code  : SW-STUDY
+Positioning URI : campus:study-lounge
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone E
+Category        : Study
+Description     : East Wing quiet study and reading lounge.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

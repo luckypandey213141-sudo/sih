@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Lab 102 Robotics & Generator (1F)
+Canonical Code  : SW-LAB102
+Positioning URI : campus:lab-102
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone B
+Category        : Lab
+Description     : East Wing robotics lab and backup power facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

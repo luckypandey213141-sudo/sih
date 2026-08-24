@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : East Washrooms (W1)
+Canonical Code  : SW-RAM-G-W1
+Positioning URI : ramanujan-ground:W1
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone C
+Category        : Restroom
+Description     : East corridor washrooms and sanitation facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

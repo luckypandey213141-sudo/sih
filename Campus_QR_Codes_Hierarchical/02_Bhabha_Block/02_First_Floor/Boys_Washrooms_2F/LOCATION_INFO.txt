@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Boys Washrooms 2F
+Canonical Code  : SW-BHAB-1-BWC
+Positioning URI : bhabha-first:Boys W/C
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone D
+Category        : Restroom
+Description     : First floor male washroom facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

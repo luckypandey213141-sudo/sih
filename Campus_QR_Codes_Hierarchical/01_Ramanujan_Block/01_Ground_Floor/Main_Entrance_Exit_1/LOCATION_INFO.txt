@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Main Entrance / Exit 1
+Canonical Code  : SW-RAM-G-ENT1
+Positioning URI : ramanujan-ground:Entry / Exit 1
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Main Entrance
+Description     : Primary Ground Floor entrance foyer and reception.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Raman Main Entrance / Exit 1
+Canonical Code  : SW-RAMAN-G-EXIT1
+Positioning URI : raman-ground:Entry / Exit 1
+Block / Area    : Raman Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Main Entrance
+Description     : Ground Floor main foyer entry from campus road.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

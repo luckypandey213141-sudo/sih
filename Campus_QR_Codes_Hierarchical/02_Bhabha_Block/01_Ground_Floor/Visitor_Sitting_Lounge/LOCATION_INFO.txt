@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Visitor Sitting Lounge
+Canonical Code  : SW-BHAB-G-SITTING
+Positioning URI : bhabha-ground:Sitting Hall
+Block / Area    : Bhabha Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Lounge
+Description     : Spacious guest reception lounge and waiting area.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

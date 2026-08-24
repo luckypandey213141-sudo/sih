@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Classroom R9
+Canonical Code  : SW-RAM-G-R9
+Positioning URI : ramanujan-ground:R9
+Block / Area    : Ramanujan Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Classroom
+Description     : Faculty Room R9 & Tutorial Class.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

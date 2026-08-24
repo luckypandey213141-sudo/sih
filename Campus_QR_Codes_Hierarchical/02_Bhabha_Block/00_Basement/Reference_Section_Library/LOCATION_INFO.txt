@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Reference Section Library
+Canonical Code  : SW-BHAB-B-LIB
+Positioning URI : bhabha-basement:Library
+Block / Area    : Bhabha Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Library
+Description     : Core engineering journals, archives, and reference collections.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

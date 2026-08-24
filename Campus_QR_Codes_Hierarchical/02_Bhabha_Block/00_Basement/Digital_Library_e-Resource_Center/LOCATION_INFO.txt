@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Digital Library e-Resource Center
+Canonical Code  : SW-BHAB-B-DIGILIB
+Positioning URI : bhabha-basement:Digital Library
+Block / Area    : Bhabha Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Library
+Description     : Digital catalog, research stations, and internet access hub.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

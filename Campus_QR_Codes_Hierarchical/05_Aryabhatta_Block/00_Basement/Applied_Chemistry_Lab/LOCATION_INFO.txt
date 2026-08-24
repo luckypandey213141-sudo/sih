@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Applied Chemistry Lab
+Canonical Code  : SW-ARYA-B-LAB2
+Positioning URI : aryabhatta-basement:Lab 2
+Block / Area    : Aryabhatta Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Lab
+Description     : Inorganic analysis and chemical synthesis lab.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

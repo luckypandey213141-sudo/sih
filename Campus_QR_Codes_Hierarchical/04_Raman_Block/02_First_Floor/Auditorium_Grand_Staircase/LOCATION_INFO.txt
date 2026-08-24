@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Auditorium Grand Staircase
+Canonical Code  : SW-RAMAN-1-STAIR
+Positioning URI : raman-first:Stairs
+Block / Area    : Raman Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Stairwell
+Description     : Wide egress stairwell leading to ground exit.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

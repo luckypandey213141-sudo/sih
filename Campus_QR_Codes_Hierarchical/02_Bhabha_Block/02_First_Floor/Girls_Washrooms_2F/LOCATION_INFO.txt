@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Girls Washrooms 2F
+Canonical Code  : SW-BHAB-1-GWC
+Positioning URI : bhabha-first:Girls W/C
+Block / Area    : Bhabha Block
+Floor Level     : First Floor
+Zone            : Zone E
+Category        : Restroom
+Description     : First floor female washroom facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

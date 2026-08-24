@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Campus Central Junction & Lift (1F)
+Canonical Code  : SW-LIFT1
+Positioning URI : campus:lift-1
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone C
+Category        : Vertical Transit
+Description     : Central campus intersection elevator hub.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

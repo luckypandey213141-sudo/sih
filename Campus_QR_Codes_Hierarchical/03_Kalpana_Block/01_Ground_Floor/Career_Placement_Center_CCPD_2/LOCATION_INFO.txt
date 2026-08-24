@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Career & Placement Center (CCPD 2)
+Canonical Code  : SW-KAL-G-CCPD2
+Positioning URI : kalpana-ground:CCPD 2
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone B
+Category        : Placement
+Description     : Group discussion room and career counseling desk.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Head of Dept Computer Science
+Canonical Code  : SW-KAL-G-HODCSE
+Positioning URI : kalpana-ground:HOD CSE
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Ground Floor
+Zone            : Zone A
+Category        : Faculty
+Description     : CSE Department Head office and conference desk.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

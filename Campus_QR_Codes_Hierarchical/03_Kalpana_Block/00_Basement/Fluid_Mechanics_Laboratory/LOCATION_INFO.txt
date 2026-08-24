@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Fluid Mechanics Laboratory
+Canonical Code  : SW-KAL-B-FLUID
+Positioning URI : kalpana-basement:Fluid Mechanics Lab
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone A
+Category        : Lab
+Description     : Hydraulics, pumps, and fluid mechanics test lab.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

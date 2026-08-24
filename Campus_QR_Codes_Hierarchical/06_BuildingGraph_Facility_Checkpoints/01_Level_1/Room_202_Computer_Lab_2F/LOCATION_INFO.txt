@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Room 202 Computer Lab (2F)
+Canonical Code  : SW-ROOM202
+Positioning URI : campus:room-202
+Block / Area    : Virtual Facility Nodes
+Floor Level     : Level 1 & Level 2
+Zone            : Zone D
+Category        : Lab
+Description     : West Wing 2F computer lab facility.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.

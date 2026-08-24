@@ -1,0 +1,12 @@
+SafeWay V3 Dedicated Indoor Waypoint
+====================================
+Checkpoint Name : Advanced Computing Lab 2
+Canonical Code  : SW-KAL-B-CS2
+Positioning URI : kalpana-basement:Computer Lab 2
+Block / Area    : Kalpana Chawla Block
+Floor Level     : Basement
+Zone            : Zone B
+Category        : Lab
+Description     : Cloud computing and database systems lab.
+
+Scanning this QR code immediately places the user's live position beacon on this exact room.
