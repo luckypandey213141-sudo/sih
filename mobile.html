@@ -707,6 +707,232 @@ function buildIndoorExitRoutePath(planId, roomName) {
     pixelLength: calculatePolylineLength(points)
   };
 }
+
+// Generate Unified Sequential Turn-by-Turn Guidance Steps (PC & Mobile Parity)
+function generateUnifiedSequentialSteps({
+  activeOriginLocation,
+  activeDestLocation,
+  activeCampusRoute,
+  isIndoorToOutdoorNav,
+  isOutdoorToIndoorNav,
+  isIndoorCrossBlockNav,
+  isIndoorSameBlockNav,
+  isEmergency
+}) {
+  const steps = [];
+  if (isIndoorToOutdoorNav) {
+    // Stage 1: Depart Room
+    steps.push({
+      title: `Start at ${activeOriginLocation.name}`,
+      description: `Exit room into the corridor pathway.`,
+      icon: "📍",
+      type: "start",
+      mapId: activeOriginLocation.mapId
+    });
+
+    // Vertical Floor Transition if on 1F or Basement
+    if (activeOriginLocation.mapId.includes("first")) {
+      steps.push({
+        title: "Take Stairs Down to Ground Floor",
+        description: `Descend via stairwell to Ground Floor exit lobby (~8m).`,
+        icon: "🪜",
+        type: "stairs",
+        mapId: activeOriginLocation.mapId,
+        targetMapId: activeOriginLocation.mapId.replace("first", "ground")
+      });
+    } else if (activeOriginLocation.mapId.includes("basement")) {
+      steps.push({
+        title: "Take Stairs / Lift Up to Ground Floor",
+        description: `Ascend to Ground Floor main exit lobby (~8m).`,
+        icon: "🪜",
+        type: "stairs",
+        mapId: activeOriginLocation.mapId,
+        targetMapId: activeOriginLocation.mapId.replace("basement", "ground")
+      });
+    }
+
+    // Exit Building Door
+    steps.push({
+      title: `Exit ${activeOriginLocation.name.split('—')[0]} via Main Exit Door`,
+      description: `Push through doorway onto campus pathway (~10m).`,
+      icon: "🚪",
+      type: "exit",
+      mapId: "campus",
+      targetMapId: "campus"
+    });
+
+    // Stage 2: Campus Circulation
+    if (activeCampusRoute?.steps && activeCampusRoute.steps.length > 0) {
+      activeCampusRoute.steps.slice(1).forEach((s, idx) => {
+        steps.push({
+          title: s.title,
+          description: s.description,
+          icon: s.isFloorChange ? "🏢" : idx === activeCampusRoute.steps.length - 2 ? "🎯" : "🚶",
+          type: "campus",
+          mapId: "campus"
+        });
+      });
+    } else {
+      steps.push({
+        title: `Walk along Campus Pathway`,
+        description: `Follow illuminated pathway towards ${activeDestLocation.name}.`,
+        icon: "🛣️",
+        type: "campus",
+        mapId: "campus"
+      });
+      steps.push({
+        title: `Arrive at ${activeDestLocation.name}`,
+        description: `Destination reached on campus ground.`,
+        icon: "🎯",
+        type: "destination",
+        mapId: "campus"
+      });
+    }
+  } else if (isOutdoorToIndoorNav) {
+    // Stage 1: Campus Circulation
+    if (activeCampusRoute?.steps && activeCampusRoute.steps.length > 0) {
+      activeCampusRoute.steps.forEach(s => {
+        steps.push({
+          title: s.title,
+          description: s.description,
+          icon: "🚶",
+          type: "campus",
+          mapId: "campus"
+        });
+      });
+    } else {
+      steps.push({
+        title: `Start at ${activeOriginLocation.name}`,
+        description: `Follow campus walkway towards ${activeDestLocation.name.split('—')[0]}.`,
+        icon: "📍",
+        type: "start",
+        mapId: "campus"
+      });
+    }
+
+    // Stage 2: Enter Building
+    steps.push({
+      title: `Enter ${activeDestLocation.name.split('—')[0]} Entrance`,
+      description: `Step inside through main entrance lobby.`,
+      icon: "🚪",
+      type: "door",
+      mapId: activeDestLocation.mapId,
+      targetMapId: activeDestLocation.mapId
+    });
+
+    // Floor Transition if needed
+    if (activeDestLocation.mapId.includes("first")) {
+      steps.push({
+        title: "Take Stairs Up to 1st Floor",
+        description: `Ascend stairwell to First Floor corridor (~8m).`,
+        icon: "🪜",
+        type: "stairs",
+        mapId: activeDestLocation.mapId,
+        targetMapId: activeDestLocation.mapId
+      });
+    } else if (activeDestLocation.mapId.includes("basement")) {
+      steps.push({
+        title: "Take Stairs Down to Basement",
+        description: `Descend stairwell to Basement corridor (~8m).`,
+        icon: "🪜",
+        type: "stairs",
+        mapId: activeDestLocation.mapId,
+        targetMapId: activeDestLocation.mapId
+      });
+    }
+
+    // Final Indoor Arrival
+    steps.push({
+      title: `Arrive at ${activeDestLocation.room || activeDestLocation.name}`,
+      description: `Follow blue corridor pathway directly into room doorway.`,
+      icon: "🎯",
+      type: "destination",
+      mapId: activeDestLocation.mapId
+    });
+  } else if (isIndoorSameBlockNav) {
+    steps.push({
+      title: `Start at ${activeOriginLocation.name}`,
+      description: `Depart room into corridor.`,
+      icon: "📍",
+      type: "start",
+      mapId: activeOriginLocation.mapId
+    });
+    steps.push({
+      title: `Follow Corridor Pathway`,
+      description: `Walk along the blue dashed corridor path towards ${activeDestLocation.room}.`,
+      icon: "🚶",
+      type: "corridor",
+      mapId: activeOriginLocation.mapId
+    });
+    steps.push({
+      title: `Arrive at ${activeDestLocation.room}`,
+      description: `Destination room entrance is on your pathway.`,
+      icon: "🎯",
+      type: "destination",
+      mapId: activeDestLocation.mapId
+    });
+  } else if (isIndoorCrossBlockNav) {
+    steps.push({
+      title: `Start at ${activeOriginLocation.name}`,
+      description: `Exit room into corridor.`,
+      icon: "📍",
+      type: "start",
+      mapId: activeOriginLocation.mapId
+    });
+    steps.push({
+      title: `Exit ${activeOriginLocation.name.split('—')[0]}`,
+      description: `Walk through main doorway to campus ground.`,
+      icon: "🚪",
+      type: "exit",
+      mapId: "campus",
+      targetMapId: "campus"
+    });
+    steps.push({
+      title: `Walk across Campus to ${activeDestLocation.name.split('—')[0]}`,
+      description: `Follow lighted path between academic blocks.`,
+      icon: "🚶",
+      type: "campus",
+      mapId: "campus"
+    });
+    steps.push({
+      title: `Enter ${activeDestLocation.name.split('—')[0]} & Reach ${activeDestLocation.room}`,
+      description: `Enter entrance and follow blue indoor pathway.`,
+      icon: "🎯",
+      type: "destination",
+      mapId: activeDestLocation.mapId,
+      targetMapId: activeDestLocation.mapId
+    });
+  } else {
+    // Pure campus navigation
+    if (activeCampusRoute?.steps && activeCampusRoute.steps.length > 0) {
+      activeCampusRoute.steps.forEach(s => {
+        steps.push({
+          title: s.title,
+          description: s.description,
+          icon: s.type === "exit" ? "🚪" : s.type === "assembly" ? "🛡️" : "🚶",
+          type: s.type || "campus",
+          mapId: "campus"
+        });
+      });
+    } else {
+      steps.push({
+        title: `Start at ${activeOriginLocation.name}`,
+        description: `Follow circulation pathway.`,
+        icon: "📍",
+        type: "start",
+        mapId: "campus"
+      });
+      steps.push({
+        title: `Arrive at ${activeDestLocation.name}`,
+        description: `Destination reached.`,
+        icon: "🎯",
+        type: "destination",
+        mapId: "campus"
+      });
+    }
+  }
+  return steps;
+}
 let audioCtx = null;
 function playSiren() {
   try {
@@ -797,6 +1023,34 @@ function Icon({
     })),
     check: /*#__PURE__*/React.createElement("polyline", {
       points: "20 6 9 17 4 12"
+    }),
+    "list-ordered": /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("line", {
+      x1: "10",
+      y1: "6",
+      x2: "21",
+      y2: "6"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: "10",
+      y1: "12",
+      x2: "21",
+      y2: "12"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: "10",
+      y1: "18",
+      x2: "21",
+      y2: "18"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M4 6h1v4"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M4 10h2"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"
+    })),
+    "chevron-down": /*#__PURE__*/React.createElement("polyline", {
+      points: "6 9 12 15 18 9"
+    }),
+    "chevron-up": /*#__PURE__*/React.createElement("polyline", {
+      points: "18 15 12 9 6 15"
     })
   };
   return /*#__PURE__*/React.createElement("svg", {
@@ -832,8 +1086,9 @@ function MobileApp() {
   const [selectedMapId, setSelectedMapId] = useState("ramanujan-first");
   const [accessibilityMode, setAccessibilityMode] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showDirectionsDrawer, setShowDirectionsDrawer] = useState(true);
 
-  // Stage-Scoped Motion Tracking States (Resets cleanly per map stage!)
+  // Stage-Scoped Motion Tracking States
   const [stageStepCount, setStageStepCount] = useState(0);
   const [totalStepCount, setTotalStepCount] = useState(0);
   const [compassHeading, setCompassHeading] = useState(0);
@@ -890,7 +1145,7 @@ function MobileApp() {
     return BLOCK_CAMPUS_ENTRANCE_NODES[activeDestLocation.mapId] || null;
   }, [activeDestLocation]);
 
-  // Handler for Origin Selection (Initial map follows origin)
+  // Handler for Origin Selection
   const handleOriginChange = key => {
     setOriginLocationKey(key);
     for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
@@ -967,15 +1222,27 @@ function MobileApp() {
   // Stage distance metrics
   const stageTargetSteps = useMemo(() => {
     if (selectedMapId !== "campus") {
-      // Indoor path: typically ~20-25 steps to reach exit door or room
       return 22;
     }
-    // Campus path: calculated distance in steps
     const dist = activeCampusRoute?.totalDistance || 50;
     return Math.max(15, Math.round(dist / 1.5));
   }, [selectedMapId, activeCampusRoute]);
 
-  // Live Position Coordinate Resolution with Stage Progress (0.0 to 1.0)
+  // Generate Complete Turn-by-Turn Guidance Steps (PC Parity)
+  const sequentialGuidanceSteps = useMemo(() => {
+    return generateUnifiedSequentialSteps({
+      activeOriginLocation,
+      activeDestLocation,
+      activeCampusRoute,
+      isIndoorToOutdoorNav,
+      isOutdoorToIndoorNav,
+      isIndoorCrossBlockNav,
+      isIndoorSameBlockNav,
+      isEmergency
+    });
+  }, [activeOriginLocation, activeDestLocation, activeCampusRoute, isIndoorToOutdoorNav, isOutdoorToIndoorNav, isIndoorCrossBlockNav, isIndoorSameBlockNav, isEmergency]);
+
+  // Live Position Coordinate Resolution with Stage Progress
   const stageProgress = Math.min(1.0, stageStepCount / (stageTargetSteps || 20));
   const liveUserCoords = useMemo(() => {
     try {
@@ -990,8 +1257,6 @@ function MobileApp() {
         }
         return BLOCK_CAMPUS_ENTRANCE_COORDS[activeOriginLocation.mapId] || [355, 206];
       }
-
-      // Indoor floor plan position interpolation
       if (activeIndoorRoute?.points && stageStepCount > 0) {
         const pt = SafeWay?.interpolatePositionOnRoute?.(activeIndoorRoute.points, stageProgress * (activeIndoorRoute.pixelLength || 400));
         if (pt && Array.isArray(pt) && pt.length >= 2) return pt;
@@ -1008,11 +1273,10 @@ function MobileApp() {
     const nextStageSteps = stageStepCount + 1;
     setStageStepCount(nextStageSteps);
 
-    // Check Auto-Handoff Trigger:
     // Case 1: Reached Exit Door inside Block -> Automatically Switch to Campus Map!
     if (selectedMapId !== "campus" && (isIndoorToOutdoorNav || isIndoorCrossBlockNav) && nextStageSteps >= stageTargetSteps) {
       setSelectedMapId("campus");
-      setStageStepCount(0); // Reset stage steps so campus walk starts from Ramanujan door!
+      setStageStepCount(0);
       notify(`🚪 Reached ${activeMapPlan.group} Exit! Switched to Campus Map.`);
       speakText(`Exited ${activeMapPlan.group}. Showing Campus map to ${activeDestLocation.name}.`);
       return;
@@ -1021,7 +1285,7 @@ function MobileApp() {
     // Case 2: Reached Target Block Entrance on Campus -> Automatically Switch to Floor Plan!
     if (selectedMapId === "campus" && isOutdoorToIndoorNav && nextStageSteps >= stageTargetSteps) {
       setSelectedMapId(activeDestLocation.mapId);
-      setStageStepCount(0); // Reset stage steps so indoor walk starts from entrance doorway!
+      setStageStepCount(0);
       notify(`🚪 Reached ${activeDestLocation.name.split('—')[0]}! Switched to Floor Plan.`);
       speakText(`Arrived at block entrance. Showing indoor floor plan to ${activeDestLocation.room || activeDestLocation.name}.`);
       return;
@@ -1123,8 +1387,6 @@ function MobileApp() {
       }
     };
   }, [isQrModalOpen, scannerActive]);
-
-  // Physical Orientation & Motion Permissions
   const toggleSensors = async () => {
     if (isMotionTracking) {
       setIsMotionTracking(false);
@@ -1166,8 +1428,12 @@ function MobileApp() {
   const campusEdges = bData.edges.filter(e => e.floor === 1);
   const qrPresets = SafeWay.getQrPresets ? SafeWay.getQrPresets() : [];
   const targetBlockName = activeDestLocation?.name.split('—')[0] || "Block";
+
+  // Total estimated distance & ETA
+  const totalEstimatedMeters = (activeCampusRoute?.totalDistance || 35) + (isIndoorToOutdoorNav || isOutdoorToIndoorNav ? 25 : 0);
+  const totalEstimatedSeconds = Math.ceil(totalEstimatedMeters / 1.2);
   return /*#__PURE__*/React.createElement("div", {
-    className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl"
+    className: "min-h-screen flex flex-col justify-between bg-slate-950 max-w-md mx-auto relative shadow-2xl pb-4"
   }, /*#__PURE__*/React.createElement("header", {
     className: "p-3.5 bg-slate-900/95 border-b border-slate-800 flex items-center justify-between sticky top-0 z-30 backdrop-blur-xl"
   }, /*#__PURE__*/React.createElement("div", {
@@ -1215,7 +1481,7 @@ function MobileApp() {
     className: "flex-1 min-w-0"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-[10px] font-bold text-slate-400 block"
-  }, "1. CURRENT POSITION (STARTING MAP):"), /*#__PURE__*/React.createElement("select", {
+  }, "1. CURRENT POSITION:"), /*#__PURE__*/React.createElement("select", {
     value: originLocationKey,
     onChange: e => handleOriginChange(e.target.value),
     className: "w-full bg-transparent text-xs font-black text-white outline-none cursor-pointer truncate"
@@ -1263,53 +1529,13 @@ function MobileApp() {
     key: item.key,
     value: item.key,
     className: "bg-slate-950 text-white font-medium"
-  }, "\uD83C\uDFAF ", item.name)))))), isIndoorToOutdoorNav && selectedMapId !== "campus" ? /*#__PURE__*/React.createElement("div", {
-    className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1.5 shadow-lg"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-indigo-300 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step 1 of 2: Exit ", activeMapPlan.group), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-amber-400 font-bold"
-  }, "To: ", activeDestLocation?.name)), /*#__PURE__*/React.createElement("p", {
-    className: "text-[11px] text-slate-300"
-  }, "Walk along the blue pathway towards ", /*#__PURE__*/React.createElement("b", null, activeIndoorRoute?.exitLabel || "Exit Door"), "."), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] text-emerald-400 font-mono bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-500/30 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u26A1 ", /*#__PURE__*/React.createElement("b", null, "Auto-Handoff:"), " Reaching door automatically opens Campus Map!"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setSelectedMapId("campus");
-      setStageStepCount(0);
-    },
-    className: "px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[9px] font-black shadow"
-  }, "Jump to Campus \u2794"))) : isOutdoorToIndoorNav && selectedMapId === "campus" ? /*#__PURE__*/React.createElement("div", {
-    className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1.5 shadow-lg"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-indigo-300 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Step 1 of 2: Campus Circulation"), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-amber-400 font-bold"
-  }, "Approach ", targetBlockName)), /*#__PURE__*/React.createElement("p", {
-    className: "text-[11px] text-slate-300"
-  }, "Walk across campus along illuminated route to ", /*#__PURE__*/React.createElement("b", null, targetBlockName, " Entrance"), "."), /*#__PURE__*/React.createElement("div", {
-    className: "text-[10px] text-emerald-400 font-mono bg-emerald-950/50 p-1.5 rounded-lg border border-emerald-500/30 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\u26A1 ", /*#__PURE__*/React.createElement("b", null, "Auto-Handoff:"), " Reaching entrance auto-opens Floor Plan!"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setSelectedMapId(activeDestLocation.mapId);
-      setStageStepCount(0);
-    },
-    className: "px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-[9px] font-black shadow"
-  }, "Jump to Floor \u2794"))) : selectedMapId !== "campus" && activeDestLocation?.room ? /*#__PURE__*/React.createElement("div", {
-    className: "bg-indigo-950/70 border border-indigo-500/40 rounded-2xl p-3 text-xs space-y-1 shadow-lg"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "font-black text-indigo-300 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDEB6 Indoor Route to ", activeDestLocation.room), /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] text-emerald-400 font-mono"
-  }, activeMapPlan.group)), /*#__PURE__*/React.createElement("ol", {
-    className: "text-[11px] text-slate-300 space-y-0.5 list-decimal pl-4 pt-1 font-medium"
-  }, /*#__PURE__*/React.createElement("li", null, "Follow the blue dashed corridor pathway to ", /*#__PURE__*/React.createElement("b", null, activeDestLocation.room), "."))) : null), /*#__PURE__*/React.createElement("main", {
-    className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[340px]"
+  }, "\uD83C\uDFAF ", item.name))))))), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 px-3.5 py-2 flex flex-col justify-center relative min-h-[310px]"
   }, /*#__PURE__*/React.createElement("div", {
     className: "w-full bg-slate-900/90 border border-slate-800 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col items-center"
   }, /*#__PURE__*/React.createElement("svg", {
     viewBox: "0 0 1000 650",
-    className: "w-full h-full max-h-[350px] rounded-2xl bg-white border border-slate-800"
+    className: "w-full h-full max-h-[330px] rounded-2xl bg-white border border-slate-800"
   }, /*#__PURE__*/React.createElement("image", {
     href: activeMapPlan.src || "/assets/college-campus-layout.jpeg",
     x: "0",
@@ -1548,8 +1774,51 @@ function MobileApp() {
     className: "absolute top-5 left-5 bg-slate-950/90 border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 shadow-xl flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDC63 ", /*#__PURE__*/React.createElement("b", null, stageStepCount), " stage steps"), /*#__PURE__*/React.createElement("span", {
     className: "text-slate-600"
-  }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83E\uDDED ", /*#__PURE__*/React.createElement("b", null, compassHeading, "\xB0"))))), /*#__PURE__*/React.createElement("footer", {
-    className: "p-3 bg-slate-900 border-t border-slate-800 sticky bottom-0 z-30 space-y-2"
+  }, "|"), /*#__PURE__*/React.createElement("span", null, "\uD83E\uDDED ", /*#__PURE__*/React.createElement("b", null, compassHeading, "\xB0"))))), /*#__PURE__*/React.createElement("section", {
+    className: "px-3.5 pt-1 space-y-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-xl space-y-2.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between pb-2 border-b border-slate-800"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowDirectionsDrawer(!showDirectionsDrawer),
+    className: "flex items-center gap-2 text-xs font-black text-white hover:text-indigo-400 transition"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "list-ordered",
+    className: "w-4 h-4 text-emerald-400"
+  }), /*#__PURE__*/React.createElement("span", null, "Turn-by-Turn Sequential Guidance"), /*#__PURE__*/React.createElement(Icon, {
+    name: showDirectionsDrawer ? "chevron-up" : "chevron-down",
+    className: "w-3.5 h-3.5 text-slate-400"
+  })), /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-500/30"
+  }, "~", totalEstimatedMeters, "m (", totalEstimatedSeconds, "s)")), showDirectionsDrawer && /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2 max-h-52 overflow-y-auto pr-1"
+  }, sequentialGuidanceSteps.map((step, idx) => {
+    const isCurrentStage = selectedMapId === "campus" && step.mapId === "campus" || selectedMapId === step.mapId;
+    return /*#__PURE__*/React.createElement("div", {
+      key: idx,
+      className: `p-2.5 rounded-xl border flex items-start gap-2.5 transition ${isCurrentStage ? "bg-indigo-950/60 border-indigo-500/50 shadow-md" : idx === 0 ? "bg-blue-950/30 border-blue-800/40" : idx === sequentialGuidanceSteps.length - 1 ? "bg-emerald-950/30 border-emerald-800/40" : "bg-slate-950/50 border-slate-800/70"}`
+    }, /*#__PURE__*/React.createElement("div", {
+      className: `w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5 ${isCurrentStage ? "bg-indigo-600 text-white shadow" : idx === sequentialGuidanceSteps.length - 1 ? "bg-emerald-500 text-slate-950" : "bg-slate-800 text-slate-300"}`
+    }, idx + 1), /*#__PURE__*/React.createElement("div", {
+      className: "space-y-0.5 text-xs flex-1 min-w-0"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-bold text-slate-100 flex items-center justify-between"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "truncate pr-1"
+    }, step.title), isCurrentStage && /*#__PURE__*/React.createElement("span", {
+      className: "text-[9px] font-black text-indigo-400 bg-indigo-950 px-1.5 py-0.2 rounded border border-indigo-500/40 shrink-0"
+    }, "ACTIVE")), /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-slate-400 leading-tight"
+    }, step.description), step.targetMapId && step.targetMapId !== selectedMapId && /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setSelectedMapId(step.targetMapId);
+        setStageStepCount(0);
+      },
+      className: "mt-1 px-2 py-0.5 bg-indigo-600/80 hover:bg-indigo-600 text-white rounded-md text-[9px] font-black transition"
+    }, "Switch Map to ", step.targetMapId === "campus" ? "Campus View" : "Floor Plan", " \u2794")));
+  })))), /*#__PURE__*/React.createElement("footer", {
+    className: "p-3 bg-slate-900 border-t border-slate-800 sticky bottom-0 z-30 space-y-2 mt-2"
   }, /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-4 gap-1.5"
   }, /*#__PURE__*/React.createElement("button", {
