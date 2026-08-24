@@ -49,7 +49,7 @@ assert(exitIndex < assemblyIndex, "Strict sequential ordering verified: User -> 
 // --- TEST 3: Fire Hazard Detour ---
 console.log("\n▶ [Test 3] Active Fire in Zone B (East Wing & Lab 101)");
 const test3 = findSafestEvacuationPath("lobby", INITIAL_BUILDING_DATA.nodes, INITIAL_BUILDING_DATA.edges, INITIAL_BUILDING_DATA.exits, INITIAL_BUILDING_DATA.assemblyAreas, { isEmergency: true }, {}, { "zone-b": "high" });
-assert(test3.recommendedExit.id === "exit-2" || test3.recommendedExit.id === "exit-3", "Reroutes away from fire in Zone B and safely selects Exit 2 / Exit 3");
+assert(test3.recommendedExit.id === "exit-3", "Reroutes away from fire in Zone B and safely selects Exit 3 (North-West)");
 assert(!test3.bestRoute.pathNodeIds.includes("exit-1"), "Strictly avoids physically compromised Exit 1");
 
 // --- TEST 4: Multi-Tier Dynamic Crowd Density ---
