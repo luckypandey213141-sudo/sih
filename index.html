@@ -67,11 +67,19 @@
   <div id="root"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=campus-layout-5';
-    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=campus-layout-7';
-    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=guided-shortest-1';
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js';
     import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
-    import { subscribeToRealtimeData, setEmergencyActive, resetAllToNormal } from './services/realtime.js';
+    import {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      resetAllToNormal,
+      registerActiveRoute,
+      sendDistressSignal,
+      clearDistressSignal
+    } from './services/realtime.js';
+    import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js';
 
     const SafeWay = {
       INITIAL_BUILDING_DATA,
@@ -82,8 +90,14 @@
       subscribeToRealtimeData,
       setEmergencyActive,
       resetAllToNormal,
-      INDOOR_ROUTE_NETWORKS
+      registerActiveRoute,
+      sendDistressSignal,
+      clearDistressSignal,
+      INDOOR_ROUTE_NETWORKS,
+      MotionTracker,
+      interpolatePositionOnRoute
     };
+    window.SafeWay = SafeWay;
     window.SafeWayData = SafeWay;
 
     // Run Desktop React App synchronously

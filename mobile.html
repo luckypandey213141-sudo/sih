@@ -67,9 +67,9 @@
   <div id="root"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=campus-layout-5';
-    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=campus-layout-7';
-    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=guided-shortest-1';
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js';
     import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
     import {
       subscribeToRealtimeData,
@@ -97,6 +97,7 @@
       MotionTracker,
       interpolatePositionOnRoute
     };
+    window.SafeWay = SafeWay;
     window.SafeWayData = SafeWay;
 
     // Direct Precompiled JavaScript Execution
