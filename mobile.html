@@ -1182,12 +1182,10 @@
                     </h2>
                   </div>
                 </div>
-                <button
-                  onClick={() => window.SafeWay?.resetAllToNormal?.()}
-                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-wider border border-slate-700 shrink-0"
-                >
-                  Stand Down
-                </button>
+                <div className="px-3 py-1.5 bg-red-900/80 text-red-200 rounded-xl text-[9px] font-mono font-bold uppercase tracking-wider border border-red-700/60 shrink-0 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping"></span>
+                  <span>🔒 Master Alarm Active</span>
+                </div>
               </div>
 
               {/* Dynamic Evacuation Destination Card */}

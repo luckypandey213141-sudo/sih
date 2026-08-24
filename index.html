@@ -1703,10 +1703,11 @@ function App() {
     className: "text-red-300 text-xs font-mono"
   }, "DYNAMIC SEQUENTIAL ROUTING")), /*#__PURE__*/React.createElement("h2", {
     className: "text-xl sm:text-2xl font-black tracking-tight text-white mt-0.5"
-  }, "Follow Illuminated Safe Green Evacuation Route"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => SafeWay.resetAllToNormal(),
-    className: "px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white rounded-2xl text-xs font-bold uppercase tracking-wider border border-slate-700 transition"
-  }, "Clear Emergency / Stand Down")), evacuationResult.isRefugeRoute ? /*#__PURE__*/React.createElement("div", {
+  }, "Follow Illuminated Safe Green Evacuation Route"))), /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2 bg-red-900/80 text-red-200 rounded-2xl text-xs font-mono font-bold uppercase tracking-wider border border-red-700/60 shrink-0 flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "w-2 h-2 rounded-full bg-red-400 animate-ping"
+  }), /*#__PURE__*/React.createElement("span", null, "🔒 Master Alarm Active"))), evacuationResult.isRefugeRoute ? /*#__PURE__*/React.createElement("div", {
     className: "bg-slate-950 rounded-3xl p-6 border-2 border-emerald-400 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-2 flex-1"
