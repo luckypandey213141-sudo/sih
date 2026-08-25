@@ -35,6 +35,7 @@ let liveRealtimeState = {
     accessibleEvacuationStrategy: "refuge_zone"
   },
   distressSignals: {},
+  resolvedDistressSignals: {},
   presence: {},
   sensors: {},
   lastUpdated: new Date().toISOString()
@@ -139,6 +140,14 @@ export default async function handler(req, res) {
     } else if (action === 'clear_sos') {
       const { id } = payload;
       if (id && liveRealtimeState.distressSignals[id]) {
+        const activeSignal = liveRealtimeState.distressSignals[id];
+        if (!liveRealtimeState.resolvedDistressSignals) liveRealtimeState.resolvedDistressSignals = {};
+        liveRealtimeState.resolvedDistressSignals[id] = {
+          ...activeSignal,
+          status: 'RESCUED_RESOLVED',
+          resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          resolvedTimestamp: Date.now()
+        };
         delete liveRealtimeState.distressSignals[id];
       }
     } else if (action === 'update_master') {
@@ -149,11 +158,13 @@ export default async function handler(req, res) {
           ...state,
           presence: { ...liveRealtimeState.presence, ...(state.presence || {}) },
           distressSignals: { ...liveRealtimeState.distressSignals, ...(state.distressSignals || {}) },
+          resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(state.resolvedDistressSignals || {}) },
           lastUpdated: new Date().toISOString()
         };
       }
     } else if (action === 'reset_all') {
       const keepPresence = { ...liveRealtimeState.presence };
+      const keepResolvedDistress = { ...(liveRealtimeState.resolvedDistressSignals || {}) };
       liveRealtimeState = {
         emergencyActive: false,
         hazards: { "zone-a": "none", "zone-b": "none", "zone-c": "none", "zone-d": "none", "zone-e": "none" },
@@ -163,6 +174,7 @@ export default async function handler(req, res) {
         blockedEdges: {},
         emergencyPolicies: { allowElevatorsInFire: false, accessibleEvacuationStrategy: "refuge_zone" },
         distressSignals: {},
+        resolvedDistressSignals: keepResolvedDistress,
         presence: keepPresence,
         sensors: {},
         lastUpdated: new Date().toISOString()
@@ -174,6 +186,7 @@ export default async function handler(req, res) {
         ...payload,
         presence: { ...liveRealtimeState.presence, ...(payload.presence || {}) },
         distressSignals: { ...liveRealtimeState.distressSignals, ...(payload.distressSignals || {}) },
+        resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(payload.resolvedDistressSignals || {}) },
         lastUpdated: new Date().toISOString()
       };
     }

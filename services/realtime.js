@@ -38,6 +38,7 @@ const INITIAL_STATE = {
     accessibleEvacuationStrategy: "refuge_zone"
   },
   distressSignals: {},
+  resolvedDistressSignals: {},
   presence: {},
   sensors: {},
   lastUpdated: new Date().toISOString(),
@@ -471,11 +472,21 @@ export function sendDistressSignal(signal) {
 }
 
 /**
- * Clear a resolved SOS beacon from the console
+ * Clear a resolved SOS beacon from the console and safely archive it to incident history
  */
 export function clearDistressSignal(id) {
   const updatedSignals = { ...(currentLiveState.distressSignals || {}) };
-  delete updatedSignals[id];
+  const updatedResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
+
+  if (updatedSignals[id]) {
+    updatedResolved[id] = {
+      ...updatedSignals[id],
+      status: "RESCUED_RESOLVED",
+      resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      resolvedTimestamp: Date.now()
+    };
+    delete updatedSignals[id];
+  }
 
   // Immediate cloud clear push
   if (typeof window !== "undefined" && window.fetch) {
@@ -493,16 +504,18 @@ export function clearDistressSignal(id) {
 
   saveLocalState({
     ...currentLiveState,
-    distressSignals: updatedSignals
+    distressSignals: updatedSignals,
+    resolvedDistressSignals: updatedResolved
   }, false);
 }
 
 /**
- * Reset all building hazards, blockages, and alarms to normal
+ * Reset all building hazards, blockages, and alarms to normal (preserving historical records)
  */
 export function resetAllToNormal() {
   activeRouteRegistry.clear();
   const keepPresence = { ...(currentLiveState.presence || {}) };
+  const keepResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
 
   // Immediate cloud reset push
   if (typeof window !== "undefined" && window.fetch) {
@@ -520,6 +533,7 @@ export function resetAllToNormal() {
   saveLocalState({
     ...INITIAL_STATE,
     presence: keepPresence,
+    resolvedDistressSignals: keepResolved,
     lastUpdated: new Date().toISOString()
   }, false);
 }
