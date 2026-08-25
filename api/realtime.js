@@ -150,6 +150,15 @@ export default async function handler(req, res) {
         };
         delete liveRealtimeState.distressSignals[id];
       }
+    } else if (action === 'delete_archived_sos') {
+      const { id } = payload;
+      if (id && liveRealtimeState.resolvedDistressSignals && liveRealtimeState.resolvedDistressSignals[id]) {
+        delete liveRealtimeState.resolvedDistressSignals[id];
+        liveRealtimeState.version = (liveRealtimeState.version || 0) + 1;
+      }
+    } else if (action === 'clear_all_audit') {
+      liveRealtimeState.resolvedDistressSignals = {};
+      liveRealtimeState.version = (liveRealtimeState.version || 0) + 1;
     } else if (action === 'update_master') {
       const { state } = payload;
       if (state && typeof state === 'object') {

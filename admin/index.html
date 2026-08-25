@@ -60,7 +60,9 @@
       setElevatorFirePolicy,
       recordSensorReading,
       resetAllToNormal,
-      clearDistressSignal
+      clearDistressSignal,
+      deleteArchivedDistressSignal,
+      clearAllAuditHistory
     } from '../services/realtime.js';
 
     window.INITIAL_BUILDING_DATA = INITIAL_BUILDING_DATA;
@@ -76,7 +78,9 @@
       setElevatorFirePolicy,
       recordSensorReading,
       resetAllToNormal,
-      clearDistressSignal
+      clearDistressSignal,
+      deleteArchivedDistressSignal,
+      clearAllAuditHistory
     };
   </script>
 
@@ -361,30 +365,52 @@
             {/* Resolved Search & Rescue Incident Audit Log & Voice Archive */}
             {Object.keys(liveState.resolvedDistressSignals || {}).length > 0 && (
               <div className="bg-slate-900/90 border border-slate-700 rounded-3xl p-5 shadow-xl space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2 text-slate-200 font-black text-sm uppercase">
                     <span>📜</span>
                     <span>Search & Rescue SOS Incident Audit Log ({Object.keys(liveState.resolvedDistressSignals).length} Resolved Records)</span>
                   </div>
-                  <button
-                    onClick={() => setShowSosArchive(!showSosArchive)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-1.5"
-                  >
-                    <span>{showSosArchive ? "▲ Hide Audit Log" : "▼ View Audit Log & Audio Archive"}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to clear all archived SOS incident records?")) {
+                          window.SafeWayAPI.clearAllAuditHistory();
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-red-950/60 hover:bg-red-900 text-red-300 text-xs font-bold rounded-xl border border-red-800/60 transition flex items-center gap-1"
+                      title="Clear All Audit Records"
+                    >
+                      <span>🗑️ Clear All</span>
+                    </button>
+                    <button
+                      onClick={() => setShowSosArchive(!showSosArchive)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition flex items-center gap-1.5"
+                    >
+                      <span>{showSosArchive ? "▲ Hide Audit Log" : "▼ View Audit Log & Audio Archive"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {showSosArchive && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
                     {Object.values(liveState.resolvedDistressSignals).map(sig => (
-                      <div key={sig.id} className="bg-slate-950 border border-emerald-500/40 p-4 rounded-2xl space-y-2.5 shadow-md relative">
+                      <div key={sig.id} className="bg-slate-950 border border-emerald-500/40 p-4 rounded-2xl space-y-2.5 shadow-md relative group">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[11px] font-black uppercase px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-400 border border-emerald-500/40 font-mono">
                             📍 {sig.roomName || sig.locationName}
                           </span>
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded-md border border-emerald-800/40">
-                            ✅ RESCUED & RESOLVED
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-900/30 px-2 py-0.5 rounded-md border border-emerald-800/40">
+                              ✅ RESCUED
+                            </span>
+                            <button
+                              onClick={() => window.SafeWayAPI.deleteArchivedDistressSignal(sig.id)}
+                              className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-red-950 text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-800 flex items-center justify-center text-xs font-black transition"
+                              title="Delete this archived record"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
 
                         <div className="text-[11px] text-slate-300 space-y-1">

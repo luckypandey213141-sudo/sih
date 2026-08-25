@@ -616,6 +616,56 @@ export function clearDistressSignal(id) {
 }
 
 /**
+ * Permanently delete a specific archived SOS record from the audit log
+ */
+export function deleteArchivedDistressSignal(id) {
+  lastLocalActionTime = Date.now();
+  const updatedResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
+  delete updatedResolved[id];
+
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete_archived_sos",
+          id
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  saveLocalState({
+    ...currentLiveState,
+    resolvedDistressSignals: updatedResolved
+  }, false);
+}
+
+/**
+ * Clear all archived audit logs permanently
+ */
+export function clearAllAuditHistory() {
+  lastLocalActionTime = Date.now();
+  if (typeof window !== "undefined" && window.fetch) {
+    try {
+      fetch(getApiEndpoint(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "clear_all_audit"
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  saveLocalState({
+    ...currentLiveState,
+    resolvedDistressSignals: {}
+  }, false);
+}
+
+/**
  * Reset all building hazards, blockages, and alarms to normal (preserving historical records)
  */
 export function resetAllToNormal() {
