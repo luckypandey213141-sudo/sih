@@ -438,6 +438,7 @@ export function sendDistressSignal(signal) {
     floor: signal.floor || 1,
     zone: signal.zone || "Campus",
     reason: signal.reason || "🔥 Trapped by Smoke / Fire",
+    audioClip: signal.audioClip || null,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     rawTimestamp: Date.now(),
     status: "ACTIVE"
