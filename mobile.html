@@ -737,12 +737,319 @@
         "volume-2": <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></>,
         "volume-x": <><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></>,
         bell: <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></>,
-        "bell-off": <><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a6 6 0 0 1 .4-2.1"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="1" y1="1" x2="23" y2="23"/></>
+        "bell-off": <><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a6 6 0 0 1 .4-2.1"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><line x1="1" y1="1" x2="23" y2="23"/></>,
+        "maximize-2": <><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></>,
+        "minimize-2": <><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></>,
+        "map-pin": <><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>,
+        "search": <><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+        "layers": <><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+        "chevron-right": <polyline points="9 18 15 12 9 6"/>
       };
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           {icons[name] || <circle cx="12" cy="12" r="10" />}
         </svg>
+      );
+    }
+
+    /**
+     * Helper to get structured location details from key
+     */
+    function getLocationDetails(key) {
+      if (!key) return { block: "Campus Ground", floor: "Ground", room: "Select location", icon: "📍" };
+      if (key.startsWith("campus:")) {
+        const id = key.replace("campus:", "");
+        const node = (SafeWay.INITIAL_BUILDING_DATA?.nodes || []).find(n => n.id === id);
+        return {
+          block: "Main Campus Grounds",
+          floor: "Ground",
+          room: node?.name || id,
+          icon: "🏫"
+        };
+      }
+      const [mapId, roomName] = key.split(":");
+      const plan = MAP_PLANS.find(p => p.id === mapId);
+      return {
+        block: plan?.group || "College Block",
+        floor: plan?.label || "Floor",
+        room: roomName || "Room",
+        icon: plan?.group?.includes("Kalpana") ? "💻" : plan?.group?.includes("Bhabha") ? "📚" : plan?.group?.includes("Raman") ? "🎭" : "🏢"
+      };
+    }
+
+    /**
+     * 3-Tier Cascading Location Picker Drawer (Block -> Floor -> Room with Search)
+     */
+    function CascadingLocationPicker({ isOpen, onClose, title, selectedKey, onSelectLocation, isLight }) {
+      const [searchQuery, setSearchQuery] = useState("");
+      const [activeBlock, setActiveBlock] = useState(null);
+      const [activeFloor, setActiveFloor] = useState(null);
+
+      const allPlaces = useMemo(() => {
+        const list = [];
+        (SafeWay.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).forEach(n => {
+          list.push({
+            key: "campus:" + n.id,
+            name: "Campus — " + n.name,
+            block: "Main Campus Grounds",
+            floor: "Ground",
+            room: n.name,
+            mapId: "campus"
+          });
+        });
+        MAP_PLANS.filter(p => p.id !== "campus").forEach(p => {
+          (p.rooms || []).forEach(r => {
+            list.push({
+              key: p.id + ":" + r,
+              name: p.group + " (" + p.label + ") — " + r,
+              block: p.group,
+              floor: p.label,
+              room: r,
+              mapId: p.id
+            });
+          });
+        });
+        return list;
+      }, []);
+
+      const filteredPlaces = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.toLowerCase();
+        return allPlaces.filter(p => p.name.toLowerCase().includes(q) || p.room.toLowerCase().includes(q) || p.block.toLowerCase().includes(q));
+      }, [searchQuery, allPlaces]);
+
+      const blocks = [
+        { id: "Main Campus Grounds", name: "Main Campus Grounds", icon: "🏫", desc: "Gates, Garden, Pond, Mandir, Canteen, Parking" },
+        { id: "Ramanujan Block", name: "Ramanujan Block", icon: "🏢", desc: "Drawing Lab, Classrooms, Badminton Court, Labs" },
+        { id: "Kalpana Chawla Block", name: "Kalpana Chawla Block", icon: "💻", desc: "Computer Labs, Training Halls, HOD CSE" },
+        { id: "Raman Block", name: "Raman Block", icon: "🎭", desc: "Auditorium, Clubs (Samvaad & Kalakrit), Medical" },
+        { id: "Aryabhatta Block", name: "Aryabhatta Block", icon: "📐", desc: "Classrooms, Labs, Temple, Large Rooms" },
+        { id: "Bhabha Block", name: "Bhabha Block", icon: "📚", desc: "Digital & Main Library, ECE Lab, Director Office" }
+      ];
+
+      const availableFloors = useMemo(() => {
+        if (!activeBlock) return [];
+        if (activeBlock === "Main Campus Grounds") return [MAP_PLANS.find(p => p.id === "campus")];
+        return MAP_PLANS.filter(p => p.group === activeBlock);
+      }, [activeBlock]);
+
+      const handleSelect = (key) => {
+        onSelectLocation(key);
+        onClose();
+        setSearchQuery("");
+        setActiveBlock(null);
+        setActiveFloor(null);
+      };
+
+      if (!isOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/80 backdrop-blur-md p-0 sm:p-4">
+          <div className={"w-full max-w-lg rounded-t-3xl sm:rounded-3xl border shadow-2xl flex flex-col max-h-[85vh] transition-all " + (isLight ? "bg-white border-slate-200 text-slate-900" : "bg-slate-900 border-slate-700 text-white")}>
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white text-sm shadow">
+                  📍
+                </div>
+                <div>
+                  <h3 className="font-black text-sm">{title}</h3>
+                  <p className="text-[11px] text-slate-400">Drill down: Block ➔ Floor ➔ Room</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { onClose(); setSearchQuery(""); setActiveBlock(null); setActiveFloor(null); }}
+                className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-3 border-b border-slate-800/60 bg-slate-950/40">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="🔍 Quick search room, lab, library, gate..."
+                  className={"w-full py-2.5 pl-3 pr-8 rounded-xl text-xs font-bold outline-none border " + (isLight ? "bg-slate-100 border-slate-300 text-slate-900 focus:border-indigo-500" : "bg-slate-950 border-slate-700 text-white focus:border-indigo-400")}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-2.5 text-xs text-slate-400">✕</button>
+                )}
+              </div>
+            </div>
+
+            {!searchQuery && (
+              <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-1.5 text-xs font-bold overflow-x-auto">
+                <button
+                  onClick={() => { setActiveBlock(null); setActiveFloor(null); }}
+                  className={"px-2.5 py-1 rounded-lg transition " + (!activeBlock ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white")}
+                >
+                  🏫 1. Blocks
+                </button>
+                {activeBlock && (
+                  <>
+                    <span className="text-slate-600">›</span>
+                    <button
+                      onClick={() => setActiveFloor(null)}
+                      className={"px-2.5 py-1 rounded-lg transition " + (activeBlock && !activeFloor ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-white")}
+                    >
+                      {activeBlock}
+                    </button>
+                  </>
+                )}
+                {activeFloor && (
+                  <>
+                    <span className="text-slate-600">›</span>
+                    <span className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold">
+                      {activeFloor.label} (Rooms)
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {searchQuery ? (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-slate-400">Search Results ({filteredPlaces.length}):</div>
+                  {filteredPlaces.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">No rooms matching "{searchQuery}"</div>
+                  ) : (
+                    filteredPlaces.map(p => (
+                      <button
+                        key={p.key}
+                        onClick={() => handleSelect(p.key)}
+                        className={"w-full p-3 rounded-2xl border text-left flex items-center justify-between transition " + (
+                          selectedKey === p.key
+                            ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
+                            : (isLight ? "bg-slate-50 hover:bg-indigo-50 border-slate-200" : "bg-slate-950/60 hover:bg-slate-800 border-slate-800")
+                        )}
+                      >
+                        <div>
+                          <div className="font-bold text-xs">{p.room}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{p.block} • {p.floor}</div>
+                        </div>
+                        <span className="text-indigo-400 font-bold text-xs">Select ➔</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              ) : !activeBlock ? (
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Step 1: Choose Building / Block</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {blocks.map(b => (
+                      <button
+                        key={b.id}
+                        onClick={() => {
+                          if (b.id === "Main Campus Grounds") {
+                            setActiveBlock("Main Campus Grounds");
+                            setActiveFloor(MAP_PLANS[0]);
+                          } else {
+                            setActiveBlock(b.id);
+                          }
+                        }}
+                        className={"p-3.5 rounded-2xl border text-left transition flex items-start gap-3 " + (
+                          isLight
+                            ? "bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 border-slate-200"
+                            : "bg-slate-950/70 hover:bg-slate-800 hover:border-indigo-500/50 border-slate-800"
+                        )}
+                      >
+                        <span className="text-2xl">{b.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-black text-xs">{b.name}</div>
+                          <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{b.desc}</div>
+                        </div>
+                        <span className="text-slate-500 text-xs mt-1">›</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : !activeFloor ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Step 2: Choose Floor in {activeBlock}</div>
+                    <button onClick={() => setActiveBlock(null)} className="text-[11px] text-indigo-400 font-bold">‹ Back to Blocks</button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {availableFloors.map(f => (
+                      <button
+                        key={f.id}
+                        onClick={() => setActiveFloor(f)}
+                        className={"p-3.5 rounded-2xl border text-left transition flex items-center justify-between " + (
+                          isLight
+                            ? "bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 border-slate-200"
+                            : "bg-slate-950/70 hover:bg-slate-800 hover:border-indigo-500/50 border-slate-800"
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-xs">
+                            {f.floor === 0 ? "B" : f.floor === 1 ? "G" : "1F"}
+                          </span>
+                          <div>
+                            <div className="font-bold text-xs">{f.label}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">{(f.rooms || []).length} Mapped Rooms & Facilities</div>
+                          </div>
+                        </div>
+                        <span className="text-indigo-400 text-xs font-bold">View Rooms ›</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Step 3: Select Room ({activeFloor.group} • {activeFloor.label})
+                    </div>
+                    <button onClick={() => setActiveFloor(null)} className="text-[11px] text-indigo-400 font-bold">‹ Back to Floors</button>
+                  </div>
+
+                  {activeFloor.id === "campus" ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {(SafeWay.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).map(n => {
+                        const k = "campus:" + n.id;
+                        return (
+                          <button
+                            key={k}
+                            onClick={() => handleSelect(k)}
+                            className={"p-2.5 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between " + (
+                              selectedKey === k
+                                ? "bg-indigo-600 text-white border-indigo-500 shadow"
+                                : (isLight ? "bg-slate-50 hover:bg-indigo-50 border-slate-200" : "bg-slate-950/70 hover:bg-slate-800 border-slate-800")
+                            )}
+                          >
+                            <span className="truncate">{n.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {(activeFloor.rooms || []).map(r => {
+                        const k = activeFloor.id + ":" + r;
+                        return (
+                          <button
+                            key={k}
+                            onClick={() => handleSelect(k)}
+                            className={"p-2.5 rounded-xl border text-left text-xs font-bold transition flex items-center justify-between " + (
+                              selectedKey === k
+                                ? "bg-indigo-600 text-white border-indigo-500 shadow"
+                                : (isLight ? "bg-slate-50 hover:bg-indigo-50 border-slate-200" : "bg-slate-950/70 hover:bg-slate-800 border-slate-800")
+                            )}
+                          >
+                            <span className="truncate">{r}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       );
     }
 
@@ -766,6 +1073,11 @@
       const [accessibilityMode, setAccessibilityMode] = useState(false);
       const [soundEnabled, setSoundEnabled] = useState(true);
       const [showDirectionsDrawer, setShowDirectionsDrawer] = useState(true);
+
+      // Cascading Location Picker & Fullscreen Focus Mode Modals
+      const [isOriginPickerOpen, setIsOriginPickerOpen] = useState(false);
+      const [isDestPickerOpen, setIsDestPickerOpen] = useState(false);
+      const [isMapFocusOpen, setIsMapFocusOpen] = useState(false);
 
       // Theme Management (Light / Dark)
       const [theme, setTheme] = useState(() => localStorage.getItem('aegispath_theme') || 'dark');
@@ -1323,78 +1635,91 @@
 
           {/* Navigation Controls */}
           <div className="px-3.5 pt-2.5 space-y-2.5">
-            {/* 1. CURRENT POSITION */}
-            <div className={"border rounded-2xl p-2.5 flex items-center justify-between shadow-lg transition-colors " + (
-              isLight ? "bg-white border-slate-300 shadow-slate-200" : "bg-slate-900 border-slate-800"
-            )}>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="w-6 h-6 rounded-lg bg-indigo-600/20 text-indigo-700 dark:text-indigo-400 flex items-center justify-center font-black text-xs shrink-0">📍</span>
-                <div className="flex-1 min-w-0">
-                  <span className={"text-[10px] font-black block " + (isLight ? "text-slate-700" : "text-slate-400")}>1. CURRENT POSITION:</span>
-                  <select
-                    value={originLocationKey}
-                    onChange={(e) => handleOriginChange(e.target.value)}
-                    className={"w-full bg-transparent text-xs font-black outline-none cursor-pointer truncate " + (isLight ? "text-slate-900" : "text-white")}
-                  >
-                    {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
-                      <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
-                        {group.items.map(item => (
-                          <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
-                            {"📍 " + item.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. TARGET DESTINATION */}
-            {!isEmergency && (
-              <div className={"border rounded-2xl p-2.5 shadow-lg transition-colors " + (
-                isLight ? "bg-white border-emerald-400 shadow-slate-200" : "bg-slate-900 border-emerald-500/50"
-              )}>
-                <div className="flex items-center justify-between pb-1">
-                  <span className={"text-[10px] font-black flex items-center gap-1 " + (isLight ? "text-emerald-800" : "text-emerald-400")}>
-                    🎯 2. TARGET DESTINATION:
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {activeStageIndex > 0 && (
-                      <button
-                        onClick={() => advanceToStage(activeStageIndex - 1)}
-                        className={"text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition " + (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-400 border-slate-700")}
-                      >
-                        ‹ Prev Floor
-                      </button>
-                    )}
-                    {activeStageIndex < multiFloorPipeline.length - 1 && (
-                      <button
-                        onClick={() => advanceToStage(activeStageIndex + 1)}
-                        className={"text-[10px] font-bold px-1.5 py-0.5 rounded-lg border transition " + (isLight ? "bg-indigo-50 text-indigo-700 border-indigo-300" : "bg-indigo-950 text-indigo-300 border-indigo-500/30")}
-                      >
-                        Next Floor ›
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <select
-                  value={destinationLocationKey}
-                  onChange={(e) => handleDestinationChange(e.target.value)}
-                  className={"w-full border text-xs font-black rounded-xl p-2 outline-none focus:border-emerald-400 transition-colors " + (
-                    isLight ? "bg-slate-50 border-slate-300 text-emerald-900" : "bg-slate-950 border-slate-700 text-emerald-300"
+            {/* 1. CURRENT POSITION (Interactive 3-Tier Picker Tap Card) */}
+            {(() => {
+              const originDetails = getLocationDetails(originLocationKey);
+              return (
+                <div
+                  onClick={() => setIsOriginPickerOpen(true)}
+                  className={"border rounded-2xl p-3 flex items-center justify-between shadow-lg cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] " + (
+                    isLight ? "bg-white hover:bg-slate-50 border-slate-300 shadow-slate-200" : "bg-slate-900 hover:bg-slate-800 border-slate-800"
                   )}
                 >
-                  {ALL_CAMPUS_LOCATIONS_HIERARCHY.map(group => (
-                    <optgroup key={group.group} label={group.group} className={isLight ? "bg-white text-indigo-800 font-bold" : "bg-slate-900 text-indigo-300 font-bold"}>
-                      {group.items.map(item => (
-                        <option key={item.key} value={item.key} className={isLight ? "bg-white text-slate-900 font-semibold" : "bg-slate-950 text-white font-medium"}>
-                          {"🎯 " + item.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-sm shrink-0 border border-indigo-500/30">
+                      📍
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={"text-[10px] font-black uppercase tracking-wider block " + (isLight ? "text-slate-500" : "text-slate-400")}>
+                        1. Start Location (Tap to change)
+                      </span>
+                      <div className={"text-xs font-black truncate " + (isLight ? "text-slate-900" : "text-white")}>
+                        {originDetails.room}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                        {originDetails.block} • {originDetails.floor}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl bg-indigo-600/10 text-indigo-400 border border-indigo-500/30 text-[10px] font-black shrink-0">
+                    Change ➔
+                  </span>
+                </div>
+              );
+            })()}
+
+            {/* 2. TARGET DESTINATION (Interactive 3-Tier Picker Tap Card) */}
+            {!isEmergency && (() => {
+              const destDetails = getLocationDetails(destinationLocationKey);
+              return (
+                <div
+                  onClick={() => setIsDestPickerOpen(true)}
+                  className={"border rounded-2xl p-3 flex items-center justify-between shadow-lg cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] " + (
+                    isLight ? "bg-white hover:bg-emerald-50/40 border-emerald-400 shadow-slate-200" : "bg-slate-900 hover:bg-slate-800 border-emerald-500/50"
+                  )}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-sm shrink-0 border border-emerald-500/30">
+                      🎯
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={"text-[10px] font-black uppercase tracking-wider block " + (isLight ? "text-emerald-700" : "text-emerald-400")}>
+                        2. Target Destination (Tap to change)
+                      </span>
+                      <div className={"text-xs font-black truncate " + (isLight ? "text-slate-900" : "text-white")}>
+                        {destDetails.room}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                        {destDetails.block} • {destDetails.floor}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-600/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black shrink-0">
+                    Change ➔
+                  </span>
+                </div>
+              );
+            })()}
+
+            {/* Multi-Stage Visual Timeline Stepper */}
+            {multiFloorPipeline.length > 1 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto p-1.5 bg-slate-900/70 border border-slate-800 rounded-2xl shadow-inner">
+                {multiFloorPipeline.map((stg, idx) => (
+                  <button
+                    key={stg.stageKey}
+                    onClick={() => advanceToStage(idx)}
+                    className={"px-3 py-1.5 rounded-xl text-[10px] font-black transition flex items-center gap-1.5 shrink-0 " + (
+                      activeStageIndex === idx
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/40"
+                        : activeStageIndex > idx
+                        ? "bg-emerald-950/80 text-emerald-400 border border-emerald-500/30"
+                        : "text-slate-400 hover:text-white bg-slate-950/40 border border-slate-800"
+                    )}
+                  >
+                    <span>{activeStageIndex > idx ? "✓" : (idx + 1) + "."}</span>
+                    <span className="truncate max-w-[110px]">{stg.title}</span>
+                  </button>
+                ))}
               </div>
             )}
 
@@ -1629,13 +1954,24 @@
                 </g>
               </svg>
 
-              {/* Telemetry HUD */}
-              <div className={"absolute top-5 left-5 px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border transition-colors " + (
-                isLight ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-300" : "bg-slate-950/90 border-slate-800 text-slate-300"
-              )}>
-                <span>👣 <b>{stageStepCount}</b> stage steps</span>
-                <span className="opacity-40">|</span>
-                <span>🧭 <b>{compassHeading}°</b></span>
+              {/* Telemetry HUD & Focus Map Button */}
+              <div className="absolute top-5 left-5 right-5 flex items-center justify-between pointer-events-none">
+                <div className={"px-3 py-1.5 rounded-xl text-[10px] font-mono shadow-xl flex items-center gap-2 border pointer-events-auto transition-colors " + (
+                  isLight ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-300" : "bg-slate-950/90 border-slate-800 text-slate-300"
+                )}>
+                  <span>👣 <b>{stageStepCount}</b> steps</span>
+                  <span className="opacity-40">|</span>
+                  <span>🧭 <b>{compassHeading}°</b></span>
+                </div>
+
+                <button
+                  onClick={() => setIsMapFocusOpen(true)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black shadow-xl flex items-center gap-1.5 pointer-events-auto transition active:scale-95 border border-indigo-400"
+                  title="Open Fullscreen Focus Mode"
+                >
+                  <Icon name="maximize-2" className="w-3.5 h-3.5" />
+                  <span>⛶ Focus Map</span>
+                </button>
               </div>
             </div>
           </main>
@@ -1925,6 +2261,195 @@
               </div>
             </div>
           )}
+          {/* Fullscreen Map Focus Mode Overlay */}
+          {isMapFocusOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex flex-col p-3 sm:p-6 animate-in fade-in duration-200">
+              {/* Focus Top Bar */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="text-xs font-black text-white uppercase tracking-wider">
+                    🗺️ Immersive Map Focus • {activeMapPlan.label}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsMapFocusOpen(false)}
+                  className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-black flex items-center gap-1.5 transition active:scale-95 shadow-lg"
+                >
+                  <Icon name="minimize-2" className="w-3.5 h-3.5 text-slate-400" />
+                  <span>✕ Exit Focus</span>
+                </button>
+              </div>
+
+              {/* Stage Instruction HUD Pill */}
+              <div className="py-2 flex items-center justify-between gap-2">
+                <div className="px-3 py-1.5 bg-indigo-950/80 border border-indigo-500/50 rounded-xl text-indigo-300 text-xs font-bold truncate flex-1 shadow">
+                  {"Stage " + (activeStageIndex + 1) + ": " + currentActiveStage.title}
+                </div>
+                <div className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-300 text-xs font-mono shrink-0 shadow">
+                  {"🧭 " + (compassHeading || 0) + "° • 👣 " + stageStepCount + " Steps"}
+                </div>
+              </div>
+
+              {/* SVG Map Canvas (Immersive Full Screen) */}
+              <div className="flex-1 rounded-3xl border-2 border-indigo-500/40 overflow-hidden flex items-center justify-center bg-white relative p-2 shadow-2xl">
+                <svg viewBox="0 0 1000 650" className="w-full h-full object-contain">
+                  <image
+                    href={activeMapPlan.src || "/assets/college-campus-layout.jpeg"}
+                    x="0"
+                    y="0"
+                    width="1000"
+                    height="650"
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+
+                  {selectedMapId === "campus" && (
+                    <>
+                      <g transform="translate(535,65)" onClick={() => notify("Playground Safe Area")} style={{ cursor: "pointer" }}>
+                        <circle r="28" fill="#059669" fillOpacity="0.9" stroke="#ffffff" strokeWidth="2.5" />
+                        <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">PLAYGROUND</text>
+                      </g>
+                      <g transform="translate(90,145)" onClick={() => notify("Back Yard Safe Area")} style={{ cursor: "pointer" }}>
+                        <circle r="28" fill="#059669" fillOpacity="0.9" stroke="#ffffff" strokeWidth="2.5" />
+                        <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">BACK YARD</text>
+                      </g>
+
+                      {activeCampusRoute?.pathNodes?.length > 1 && (
+                        <g id="focus-campus-route">
+                          {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
+                            const nextNode = activeCampusRoute.pathNodes[idx + 1];
+                            return (
+                              <g key={"focus-seg-" + idx}>
+                                <line
+                                  x1={node.x}
+                                  y1={node.y}
+                                  x2={nextNode.x}
+                                  y2={nextNode.y}
+                                  stroke={isEmergency ? "#10b981" : "#6366f1"}
+                                  strokeWidth="9"
+                                  strokeLinecap="round"
+                                  opacity="0.9"
+                                />
+                                <line
+                                  x1={node.x}
+                                  y1={node.y}
+                                  x2={nextNode.x}
+                                  y2={nextNode.y}
+                                  stroke="#ffffff"
+                                  strokeWidth="3.5"
+                                  strokeDasharray="8 6"
+                                  strokeLinecap="round"
+                                  className="route-glow-dash"
+                                />
+                              </g>
+                            );
+                          })}
+                        </g>
+                      )}
+
+                      {campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
+                        const isUserHere = campusOriginNodeId === node.id;
+                        const isDest = campusDestNodeId === node.id;
+                        return (
+                          <g key={node.id} transform={"translate(" + node.x + "," + node.y + ")"}>
+                            <circle
+                              r={isUserHere || isDest ? 14 : 7}
+                              fill={isDest ? "#10b981" : isUserHere ? "#3b82f6" : "#64748b"}
+                              stroke="#ffffff"
+                              strokeWidth={isUserHere || isDest ? 3 : 1.5}
+                            />
+                          </g>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {selectedMapId !== "campus" && (
+                    <>
+                      {currentActiveStage?.d && (
+                        <g id="focus-indoor-route">
+                          <path
+                            d={currentActiveStage.d}
+                            fill="none"
+                            stroke="#ffffff"
+                            strokeWidth="11"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            opacity="0.95"
+                          />
+                          <path
+                            d={currentActiveStage.d}
+                            fill="none"
+                            stroke={isEmergency ? "#10b981" : "#2563eb"}
+                            strokeWidth="6"
+                            strokeDasharray="12 8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="route-glow-dash"
+                          />
+
+                          {currentActiveStage.endPoint && (
+                            <g transform={"translate(" + currentActiveStage.endPoint[0] + ", " + currentActiveStage.endPoint[1] + ")"}>
+                              <circle r="18" fill={isEmergency ? "#10b981" : (currentActiveStage.targetBadgeColor || "#f59e0b")} stroke="#ffffff" strokeWidth="3" />
+                              <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">
+                                {isEmergency ? "EXIT" : (currentActiveStage.targetBadge || "TARGET")}
+                              </text>
+                            </g>
+                          )}
+                        </g>
+                      )}
+                    </>
+                  )}
+
+                  {/* Live User Position Indicator */}
+                  <g transform={"translate(" + liveUserCoords[0] + ", " + liveUserCoords[1] + ")"}>
+                    <circle r="36" fill="#0ea5e9" fillOpacity="0.3" className="mobile-radar-pulse" />
+                    <circle r="14" fill="#0284c7" stroke="#ffffff" strokeWidth="4" />
+                    <g transform={"rotate(" + (compassHeading || 0) + ")"}>
+                      <polygon points="0,-26 -7,-11 7,-11" fill="#ef4444" stroke="#ffffff" strokeWidth="1.5" />
+                    </g>
+                    <circle r="4" fill="#ffffff" />
+                  </g>
+                </svg>
+              </div>
+
+              {/* Floating Bottom Step Bar */}
+              <div className="pt-3 flex items-center justify-between gap-3">
+                <button
+                  onClick={takeStep}
+                  className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-indigo-600/40 flex items-center justify-center gap-1.5 transition active:scale-95"
+                >
+                  <span>🚶 Next Step (+1)</span>
+                </button>
+                <button
+                  onClick={() => setAutoWalkActive(!autoWalkActive)}
+                  className={"px-5 py-3.5 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1.5 " + (
+                    autoWalkActive ? "bg-amber-600 text-white border-amber-400 animate-pulse shadow-lg shadow-amber-600/40" : "bg-slate-800 text-slate-200 border-slate-700"
+                  )}
+                >
+                  <span>{autoWalkActive ? "⏸ Pause" : "▶ Auto-Walk"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Cascading 3-Tier Location Pickers */}
+          <CascadingLocationPicker
+            isOpen={isOriginPickerOpen}
+            onClose={() => setIsOriginPickerOpen(false)}
+            title="Choose Starting Point"
+            selectedKey={originLocationKey}
+            onSelectLocation={handleOriginChange}
+            isLight={isLight}
+          />
+          <CascadingLocationPicker
+            isOpen={isDestPickerOpen}
+            onClose={() => setIsDestPickerOpen(false)}
+            title="Choose Target Destination"
+            selectedKey={destinationLocationKey}
+            onSelectLocation={handleDestinationChange}
+            isLight={isLight}
+          />
         </div>
       );
     }
