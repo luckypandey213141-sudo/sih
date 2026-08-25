@@ -8,6 +8,16 @@
  *  - In-flight request deduplication & visibility throttling
  */
 
+import {
+  isSupabaseConfigured,
+  fetchBuildingState as fetchSupabaseState,
+  pushBuildingState as pushSupabaseState,
+  subscribeToBuildingState as subscribeSupabaseState,
+  sendDistressSignal as sendSupabaseDistress,
+  resolveDistressSignal as resolveSupabaseDistress,
+  logIncidentAudit
+} from './supabaseClient.js';
+
 const STORAGE_KEY = "safeway_v3_live_state";
 const BROADCAST_CHANNEL_NAME = "safeway_v3_realtime_bus";
 
@@ -189,6 +199,18 @@ if (typeof window !== "undefined") {
   syncWithCloudServer();
   setInterval(syncWithCloudServer, 2500);
 
+  // Supabase Realtime Subscription setup
+  try {
+    if (isSupabaseConfigured()) {
+      subscribeSupabaseState((supabaseState) => {
+        if (supabaseState && !isStateEqual(currentLiveState, supabaseState)) {
+          console.log("[Realtime] Instant update received from Supabase Cloud");
+          saveLocalState(supabaseState, false);
+        }
+      });
+    }
+  } catch (e) {}
+
   // Immediate sync when tab becomes visible again
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", () => {
@@ -227,28 +249,34 @@ function saveLocalState(newState, pushToCloud = true) {
     } catch (e) {}
   }
 
-  if (pushToCloud && typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "update_master",
-          state: {
-            emergencyActive: currentLiveState.emergencyActive,
-            hazards: currentLiveState.hazards,
-            crowds: currentLiveState.crowds,
-            corridorCrowds: currentLiveState.corridorCrowds,
-            exits: currentLiveState.exits,
-            blockedEdges: currentLiveState.blockedEdges,
-            emergencyPolicies: currentLiveState.emergencyPolicies,
-            distressSignals: currentLiveState.distressSignals,
-            resolvedDistressSignals: currentLiveState.resolvedDistressSignals,
-            presence: currentLiveState.presence
-          }
-        })
-      }).catch(() => {});
-    } catch (e) {}
+  if (pushToCloud) {
+    if (typeof window !== "undefined" && window.fetch) {
+      try {
+        fetch(getApiEndpoint(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "update_master",
+            state: {
+              emergencyActive: currentLiveState.emergencyActive,
+              hazards: currentLiveState.hazards,
+              crowds: currentLiveState.crowds,
+              corridorCrowds: currentLiveState.corridorCrowds,
+              exits: currentLiveState.exits,
+              blockedEdges: currentLiveState.blockedEdges,
+              emergencyPolicies: currentLiveState.emergencyPolicies,
+              distressSignals: currentLiveState.distressSignals,
+              resolvedDistressSignals: currentLiveState.resolvedDistressSignals,
+              presence: currentLiveState.presence
+            }
+          })
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    if (isSupabaseConfigured()) {
+      pushSupabaseState(currentLiveState).catch(() => {});
+    }
   }
 
   notifyListeners();
@@ -342,6 +370,14 @@ export function setEmergencyActive(isActive) {
     emergencyActive: Boolean(isActive)
   };
   saveLocalState(updated, true);
+
+  if (isSupabaseConfigured()) {
+    logIncidentAudit(
+      isActive ? 'EMERGENCY_TRIGGERED' : 'EVACUATION_RESOLVED',
+      { emergencyActive: Boolean(isActive), timestamp: new Date().toISOString() },
+      'ADMIN_CONSOLE'
+    ).catch(() => {});
+  }
 }
 
 /**
@@ -569,6 +605,10 @@ export function sendDistressSignal(signal) {
     } catch (e) {}
   }
 
+  if (isSupabaseConfigured()) {
+    sendSupabaseDistress(record).catch(() => {});
+  }
+
   saveLocalState({
     ...currentLiveState,
     distressSignals: updatedSignals
@@ -606,6 +646,10 @@ export function clearDistressSignal(id) {
         })
       }).catch(() => {});
     } catch (e) {}
+  }
+
+  if (isSupabaseConfigured()) {
+    resolveSupabaseDistress(id).catch(() => {});
   }
 
   saveLocalState({

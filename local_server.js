@@ -8,6 +8,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import aiHandler from './api/ai.js';
+import realtimeHandler from './api/realtime.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -112,6 +114,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' });
     res.end();
     return;
+  }
+
+  // Groq AI Copilot & SITREP Endpoint
+  if (reqPath === '/api/ai' || reqPath === '/api/ai/') {
+    return aiHandler(req, res);
+  }
+
+  // Live Realtime State Hub Endpoint
+  if (reqPath === '/api/realtime' || reqPath === '/api/realtime/') {
+    return realtimeHandler(req, res);
   }
 
   // IoT Sensor Ingestion Endpoint for ESP32 Nodes
