@@ -159,6 +159,7 @@ export default async function handler(req, res) {
           presence: { ...liveRealtimeState.presence, ...(state.presence || {}) },
           distressSignals: { ...liveRealtimeState.distressSignals, ...(state.distressSignals || {}) },
           resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(state.resolvedDistressSignals || {}) },
+          version: (liveRealtimeState.version || 0) + 1,
           lastUpdated: new Date().toISOString()
         };
       }
@@ -177,6 +178,7 @@ export default async function handler(req, res) {
         resolvedDistressSignals: keepResolvedDistress,
         presence: keepPresence,
         sensors: {},
+        version: (liveRealtimeState.version || 0) + 1,
         lastUpdated: new Date().toISOString()
       };
     } else if (payload.emergencyActive !== undefined || payload.hazards || payload.exits || payload.blockedEdges) {
@@ -187,6 +189,7 @@ export default async function handler(req, res) {
         presence: { ...liveRealtimeState.presence, ...(payload.presence || {}) },
         distressSignals: { ...liveRealtimeState.distressSignals, ...(payload.distressSignals || {}) },
         resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(payload.resolvedDistressSignals || {}) },
+        version: (liveRealtimeState.version || 0) + 1,
         lastUpdated: new Date().toISOString()
       };
     }
