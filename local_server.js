@@ -116,7 +116,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Groq AI Copilot & SITREP Endpoint
+  
   if (reqPath === '/api/ai' || reqPath === '/api/ai/') {
     return aiHandler(req, res);
   }
