@@ -1215,13 +1215,25 @@
         return () => clearInterval(interval);
       }, [activeOriginLocation, activeMapPlan]);
 
-      // Subscribe Realtime Sync
+      // Robust data readiness & subscribe Realtime Sync
       useEffect(() => {
-        if (window.SafeWay?.subscribeToRealtimeData) {
-          const unsub = window.SafeWay.subscribeToRealtimeData(state => setLiveState(state));
-          return () => { if (unsub) unsub(); };
-        }
-      }, []);
+        let unsub = null;
+        const checkReady = () => {
+          if (window.SafeWay?.INITIAL_BUILDING_DATA && !bData) {
+            setBData(window.SafeWay.INITIAL_BUILDING_DATA);
+          }
+          if (window.SafeWay?.subscribeToRealtimeData && !unsub) {
+            unsub = window.SafeWay.subscribeToRealtimeData(state => setLiveState(state));
+          }
+        };
+
+        checkReady();
+        const interval = setInterval(checkReady, 50);
+        return () => {
+          clearInterval(interval);
+          if (unsub) unsub();
+        };
+      }, [bData]);
 
       const notify = (msg) => {
         setStatusNotification(msg);

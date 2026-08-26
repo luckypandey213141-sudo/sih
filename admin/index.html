@@ -48,7 +48,23 @@
   <div id="root"></div>
 
   <script type="module">
-    
+    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js';
+    import {
+      subscribeToRealtimeData,
+      setEmergencyActive,
+      setZoneHazardLevel,
+      setExitCrowdLevel,
+      setZoneCrowdLevel,
+      setCorridorCrowdLevel,
+      setExitOpenStatus,
+      setCorridorBlockedStatus,
+      setElevatorFirePolicy,
+      recordSensorReading,
+      resetAllToNormal,
+      clearDistressSignal,
+      deleteArchivedDistressSignal,
+      clearAllAuditHistory
+    } from '../services/realtime.js';
 
     window.INITIAL_BUILDING_DATA = INITIAL_BUILDING_DATA;
     window.SafeWayAPI = {
@@ -153,18 +169,27 @@
     function AdminApp() {
       const [liveState, setLiveState] = useState(null);
       const [activeTab, setActiveTab] = useState("overview");
-      const [bData, setBData] = useState(null);
+      const [bData, setBData] = useState(() => window.INITIAL_BUILDING_DATA || null);
       const [selectedAdminMapId, setSelectedAdminMapId] = useState("campus");
       const [showSosArchive, setShowSosArchive] = useState(false);
 
-      
-
       useEffect(() => {
-        if (window.INITIAL_BUILDING_DATA) setBData(window.INITIAL_BUILDING_DATA);
-        if (window.SafeWayAPI) {
-          const unsub = window.SafeWayAPI.subscribeToRealtimeData(state => setLiveState(state));
-          return () => unsub();
-        }
+        let unsub = null;
+        const checkReady = () => {
+          if (window.INITIAL_BUILDING_DATA) {
+            setBData(window.INITIAL_BUILDING_DATA);
+          }
+          if (window.SafeWayAPI?.subscribeToRealtimeData && !unsub) {
+            unsub = window.SafeWayAPI.subscribeToRealtimeData(state => setLiveState(state));
+          }
+        };
+
+        checkReady();
+        const interval = setInterval(checkReady, 50);
+        return () => {
+          clearInterval(interval);
+          if (unsub) unsub();
+        };
       }, []);
 
       if (!liveState || !bData) {
