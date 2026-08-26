@@ -8,7 +8,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import aiHandler from './api/ai.js';
 import realtimeHandler from './api/realtime.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -114,11 +113,6 @@ const server = http.createServer((req, res) => {
     res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' });
     res.end();
     return;
-  }
-
-  
-  if (reqPath === '/api/ai' || reqPath === '/api/ai/') {
-    return aiHandler(req, res);
   }
 
   // Live Realtime State Hub Endpoint
