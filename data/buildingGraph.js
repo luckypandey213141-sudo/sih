@@ -163,7 +163,7 @@ export const INITIAL_BUILDING_DATA = {
     { id: "e1-playground-branch", from: "junc-1-2", to: "campus-playground-path", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-playground-entry", from: "campus-playground-path", to: "playground", distance: 10, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-lobby-j1", from: "lobby", to: "junc-1-1", distance: 6, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e1-vish-path", from: "vishwakarma", to: "campus-vishwakarma-path", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e1-vish-path", from: "vishwakarma", to: "campus-vishwakarma-path", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 105, y: 397 }] },
     { id: "e1-vishpath-j1", from: "campus-vishwakarma-path", to: "junc-1-1", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-admin-j2", from: "admin", to: "junc-1-2", distance: 3, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j1-rec", from: "junc-1-4", to: "reception", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
@@ -180,24 +180,24 @@ export const INITIAL_BUILDING_DATA = {
     { id: "e1-j7-exit3", from: "campus-west-path", to: "exit-3", distance: 2, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j8-cafe", from: "junc-1-5", to: "cafeteria", distance: 6, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j8-aud", from: "junc-1-5", to: "campus-east-bottom", distance: 16, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e1-eastbottom-aud", from: "campus-east-bottom", to: "auditorium", distance: 9, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e1-eastbottom-aud", from: "campus-east-bottom", to: "auditorium", distance: 9, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 923, y: 490 }] },
     { id: "e1-j8-exit2", from: "campus-main-gate-path", to: "exit-2", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-cafe-aud", from: "junc-1-2", to: "junc-1-3", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j5-staira", from: "junc-1-6", to: "campus-east-top", distance: 14, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-easttop-staira", from: "campus-east-top", to: "stair-a-1", distance: 3, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j5-j6", from: "junc-1-7", to: "junc-1-6", distance: 18, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-j6-lab101", from: "junc-1-6", to: "lab-101", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e1-j6-lab102", from: "campus-east-bottom", to: "lab-102", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e1-j6-lab102", from: "campus-east-bottom", to: "lab-102", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 950, y: 410 }] },
     { id: "e1-east-vertical", from: "campus-east-top", to: "campus-east-bottom", distance: 18, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e1-j6-exit1", from: "campus-east-top", to: "exit-1", distance: 10, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e1-j6-exit1", from: "campus-east-top", to: "exit-1", distance: 10, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 972, y: 224 }] },
     { id: "e1-gate2-destination", from: "exit-1", to: "gate-2-destination", distance: 1, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-lab101-exit3", from: "junc-1-7", to: "junc-1-6", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
 
     // FLOOR 2 CONNECTIONS
     { id: "e2-r201-j1", from: "room-201", to: "junc-2-1", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e2-r202-j2", from: "room-202", to: "junc-2-2", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e2-j1-j3", from: "junc-2-1", to: "junc-2-3", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e2-j2-j3", from: "junc-2-2", to: "junc-2-3", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e2-j1-j3", from: "junc-2-1", to: "junc-2-3", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 260, y: 300 }] },
+    { id: "e2-j2-j3", from: "junc-2-2", to: "junc-2-3", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 260, y: 300 }] },
     { id: "e2-stairb-j3", from: "stair-b-2", to: "junc-2-3", distance: 6, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e2-j3-lift", from: "junc-2-3", to: "lift-2", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e2-lift-j5", from: "lift-2", to: "junc-2-5", distance: 15, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
@@ -213,8 +213,8 @@ export const INITIAL_BUILDING_DATA = {
     { id: "e2-j6-study", from: "junc-2-6", to: "study-lounge", distance: 14, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
 
     // Connections to Areas of Refuge
-    { id: "e2-j5-refuge2a", from: "junc-2-5", to: "refuge-2a", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
-    { id: "e2-j3-refuge2b", from: "junc-2-3", to: "refuge-2b", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
+    { id: "e2-j5-refuge2a", from: "junc-2-5", to: "refuge-2a", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 730, y: 300 }] },
+    { id: "e2-j3-refuge2b", from: "junc-2-3", to: "refuge-2b", distance: 8, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 350, y: 300 }] },
 
     // VERTICAL CONNECTIONS (Between Floor 1 & Floor 2)
     { id: "vert-stair-a", from: "stair-a-1", to: "stair-a-2", distance: 12, stepFree: false, blocked: false, hazardLevel: "none", type: "stair" },
@@ -225,7 +225,7 @@ export const INITIAL_BUILDING_DATA = {
     { id: "safe-playground-path", from: "playground", to: "assembly-a", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
     { id: "safe-backyard-path", from: "ent-north", to: "assembly-b", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
     { id: "safe-exit3-assemblyb", from: "exit-3", to: "assembly-b", distance: 3, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
-    { id: "safe-exit1-assemblya", from: "exit-1", to: "assembly-a", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
-    { id: "safe-exit2-assemblyb", from: "exit-2", to: "assembly-b", distance: 15, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" }
+    { id: "safe-exit1-assemblya", from: "exit-1", to: "assembly-a", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor", waypoints: [{ x: 972, y: 65 }] },
+    { id: "safe-exit2-assemblyb", from: "exit-2", to: "assembly-b", distance: 15, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor", waypoints: [{ x: 440, y: 600 }, { x: 90, y: 600 }] }
   ]
 };

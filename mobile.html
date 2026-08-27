@@ -345,8 +345,81 @@
       return viable.length > 0 ? viable[0] : options[0];
     }
 
-    function computeFloorPath(startPt, endPt, corridorY = 455, hubX = 500) {
+    function shortestPathOnIndoorNetwork(network, startPoint, targetPoint) {
+      if (!network?.cells?.length || !startPoint || !targetPoint) return null;
+      const step = network.step;
+      const keys = new Set(network.cells.map(([x, y]) => `${x},${y}`));
+      const nearest = point => network.cells.reduce((best, cell) => {
+        const distance = Math.hypot(cell[0] * step - point[0], cell[1] * step - point[1]);
+        return !best || distance < best.distance ? { cell, distance } : best;
+      }, null)?.cell;
+
+      const start = nearest(startPoint);
+      const target = nearest(targetPoint);
+      if (!start || !target) return null;
+
+      const startKey = `${start[0]},${start[1]}`;
+      const targetKey = `${target[0]},${target[1]}`;
+      const queue = [start];
+      const previous = new Map([[startKey, null]]);
+      const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+      for (let index = 0; index < queue.length; index++) {
+        const [x, y] = queue[index];
+        const key = `${x},${y}`;
+        if (key === targetKey) break;
+        for (const [dx, dy] of directions) {
+          const next = [x + dx, y + dy];
+          const nextKey = `${next[0]},${next[1]}`;
+          if (keys.has(nextKey) && !previous.has(nextKey)) {
+            previous.set(nextKey, key);
+            queue.push(next);
+          }
+        }
+      }
+
+      if (!previous.has(targetKey)) return null;
+
+      const raw = [];
+      let cursor = targetKey;
+      while (cursor) {
+        const [x, y] = cursor.split(",").map(Number);
+        raw.push([x * step + step / 2, y * step + step / 2]);
+        cursor = previous.get(cursor);
+      }
+      raw.reverse();
+
+      const pointsWithAnchors = [startPoint, ...raw, targetPoint];
+      const points = pointsWithAnchors.filter((point, index, arr) => {
+        if (index === 0 || index === arr.length - 1) return true;
+        const prev = arr[index - 1];
+        const next = arr[index + 1];
+        const dx1 = point[0] - prev[0];
+        const dy1 = point[1] - prev[1];
+        const dx2 = next[0] - point[0];
+        const dy2 = next[1] - point[1];
+        const cross = dx1 * dy2 - dy1 * dx2;
+        return Math.abs(cross) > 0.01;
+      });
+
+      const distance = raw.slice(1).reduce((total, point, index) => total + Math.hypot(point[0] - raw[index][0], point[1] - raw[index][1]), 0);
+      return {
+        points,
+        distance,
+        path: `M ${points.map(p => p.map(n => Math.round(n * 10) / 10).join(" ")).join(" L ")}`
+      };
+    }
+
+    function computeFloorPath(mapId, startPt, endPt, corridorY = 455, hubX = 500) {
       if (!startPt || !endPt) return [startPt || [500, 500], endPt || [500, 500]];
+      const net = SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId] || window.SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId];
+      if (net) {
+        const indoorRes = shortestPathOnIndoorNetwork(net, startPt, endPt);
+        if (indoorRes && indoorRes.points && indoorRes.points.length >= 2) {
+          return indoorRes.points;
+        }
+      }
+
       const [x1, y1] = startPt;
       const [x2, y2] = endPt;
 
@@ -508,7 +581,7 @@
         const corridorY = chosenStairs?.corridorY || 325;
         const hubX = chosenStairs?.hubX || 520;
 
-        const p1 = computeFloorPath(roomPt, stairsPt, corridorY, hubX);
+        const p1 = computeFloorPath(originMap, roomPt, stairsPt, corridorY, hubX);
 
         stages.push({
           stageKey: "origin-upper",
@@ -534,7 +607,7 @@
         const gCorridorY = chosenEgressDoor.corridorY || 455;
         const gHubX = chosenEgressDoor.hubX || 500;
 
-        const p2 = computeFloorPath(gStairsPt, gExitPt, gCorridorY, gHubX);
+        const p2 = computeFloorPath(groundMapId, gStairsPt, gExitPt, gCorridorY, gHubX);
 
         stages.push({
           stageKey: "origin-ground",
@@ -560,7 +633,7 @@
         const gCorridorY = chosenEgressDoor.corridorY || 455;
         const gHubX = chosenEgressDoor.hubX || 500;
 
-        const p = computeFloorPath(roomPt, gExitPt, gCorridorY, gHubX);
+        const p = computeFloorPath(originMap, roomPt, gExitPt, gCorridorY, gHubX);
 
         stages.push({
           stageKey: "origin-ground",
@@ -583,7 +656,24 @@
 
       // SCENARIO 2: Campus Circulation Stage
       if (!chosenEgressDoor.isTrapped && (destMap === "campus" || destBlockPrefix !== originBlockPrefix)) {
-        const campusPts = activeCampusRoute?.pathNodes?.map(n => [n.x, n.y]) || [[355, 206], [760, 490]];
+        const campusPts = [];
+        if (activeCampusRoute?.pathNodes?.length >= 2) {
+          const nodes = activeCampusRoute.pathNodes;
+          for (let i = 0; i < nodes.length - 1; i++) {
+            const u = nodes[i];
+            const v = nodes[i + 1];
+            const edge = bData.edges.find(e => (e.from === u.id && e.to === v.id) || (e.from === v.id && e.to === u.id));
+            let waypoints = [];
+            if (edge?.waypoints?.length) {
+              waypoints = edge.from === u.id ? edge.waypoints.map(w => [w.x, w.y]) : [...edge.waypoints].reverse().map(w => [w.x, w.y]);
+            }
+            if (i === 0) campusPts.push([u.x, u.y]);
+            campusPts.push(...waypoints);
+            campusPts.push([v.x, v.y]);
+          }
+        } else {
+          campusPts.push([355, 206], [760, 490]);
+        }
         const targetBlockName = activeDestLocation.name.split('—')[0];
 
         stages.push({
@@ -614,7 +704,7 @@
         const tCorridorY = targetChosenDoor.corridorY || 455;
         const tHubX = targetChosenDoor.hubX || 500;
 
-        const pInGround = computeFloorPath(entryPt, targetEndPt, tCorridorY, tHubX);
+        const pInGround = computeFloorPath(targetGroundMapId, entryPt, targetEndPt, tCorridorY, tHubX);
 
         stages.push({
           stageKey: "target-ground",
@@ -641,7 +731,7 @@
           const finalCorridorY = targetStairs?.corridorY || 325;
           const finalHubX = targetStairs?.hubX || 520;
 
-          const pFinal = computeFloorPath(tStairsPt, tRoomPt, finalCorridorY, finalHubX);
+          const pFinal = computeFloorPath(destMap, tStairsPt, tRoomPt, finalCorridorY, finalHubX);
 
           stages.push({
             stageKey: "target-final",
@@ -658,7 +748,7 @@
             pixelLength: calculatePolylineLength(pFinal),
             nextMapId: destMap,
             switchPrompt: null,
-            voiceAnnouncement: "Arrived at destination: " + activeDestLocation.room + "!"
+            voiceAnnouncement: "Arrived at destination " + (activeDestLocation.room || activeDestLocation.name) + "."
           });
         }
       }
@@ -1836,27 +1926,32 @@
                       <g id="active-campus-route">
                         {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
                           const nextNode = activeCampusRoute.pathNodes[idx + 1];
+                          const edge = bData.edges.find(e => (e.from === node.id && e.to === nextNode.id) || (e.from === nextNode.id && e.to === node.id));
+                          let waypoints = [];
+                          if (edge?.waypoints?.length) {
+                            waypoints = edge.from === node.id ? edge.waypoints.map(w => [w.x, w.y]) : [...edge.waypoints].reverse().map(w => [w.x, w.y]);
+                          }
+                          const pts = [[node.x, node.y], ...waypoints, [nextNode.x, nextNode.y]];
+                          const d = "M " + pts.map(p => p.join(" ")).join(" L ");
                           return (
                             <g key={"route-seg-" + idx}>
-                              <line
-                                x1={node.x}
-                                y1={node.y}
-                                x2={nextNode.x}
-                                y2={nextNode.y}
+                              <path
+                                d={d}
+                                fill="none"
                                 stroke={isEmergency ? "#10b981" : "#6366f1"}
                                 strokeWidth="9"
                                 strokeLinecap="round"
+                                strokeLinejoin="round"
                                 opacity="0.9"
                               />
-                              <line
-                                x1={node.x}
-                                y1={node.y}
-                                x2={nextNode.x}
-                                y2={nextNode.y}
+                              <path
+                                d={d}
+                                fill="none"
                                 stroke="#ffffff"
                                 strokeWidth="3.5"
                                 strokeDasharray="8 6"
                                 strokeLinecap="round"
+                                strokeLinejoin="round"
                                 className="route-glow-dash"
                               />
                             </g>

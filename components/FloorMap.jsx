@@ -52,14 +52,21 @@ export function FloorMap({
       if ((u.floor === currentFloor && v.floor === currentFloor) ||
           (u.floor === currentFloor && v.type === "assembly") ||
           (u.type === "assembly" && v.floor === currentFloor)) {
-        segments.push({ from: u, to: v, isVertical: false });
+        const edge = buildingData.edges.find(e => 
+          (e.from === u.id && e.to === v.id) || (e.from === v.id && e.to === u.id)
+        );
+        let waypoints = [];
+        if (edge?.waypoints?.length) {
+          waypoints = edge.from === u.id ? edge.waypoints : [...edge.waypoints].reverse();
+        }
+        segments.push({ from: u, to: v, waypoints, isVertical: false });
       } else if (u.floor === currentFloor && v.floor !== currentFloor) {
         // Floor transition exit node on this floor
         segments.push({ from: u, to: u, isVertical: true, targetFloor: v.floor, method: v.type });
       }
     }
     return segments;
-  }, [activeRoute, currentFloor]);
+  }, [activeRoute, currentFloor, buildingData]);
 
   // Check if route passes through another floor
   const routeHasOtherFloors = React.useMemo(() => {
@@ -377,33 +384,34 @@ export function FloorMap({
 
               const isBlocked = blockedEdges[edge.id] || edge.blocked;
               const hasHighHazard = edge.hazardLevel === "high";
+              const edgePts = [[u.x, u.y], ...(edge.waypoints || []).map(w => [w.x, w.y]), [v.x, v.y]];
+              const edgePathD = `M ${edgePts.map(p => p.join(" ")).join(" L ")}`;
+              const midPt = edge.waypoints?.length ? [edge.waypoints[0].x, edge.waypoints[0].y] : [(u.x + v.x) / 2, (u.y + v.y) / 2];
 
               return (
                 <g key={edge.id}>
                   {/* Hallway background corridor line */}
-                  <line
-                    x1={u.x}
-                    y1={u.y}
-                    x2={v.x}
-                    y2={v.y}
+                  <path
+                    d={edgePathD}
+                    fill="none"
                     stroke={currentFloor === 1 ? "transparent" : "#1e293b"}
                     strokeWidth="14"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
-                  <line
-                    x1={u.x}
-                    y1={u.y}
-                    x2={v.x}
-                    y2={v.y}
+                  <path
+                    d={edgePathD}
+                    fill="none"
                     stroke={currentFloor === 1 ? "transparent" : (isBlocked || hasHighHazard ? "#7f1d1d" : "#334155")}
                     strokeWidth="4"
                     strokeDasharray={isBlocked ? "4 4" : "none"}
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                   />
 
                   {/* Blockage Cross Marker */}
                   {isBlocked && (
-                    <g transform={`translate(${(u.x + v.x) / 2}, ${(u.y + v.y) / 2})`}>
+                    <g transform={`translate(${midPt[0]}, ${midPt[1]})`}>
                       <circle r="12" fill="#450a0a" stroke="#ef4444" strokeWidth="2" />
                       <line x1="-6" y1="-6" x2="6" y2="6" stroke="#f87171" strokeWidth="2" />
                       <line x1="-6" y1="6" x2="6" y2="-6" stroke="#f87171" strokeWidth="2" />
@@ -432,31 +440,31 @@ export function FloorMap({
 
               const strokeColor = isEmergency ? "#10b981" : "#38bdf8";
               const glowFilter = isEmergency ? "url(#safePathGlow)" : "url(#normalPathGlow)";
+              const segPts = [[seg.from.x, seg.from.y], ...(seg.waypoints || []).map(w => [w.x, w.y]), [seg.to.x, seg.to.y]];
+              const segPathD = `M ${segPts.map(p => p.join(" ")).join(" L ")}`;
 
               return (
                 <g key={`route-${idx}`}>
                   {/* Thick route aura */}
-                  <line
-                    x1={seg.from.x}
-                    y1={seg.from.y}
-                    x2={seg.to.x}
-                    y2={seg.to.y}
+                  <path
+                    d={segPathD}
+                    fill="none"
                     stroke={strokeColor}
                     strokeWidth="6"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                     filter={glowFilter}
                     opacity="0.8"
                   />
                   {/* Animated dashed marching line */}
-                  <line
-                    x1={seg.from.x}
-                    y1={seg.from.y}
-                    x2={seg.to.x}
-                    y2={seg.to.y}
+                  <path
+                    d={segPathD}
+                    fill="none"
                     stroke="#ffffff"
                     strokeWidth="2.5"
                     strokeDasharray="6 6"
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                     className="safeway-path-dash"
                   />
                 </g>
