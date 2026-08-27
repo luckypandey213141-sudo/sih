@@ -157,12 +157,155 @@
         play: <polygon points="5 3 19 12 5 21 5 3" />,
         check: <polyline points="20 6 9 17 4 12" />,
         refresh: <><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></>,
-        arrow: <line x1="5" y1="12" x2="19" y2="12" />
+        arrow: <line x1="5" y1="12" x2="19" y2="12" />,
+        "log-out": <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+        smartphone: <><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></>,
+        "external-link": <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></>,
+        "chevron-right": <polyline points="9 18 15 12 9 6"/>,
+        user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>
       };
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
           {icons[name] || <circle cx="12" cy="12" r="10" />}
         </svg>
+      );
+    }
+
+    function UserProfileSidebar({
+      user,
+      navItems,
+      activeTab,
+      onSelectTab,
+      logoutItem,
+      isEmergency,
+      onToggleEmergency,
+      className = ""
+    }) {
+      return (
+        <aside
+          className={`flex flex-col w-full rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-2xl p-4 sm:p-5 text-slate-100 shadow-2xl transition-all ${className}`}
+          aria-label="Security Operations Menu"
+        >
+          {/* User Info Header */}
+          <div className="flex items-center space-x-3.5 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/90 shadow-inner">
+            <div className="relative shrink-0">
+              <img
+                src={user.avatarUrl}
+                alt={`${user.name}'s avatar`}
+                className="h-12 w-12 rounded-2xl object-cover ring-2 ring-indigo-500/50 shadow-md"
+              />
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-950 animate-pulse" title="System Live"></span>
+            </div>
+            <div className="flex flex-col truncate min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm text-white truncate">{user.name}</span>
+                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">Admin</span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono truncate">{user.email}</span>
+            </div>
+          </div>
+
+          <div className="my-4 border-t border-slate-800" />
+
+          {/* Navigation Links */}
+          <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 px-2 pb-2">
+            Operations & Controls
+          </div>
+          <nav className="flex-1 space-y-1.5" role="navigation">
+            {navItems.map((item, index) => {
+              if (item.isSeparator) {
+                return <div key={`sep-${index}`} className="my-2 border-t border-slate-800/80" />;
+              }
+              const isActive = activeTab === item.id;
+              if (item.isAction) {
+                return (
+                  <button
+                    key={item.id || index}
+                    onClick={item.onClick}
+                    className="group flex w-full items-center rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-400 transition-all hover:bg-slate-800/80 hover:text-white border border-transparent hover:border-slate-700 text-left"
+                  >
+                    <span className="mr-3 h-4 w-4 text-indigo-400 group-hover:scale-110 transition-transform">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-auto text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              }
+              if (item.href) {
+                return (
+                  <a
+                    key={item.id || index}
+                    href={item.href}
+                    target={item.target || "_self"}
+                    rel="noopener noreferrer"
+                    className="group flex w-full items-center rounded-2xl px-3.5 py-2.5 text-xs font-bold text-slate-400 transition-all hover:bg-slate-800/80 hover:text-white border border-transparent hover:border-slate-700 text-left"
+                  >
+                    <span className="mr-3 h-4 w-4 text-indigo-400 group-hover:scale-110 transition-transform">{item.icon}</span>
+                    <span>{item.label}</span>
+                    <Icon name="chevron-right" className="ml-auto h-3.5 w-3.5 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
+                  </a>
+                );
+              }
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectTab(item.id)}
+                  className={`group flex w-full items-center rounded-2xl px-3.5 py-2.5 text-xs font-bold transition-all border text-left ${
+                    isActive
+                      ? "bg-indigo-600 text-white border-indigo-400 shadow-lg shadow-indigo-600/30"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/80 border-transparent hover:border-slate-700"
+                  }`}
+                >
+                  <span className={`mr-3 h-4 w-4 transition-transform group-hover:scale-110 ${isActive ? "text-white" : "text-indigo-400"}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                  <Icon
+                    name="chevron-right"
+                    className={`ml-auto h-3.5 w-3.5 transition-all ${
+                      isActive ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Quick Emergency Trigger Card in Sidebar */}
+          <div className="mt-4 p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-400">
+              <span>Evacuation State</span>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono ${isEmergency ? "bg-red-500/20 text-red-300 border border-red-500/40 animate-pulse" : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"}`}>
+                {isEmergency ? "🚨 EVACUATING" : "✅ NORMAL"}
+              </span>
+            </div>
+            <button
+              onClick={onToggleEmergency}
+              className={`w-full py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 ${
+                isEmergency
+                  ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                  : "bg-red-600 hover:bg-red-500 text-white animate-pulse"
+              }`}
+            >
+              <Icon name={isEmergency ? "check" : "siren"} className="w-4 h-4" />
+              <span>{isEmergency ? "Stand Down" : "Trigger Emergency"}</span>
+            </button>
+          </div>
+
+          {/* Logout / Sign Out Button */}
+          <div className="mt-3 pt-3 border-t border-slate-800">
+            <button
+              onClick={logoutItem.onClick}
+              className="group flex w-full items-center rounded-2xl px-3 py-2 text-xs font-bold text-red-400 transition-colors hover:bg-red-950/40 hover:text-red-300 border border-transparent hover:border-red-900/50 text-left"
+            >
+              <span className="mr-3 h-4 w-4">{logoutItem.icon}</span>
+              <span>{logoutItem.label}</span>
+            </button>
+          </div>
+        </aside>
       );
     }
 
@@ -259,6 +402,66 @@
       });
       const selectedSensorNodes = campusSensorNodes.filter(sensor => sensor.mapId === selectedAdminMapId);
 
+      const adminUser = {
+        name: "Aegis Command",
+        email: "admin@safeway.campus",
+        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+      };
+
+      const adminNavItems = [
+        {
+          id: "overview",
+          label: "Zone Hazards & Crowds",
+          icon: <Icon name="flame" className="w-4 h-4" />
+        },
+        {
+          id: "exits",
+          label: "Exits & Doorway Status",
+          icon: <Icon name="door-open" className="w-4 h-4" />
+        },
+        {
+          id: "corridors",
+          label: "Corridor Blockages",
+          icon: <Icon name="split" className="w-4 h-4" />
+        },
+        {
+          id: "iot",
+          label: "ESP32 IoT Sensors",
+          icon: <Icon name="cpu" className="w-4 h-4" />
+        },
+        {
+          id: "sih",
+          label: "SIH 6-Stage Demo Script",
+          icon: <Icon name="play" className="w-4 h-4" />
+        },
+        {
+          isSeparator: true
+        },
+        {
+          id: "mobile_link",
+          label: "Open User App (Mobile)",
+          href: "/mobile.html",
+          target: "_blank",
+          icon: <Icon name="smartphone" className="w-4 h-4" />
+        },
+        {
+          id: "reset_action",
+          isAction: true,
+          label: "Reset All to Normal",
+          onClick: () => window.SafeWayAPI.resetAllToNormal(),
+          icon: <Icon name="refresh" className="w-4 h-4" />
+        }
+      ];
+
+      const logoutItem = {
+        label: "Sign Out",
+        icon: <Icon name="log-out" className="w-4 h-4" />,
+        onClick: async () => {
+          await fetch('/api/admin/logout', { method: 'POST' });
+          window.location.replace('/admin/login.html');
+        }
+      };
+
       return (
         <div className="min-h-screen flex flex-col">
           {/* Header */}
@@ -293,40 +496,15 @@
                   <span>⚡ Edge Serverless Live</span>
                 </div>
 
-                <button
-                  onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); window.location.replace('/admin/login.html'); }}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-2xl border border-slate-700 transition"
-                >
-                  Sign Out
-                </button>
                 <a
                   href="/mobile.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-2xl border border-slate-700 transition flex items-center gap-2"
+                  className="hidden sm:flex px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-2xl border border-slate-700 transition items-center gap-2"
                 >
                   <span>Open User App (Mobile)</span>
                   <span className="text-indigo-400">↗</span>
                 </a>
-
-                <button
-                  onClick={() => window.SafeWayAPI.resetAllToNormal()}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-2xl border border-slate-700 transition"
-                >
-                  Reset All to Normal
-                </button>
-
-                <button
-                  onClick={() => window.SafeWayAPI.setEmergencyActive(!isEmergency)}
-                  className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-xl flex items-center gap-2 ${
-                    isEmergency
-                      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-                      : "bg-red-600 hover:bg-red-500 text-white animate-pulse"
-                  }`}
-                >
-                  <Icon name={isEmergency ? "check" : "siren"} className="w-4 h-4" />
-                  {isEmergency ? "Stand Down / Normal" : "Trigger Emergency"}
-                </button>
               </div>
             </div>
           </header>
@@ -348,8 +526,23 @@
             </div>
           )}
 
-          {/* Main Body */}
-          <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+          {/* Main 2-Column Command Dashboard */}
+          <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6 items-start">
+            {/* Left Column: User Profile & Navigation Sidebar */}
+            <div className="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-24">
+              <UserProfileSidebar
+                user={adminUser}
+                navItems={adminNavItems}
+                activeTab={activeTab}
+                onSelectTab={setActiveTab}
+                logoutItem={logoutItem}
+                isEmergency={isEmergency}
+                onToggleEmergency={() => window.SafeWayAPI.setEmergencyActive(!isEmergency)}
+              />
+            </div>
+
+            {/* Right Column: Main Workspace & Interactive Controls */}
+            <div className="flex-1 min-w-0 w-full space-y-6">
             {/* Active SOS Trapped Beacon Alerts (ROOM + TIME + REASON) */}
             {Object.keys(liveState.distressSignals || {}).length > 0 && (
               <div className="bg-red-950/90 border-2 border-red-500 rounded-3xl p-6 shadow-2xl space-y-4 animate-pulse">
@@ -493,31 +686,6 @@
                 )}
               </div>
             )}
-
-            {/* Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-              {[
-                { id: "overview", label: "Zone Hazards & Crowds", icon: "flame" },
-                
-                { id: "exits", label: "Exits & Doorway Status", icon: "door-open" },
-                { id: "corridors", label: "Corridor Blockages", icon: "split" },
-                { id: "iot", label: "ESP32 IoT Sensors", icon: "cpu" },
-                { id: "sih", label: "SIH 6-Stage Demo Script", icon: "play" }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition ${
-                    activeTab === tab.id
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                  }`}
-                >
-                  <Icon name={tab.icon} className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
 
             {/* Campus hierarchy scope shared by hazards, crowds, exits and corridors */}
             <section className="bg-slate-900/90 border border-slate-700 rounded-3xl p-5 shadow-xl grid grid-cols-1 lg:grid-cols-5 gap-5">
@@ -894,6 +1062,7 @@
                 </div>
               </div>
             )}
+            </div>
           </main>
         </div>
       );
