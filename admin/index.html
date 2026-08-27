@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AegisPath — Security Operations & Emergency Admin Console</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/aegispath-icon.svg">
+  <link rel="apple-touch-icon" href="/assets/aegispath-icon-192.png">
 
   <!-- Google Fonts: Outfit & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -405,7 +407,7 @@
       const adminUser = {
         name: "Aegis Command",
         email: "admin@safeway.campus",
-        avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80"
+        avatarUrl: "/assets/branding/app-icon-blue.png"
       };
 
       const adminNavItems = [
@@ -468,9 +470,7 @@
           <header className="bg-slate-900/90 backdrop-blur-2xl border-b border-slate-800 sticky top-0 z-40 px-6 py-4">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-                  <Icon name="shield-alert" className="w-6 h-6 text-white" />
-                </div>
+                <img src="/assets/aegispath-icon.svg" alt="AegisPath Logo" className="w-10 h-10 rounded-2xl shadow-lg shadow-indigo-600/30" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-xl font-black text-white">AegisPath</h1>

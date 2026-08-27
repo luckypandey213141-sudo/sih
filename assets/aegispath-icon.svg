@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" className="w-full h-full">
+  <defs>
+    <linearGradient id="iconBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#0B1E3F" />
+      <stop offset="100%" stopColor="#020617" />
+    </linearGradient>
+    <linearGradient id="iconShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#007BFF" />
+      <stop offset="100%" stopColor="#00C6FF" />
+    </linearGradient>
+    <linearGradient id="iconArrowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#00C6FF" />
+      <stop offset="100%" stopColor="#38BDF8" />
+    </linearGradient>
+    <filter id="iconGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Rounded App Icon Background Container -->
+  <rect width="128" height="128" rx="28" fill="url(#iconBgGrad)" stroke="#1e293b" stroke-width="2" />
+
+  <!-- Shield Outer Contour -->
+  <path d="M64 16 L106 32 C106 82 64 112 64 112 C64 112 22 82 22 32 Z" 
+        stroke="url(#iconShieldGrad)" stroke-width="8" stroke-linejoin="round" fill="#0f172a" fill-opacity="0.8" />
+  
+  <!-- Letter A inside Shield -->
+  <path d="M48 84 L64 42 L80 84 M54 68 L74 68" 
+        stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Dashed Navigation Path -->
+  <path d="M34 98 C52 92 64 74 86 52 C94 44 102 36 114 26" 
+        stroke="url(#iconArrowGrad)" stroke-width="5" stroke-linecap="round" stroke-dasharray="5 5" />
+  
+  <!-- Navigation Arrow Head -->
+  <polygon points="114,18 122,30 106,30" 
+           fill="url(#iconArrowGrad)" transform="rotate(35 114 26)" filter="url(#iconGlow)" />
+</svg>
