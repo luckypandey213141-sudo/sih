@@ -106,11 +106,13 @@
     };
     window.SafeWay = SafeWay;
     window.SafeWayData = SafeWay;
+    window.dispatchEvent(new CustomEvent('safeway-ready'));
   </script>
 
   <!-- React 18 Application Script -->
   <script type="text/babel">
     const { useState, useEffect, useMemo, useRef } = React;
+    const SafeWay = window.SafeWay || window.SafeWayData || {};
 
     function getControlId(kind, mapId, name) {
       if (!name || !mapId) return "";
@@ -412,7 +414,7 @@
 
     function computeFloorPath(mapId, startPt, endPt, corridorY = 455, hubX = 500) {
       if (!startPt || !endPt) return [startPt || [500, 500], endPt || [500, 500]];
-      const net = SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId] || window.SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId];
+      const net = window.SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId] || window.SafeWayData?.INDOOR_ROUTE_NETWORKS?.[mapId];
       if (net) {
         const indoorRes = shortestPathOnIndoorNetwork(net, startPt, endPt);
         if (indoorRes && indoorRes.points && indoorRes.points.length >= 2) {
@@ -557,8 +559,10 @@
       activeDestLocation,
       activeCampusRoute,
       liveState,
-      accessibilityMode
+      accessibilityMode,
+      bData
     }) {
+      const buildingData = bData || window.SafeWay?.INITIAL_BUILDING_DATA || window.SafeWayData?.INITIAL_BUILDING_DATA || { nodes: [], edges: [], exits: [], assemblyAreas: [] };
       const stages = [];
       const originMap = activeOriginLocation.mapId;
       const destMap = activeDestLocation.mapId;
@@ -662,7 +666,7 @@
           for (let i = 0; i < nodes.length - 1; i++) {
             const u = nodes[i];
             const v = nodes[i + 1];
-            const edge = bData.edges.find(e => (e.from === u.id && e.to === v.id) || (e.from === v.id && e.to === u.id));
+            const edge = (buildingData.edges || []).find(e => (e.from === u.id && e.to === v.id) || (e.from === v.id && e.to === u.id));
             let waypoints = [];
             if (edge?.waypoints?.length) {
               waypoints = edge.from === u.id ? edge.waypoints.map(w => [w.x, w.y]) : [...edge.waypoints].reverse().map(w => [w.x, w.y]);
@@ -851,7 +855,7 @@
       if (!key) return { block: "Campus Ground", floor: "Ground", room: "Select location", icon: "📍" };
       if (key.startsWith("campus:")) {
         const id = key.replace("campus:", "");
-        const node = (SafeWay.INITIAL_BUILDING_DATA?.nodes || []).find(n => n.id === id);
+        const node = (window.SafeWay?.INITIAL_BUILDING_DATA?.nodes || window.SafeWayData?.INITIAL_BUILDING_DATA?.nodes || []).find(n => n.id === id);
         return {
           block: "Main Campus Grounds",
           floor: "Ground",
@@ -879,7 +883,7 @@
 
       const allPlaces = useMemo(() => {
         const list = [];
-        (SafeWay.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).forEach(n => {
+        (window.SafeWay?.INITIAL_BUILDING_DATA?.nodes || window.SafeWayData?.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).forEach(n => {
           list.push({
             key: "campus:" + n.id,
             name: "Campus — " + n.name,
@@ -1100,7 +1104,7 @@
 
                   {activeFloor.id === "campus" ? (
                     <div className="grid grid-cols-2 gap-2">
-                      {(SafeWay.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).map(n => {
+                      {(window.SafeWay?.INITIAL_BUILDING_DATA?.nodes || window.SafeWayData?.INITIAL_BUILDING_DATA?.nodes || []).filter(n => n.floor === 1 && ["room", "entrance", "assembly"].includes(n.type)).map(n => {
                         const k = "campus:" + n.id;
                         return (
                           <button
@@ -1311,8 +1315,9 @@
       useEffect(() => {
         let unsub = null;
         const checkReady = () => {
-          if (window.SafeWay?.INITIAL_BUILDING_DATA && !bData) {
-            setBData(window.SafeWay.INITIAL_BUILDING_DATA);
+          const bd = window.SafeWay?.INITIAL_BUILDING_DATA || window.SafeWayData?.INITIAL_BUILDING_DATA;
+          if (bd) {
+            setBData(prev => prev || bd);
           }
           if (window.SafeWay?.subscribeToRealtimeData && !unsub) {
             unsub = window.SafeWay.subscribeToRealtimeData(state => setLiveState(state));
@@ -1320,12 +1325,14 @@
         };
 
         checkReady();
+        window.addEventListener('safeway-ready', checkReady);
         const interval = setInterval(checkReady, 50);
         return () => {
           clearInterval(interval);
+          window.removeEventListener('safeway-ready', checkReady);
           if (unsub) unsub();
         };
-      }, [bData]);
+      }, []);
 
       const notify = (msg) => {
         setStatusNotification(msg);
@@ -1393,16 +1400,24 @@
             break;
           }
         }
+        const loc = findLocationByKey(key);
+        if (loc) {
+          setSelectedMapId(loc.mapId);
+          setActiveStageIndex(0);
+          setStageStepCount(0);
+          setTotalStepCount(0);
+        }
       };
 
-      // Handler for Destination Selection
       const handleDestinationChange = (key) => {
         setDestinationLocationKey(key);
-        for (const group of ALL_CAMPUS_LOCATIONS_HIERARCHY) {
-          const item = group.items.find(i => i.key === key);
-          if (item) {
-            setStageStepCount(0);
-            setActiveStageIndex(0);
+      };
+
+      const handleQuickPresetSelect = (code) => {
+        const presets = window.SafeWay?.getQrPresets ? window.SafeWay.getQrPresets() : [];
+        for (const item of presets) {
+          if (item.code === code) {
+            setDestinationLocationKey(item.locationKey);
             notify("🎯 Target: " + item.name);
             speakText("Route plotted to " + item.name);
             break;
@@ -1412,9 +1427,9 @@
 
       if (!bData) {
         return (
-          <div className="flex h-screen flex-col items-center justify-center gap-3 text-indigo-400 font-bold">
-            <img src="/assets/aegispath-icon.svg" alt="AegisPath" className="w-16 h-16 rounded-3xl shadow-xl shadow-indigo-600/30 animate-pulse" />
-            <span>Loading AegisPath System...</span>
+          <div className={"min-h-screen flex flex-col items-center justify-center p-6 text-center " + (isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-white")}>
+            <img src="/assets/aegispath-icon.svg" alt="AegisPath" className="w-16 h-16 rounded-3xl shadow-xl shadow-indigo-600/30 animate-pulse mb-4" />
+            <span className="font-black text-sm text-indigo-400">Loading AegisPath Navigation...</span>
           </div>
         );
       }
@@ -1475,9 +1490,10 @@
           activeDestLocation,
           activeCampusRoute,
           liveState,
-          accessibilityMode
+          accessibilityMode,
+          bData
         });
-      }, [activeOriginLocation, activeDestLocation, activeCampusRoute, liveState, accessibilityMode]);
+      }, [activeOriginLocation, activeDestLocation, activeCampusRoute, liveState, accessibilityMode, bData]);
 
       // Current active stage object in pipeline
       const currentActiveStage = multiFloorPipeline[activeStageIndex] || multiFloorPipeline[0];
