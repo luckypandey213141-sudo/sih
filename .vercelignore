@@ -1,0 +1,10 @@
+# Vercel Deployment Exclusions
+/scripts/
+/_backups/
+/**/__pycache__/
+*.pyc
+*.zip
+.git
+.github
+tests/
+scratch/

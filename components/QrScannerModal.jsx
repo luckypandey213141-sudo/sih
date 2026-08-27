@@ -3,6 +3,8 @@
  * Provides interactive visual checkpoint scanning simulation.
  */
 
+import React from 'react';
+
 export function QrScannerModal({
   isOpen,
   onClose,
@@ -21,6 +23,10 @@ export function QrScannerModal({
     { id: "room-204", name: "Room 204 Faculty Lounge (2F)", category: "Lounge" },
     { id: "library", name: "Central Library (2F)", category: "Study" }
   ];
+
+  const availablePresets = quickPresets.filter(preset => 
+    buildingData?.nodes?.some(node => node.id === preset.id)
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -63,7 +69,7 @@ export function QrScannerModal({
             Popular Checkpoints:
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {quickPresets.map(preset => {
+            {availablePresets.map(preset => {
               const isCurrent = currentLocationId === preset.id;
               return (
                 <button

@@ -131,7 +131,9 @@ export class MotionTracker {
 
   notify(event) {
     this.listeners.forEach(cb => {
-      try { cb(event); } catch (e) {}
+      try { cb(event); } catch (e) {
+        console.warn('[MotionTracker] listener error:', e);
+      }
     });
   }
 }

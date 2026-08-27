@@ -31,9 +31,9 @@
 const char* WIFI_SSID = "YOUR_WIFI_SSID";
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-// Firebase Realtime Database REST Endpoint or Local SafeWay Gateway
-const char* FIREBASE_HOST = "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com";
-const char* FIREBASE_AUTH_KEY = "YOUR_FIREBASE_DATABASE_SECRET"; // Or leave empty for open rules
+// SafeWay Backend Serverless REST Endpoint (Vercel or Local Gateway)
+const char* SAFEWAY_API_URL = "https://sih-two-iota.vercel.app/api/sensor"; // Or "http://192.168.1.100:3000/api/sensor"
+const char* SAFEWAY_AUTH_KEY = "safeway-iot-sensor-auth-2026"; // Configurable IoT Sensor Secret Token
 
 const char* SENSOR_ID = "esp32-zone-b";
 const char* ASSIGNED_ZONE = "zone-b";
@@ -217,7 +217,7 @@ void evaluateSafetyMetrics() {
 }
 
 /**
- * Serialize JSON and transmit to Firebase Realtime Database
+ * Serialize JSON and transmit HTTP POST directly to SafeWay /api/sensor Backend
  */
 void transmitTelemetry() {
   StaticJsonDocument<300> doc;
@@ -239,20 +239,19 @@ void transmitTelemetry() {
 
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    String url = String(FIREBASE_HOST) + "/safeway/live/sensors/" + String(SENSOR_ID) + ".json";
-    if (strlen(FIREBASE_AUTH_KEY) > 0) {
-      url += "?auth=" + String(FIREBASE_AUTH_KEY);
+    http.begin(SAFEWAY_API_URL);
+    http.addHeader("Content-Type", "application/json");
+    if (strlen(SAFEWAY_AUTH_KEY) > 0) {
+      http.addHeader("X-Sensor-Auth", SAFEWAY_AUTH_KEY);
+      http.addHeader("Authorization", String("Bearer ") + SAFEWAY_AUTH_KEY);
     }
 
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-
-    int httpResponseCode = http.PUT(jsonString);
+    int httpResponseCode = http.POST(jsonString);
     if (httpResponseCode > 0) {
-      Serial.print("[Firebase] Sync OK. Code: ");
+      Serial.print("[SafeWay Gateway] Sync OK. Code: ");
       Serial.println(httpResponseCode);
     } else {
-      Serial.print("[Firebase] Error: ");
+      Serial.print("[SafeWay Gateway] Error: ");
       Serial.println(http.errorToString(httpResponseCode).c_str());
     }
     http.end();

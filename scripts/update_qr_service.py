@@ -9,7 +9,7 @@ Generates the comprehensive services/qrLocation.js with:
 import os
 import json
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERVICE_FILE = os.path.join(BASE_DIR, "services", "qrLocation.js")
 
 # Load checkpoint definitions

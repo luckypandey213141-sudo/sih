@@ -101,6 +101,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (reqPath === '/api/admin/verify' && req.method === 'GET') {
+    if (isAdmin(req)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ authenticated: true, user: 'admin', role: 'admin' }));
+    } else {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ authenticated: false, error: 'Unauthorized' }));
+    }
+    return;
+  }
+
   if (reqPath === '/api/admin/logout' && req.method === 'POST') {
     const token = parseCookies(req).safeway_admin_session;
     if (token) adminSessions.delete(token);
@@ -144,7 +155,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Get live sensors API
-  if (reqPath === '/api/sensors' && req.method === 'GET') {
+  if ((reqPath === '/api/sensor' || reqPath === '/api/sensors') && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(liveSensorData));
     return;

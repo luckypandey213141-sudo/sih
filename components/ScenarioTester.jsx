@@ -4,7 +4,22 @@
  * with informative explanations of algorithm behavior.
  */
 
+import React from 'react';
+
 export function ScenarioTester({ onRunScenario, activeScenarioId }) {
+  // Gate component so it only renders in development/testing mode
+  const isDev = Boolean(
+    (typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production') ||
+    (typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.__SAFEWAY_DEV__ === true ||
+      window.location.search.includes('dev=true')
+    ))
+  );
+
+  if (!isDev) return null;
+
   const scenarios = [
     {
       id: "scenario-1",

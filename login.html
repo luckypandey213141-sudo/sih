@@ -40,15 +40,11 @@
         if (response.ok) {
           location.replace('/admin/index.html');
         } else {
-          const data = await response.json();
+          const data = await response.json().catch(() => ({}));
           error.textContent = data.error || 'Sign-in failed';
         }
       } catch (err) {
-        if (document.getElementById('username').value === 'admin' && document.getElementById('password').value === 'SafeWay-Demo-2026') {
-          location.replace('/admin/index.html');
-        } else {
-          error.textContent = 'Invalid username or passcode';
-        }
+        error.textContent = 'Unable to reach server, please try again';
       }
     });
   </script>

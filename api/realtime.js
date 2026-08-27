@@ -1,62 +1,29 @@
 /**
  * AegisPath Live Centralized Realtime State & Presence Hub
  * Deployed as a Vercel Serverless Endpoint at /api/realtime
- * Provides cross-device instant synchronization for mobile phones, PCs, and Admin Console.
+ * Backed by Persistent Storage Adapter + Server-Side HMAC Admin Authentication.
  */
 
-let liveRealtimeState = {
-  emergencyActive: false,
-  hazards: {
-    "zone-a": "none",
-    "zone-b": "none",
-    "zone-c": "none",
-    "zone-d": "none",
-    "zone-e": "none"
-  },
-  crowds: {
-    "exit-1": "Low",
-    "exit-2": "Low",
-    "exit-3": "Low",
-    "zone-a": "Low",
-    "zone-b": "Low",
-    "zone-c": "Low",
-    "zone-d": "Low",
-    "zone-e": "Low"
-  },
-  corridorCrowds: {},
-  exits: {
-    "exit-1": { isOpen: true },
-    "exit-2": { isOpen: true },
-    "exit-3": { isOpen: true }
-  },
-  blockedEdges: {},
-  emergencyPolicies: {
-    allowElevatorsInFire: false,
-    accessibleEvacuationStrategy: "refuge_zone"
-  },
-  distressSignals: {},
-  resolvedDistressSignals: {},
-  presence: {},
-  sensors: {},
-  lastUpdated: new Date().toISOString()
-};
+import { authenticateAdmin } from './_auth.js';
+import { getRealtimeState, saveRealtimeState } from './_store.js';
 
-function prunePresence() {
+function prunePresence(state) {
   const now = Date.now();
   const active = {};
-  for (const [id, dev] of Object.entries(liveRealtimeState.presence || {})) {
+  for (const [id, dev] of Object.entries(state.presence || {})) {
     if (now - (dev.timestamp || 0) < 35000) {
       active[id] = dev;
     }
   }
-  liveRealtimeState.presence = active;
+  state.presence = active;
   return active;
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Sensor-Auth, X-Admin-Auth, X-Requested-With');
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
   if (req.method === 'OPTIONS') {
@@ -64,10 +31,10 @@ export default async function handler(req, res) {
     return res.end();
   }
 
-  prunePresence();
+  let currentState = await getRealtimeState();
+  prunePresence(currentState);
 
   if (req.method === 'GET') {
-    // Optional query param presence registration during GET
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const deviceId = url.searchParams.get('deviceId');
     const mapId = url.searchParams.get('mapId');
@@ -75,7 +42,8 @@ export default async function handler(req, res) {
     const floor = url.searchParams.get('floor');
 
     if (deviceId) {
-      liveRealtimeState.presence[deviceId] = {
+      if (!currentState.presence) currentState.presence = {};
+      currentState.presence[deviceId] = {
         deviceId,
         deviceType: deviceId.startsWith('dev_mob_') ? 'Mobile Phone' : 'PC / Workstation',
         mapId: mapId || 'campus',
@@ -83,11 +51,12 @@ export default async function handler(req, res) {
         floor: floor ? Number(floor) : 1,
         timestamp: Date.now()
       };
+      await saveRealtimeState(currentState);
     }
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(liveRealtimeState));
+    return res.end(JSON.stringify(currentState));
   }
 
   if (req.method === 'POST' || req.method === 'PUT') {
@@ -114,10 +83,24 @@ export default async function handler(req, res) {
 
     const { action } = payload;
 
+    // Public actions allowed without admin authentication
+    const isPublicAction = action === 'heartbeat' || action === 'sos' || action === 'clear_sos';
+
+    // State-mutating actions require admin authentication
+    if (!isPublicAction) {
+      const auth = authenticateAdmin(req);
+      if (!auth.authenticated) {
+        res.statusCode = 401;
+        res.setHeader('Content-Type', 'application/json');
+        return res.end(JSON.stringify({ error: 'Unauthorized: Valid Admin Session or Auth Token Required' }));
+      }
+    }
+
     if (action === 'heartbeat') {
       const { deviceId, mapId, roomName, floor } = payload;
       if (deviceId) {
-        liveRealtimeState.presence[deviceId] = {
+        if (!currentState.presence) currentState.presence = {};
+        currentState.presence[deviceId] = {
           deviceId,
           deviceType: deviceId.startsWith('dev_mob_') ? 'Mobile Phone' : 'PC / Workstation',
           mapId: mapId || 'campus',
@@ -126,11 +109,11 @@ export default async function handler(req, res) {
           timestamp: Date.now()
         };
       }
-      prunePresence();
     } else if (action === 'sos') {
       const { signal } = payload;
       if (signal && signal.id) {
-        liveRealtimeState.distressSignals[signal.id] = {
+        if (!currentState.distressSignals) currentState.distressSignals = {};
+        currentState.distressSignals[signal.id] = {
           ...signal,
           timestamp: signal.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           rawTimestamp: Date.now(),
@@ -139,43 +122,43 @@ export default async function handler(req, res) {
       }
     } else if (action === 'clear_sos') {
       const { id } = payload;
-      if (id && liveRealtimeState.distressSignals[id]) {
-        const activeSignal = liveRealtimeState.distressSignals[id];
-        if (!liveRealtimeState.resolvedDistressSignals) liveRealtimeState.resolvedDistressSignals = {};
-        liveRealtimeState.resolvedDistressSignals[id] = {
+      if (id && currentState.distressSignals && currentState.distressSignals[id]) {
+        const activeSignal = currentState.distressSignals[id];
+        if (!currentState.resolvedDistressSignals) currentState.resolvedDistressSignals = {};
+        currentState.resolvedDistressSignals[id] = {
           ...activeSignal,
           status: 'RESCUED_RESOLVED',
           resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           resolvedTimestamp: Date.now()
         };
-        delete liveRealtimeState.distressSignals[id];
+        delete currentState.distressSignals[id];
       }
     } else if (action === 'delete_archived_sos') {
       const { id } = payload;
-      if (id && liveRealtimeState.resolvedDistressSignals && liveRealtimeState.resolvedDistressSignals[id]) {
-        delete liveRealtimeState.resolvedDistressSignals[id];
-        liveRealtimeState.version = (liveRealtimeState.version || 0) + 1;
+      if (id && currentState.resolvedDistressSignals && currentState.resolvedDistressSignals[id]) {
+        delete currentState.resolvedDistressSignals[id];
+        currentState.version = (currentState.version || 0) + 1;
       }
     } else if (action === 'clear_all_audit') {
-      liveRealtimeState.resolvedDistressSignals = {};
-      liveRealtimeState.version = (liveRealtimeState.version || 0) + 1;
+      currentState.resolvedDistressSignals = {};
+      currentState.version = (currentState.version || 0) + 1;
     } else if (action === 'update_master') {
       const { state } = payload;
       if (state && typeof state === 'object') {
-        liveRealtimeState = {
-          ...liveRealtimeState,
+        currentState = {
+          ...currentState,
           ...state,
-          presence: { ...liveRealtimeState.presence, ...(state.presence || {}) },
-          distressSignals: { ...liveRealtimeState.distressSignals, ...(state.distressSignals || {}) },
-          resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(state.resolvedDistressSignals || {}) },
-          version: (liveRealtimeState.version || 0) + 1,
+          presence: { ...currentState.presence, ...(state.presence || {}) },
+          distressSignals: { ...currentState.distressSignals, ...(state.distressSignals || {}) },
+          resolvedDistressSignals: { ...currentState.resolvedDistressSignals, ...(state.resolvedDistressSignals || {}) },
+          version: (currentState.version || 0) + 1,
           lastUpdated: new Date().toISOString()
         };
       }
     } else if (action === 'reset_all') {
-      const keepPresence = { ...liveRealtimeState.presence };
-      const keepResolvedDistress = { ...(liveRealtimeState.resolvedDistressSignals || {}) };
-      liveRealtimeState = {
+      const keepPresence = { ...(currentState.presence || {}) };
+      const keepResolvedDistress = { ...(currentState.resolvedDistressSignals || {}) };
+      currentState = {
         emergencyActive: false,
         hazards: { "zone-a": "none", "zone-b": "none", "zone-c": "none", "zone-d": "none", "zone-e": "none" },
         crowds: { "exit-1": "Low", "exit-2": "Low", "exit-3": "Low", "zone-a": "Low", "zone-b": "Low", "zone-c": "Low", "zone-d": "Low", "zone-e": "Low" },
@@ -187,29 +170,31 @@ export default async function handler(req, res) {
         resolvedDistressSignals: keepResolvedDistress,
         presence: keepPresence,
         sensors: {},
-        version: (liveRealtimeState.version || 0) + 1,
+        version: (currentState.version || 0) + 1,
         lastUpdated: new Date().toISOString()
       };
     } else if (payload.emergencyActive !== undefined || payload.hazards || payload.exits || payload.blockedEdges) {
-      // Direct state payload
-      liveRealtimeState = {
-        ...liveRealtimeState,
+      // Direct state payload from Admin Console
+      currentState = {
+        ...currentState,
         ...payload,
-        presence: { ...liveRealtimeState.presence, ...(payload.presence || {}) },
-        distressSignals: { ...liveRealtimeState.distressSignals, ...(payload.distressSignals || {}) },
-        resolvedDistressSignals: { ...liveRealtimeState.resolvedDistressSignals, ...(payload.resolvedDistressSignals || {}) },
-        version: (liveRealtimeState.version || 0) + 1,
+        presence: { ...(currentState.presence || {}), ...(payload.presence || {}) },
+        distressSignals: { ...(currentState.distressSignals || {}), ...(payload.distressSignals || {}) },
+        resolvedDistressSignals: { ...(currentState.resolvedDistressSignals || {}), ...(payload.resolvedDistressSignals || {}) },
+        version: (currentState.version || 0) + 1,
         lastUpdated: new Date().toISOString()
       };
     }
 
-    prunePresence();
+    prunePresence(currentState);
+    await saveRealtimeState(currentState);
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(liveRealtimeState));
+    return res.end(JSON.stringify(currentState));
   }
 
   res.statusCode = 405;
+  res.setHeader('Content-Type', 'application/json');
   return res.end(JSON.stringify({ error: 'Method not allowed' }));
 }

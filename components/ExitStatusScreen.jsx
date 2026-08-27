@@ -3,6 +3,8 @@
  * Real-time monitoring of all 3 emergency exits with crowd levels and operational states.
  */
 
+import React from 'react';
+
 export function ExitStatusScreen({
   buildingData,
   exitCrowdLevels,
@@ -10,7 +12,6 @@ export function ExitStatusScreen({
   evacuationResult,
   userLocationNodeId
 }) {
-  const userNode = buildingData.nodes.find(n => n.id === userLocationNodeId);
   const recommendedExit = evacuationResult?.recommendedExit;
 
   return (

@@ -270,37 +270,12 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
 
   const results = [];
 
-  // Campus demo policy: compare the two open exit gates and the two designated
-  // safe places over the real pathway graph. A nearby gate wins naturally;
-  // otherwise the closest reachable safe place is selected.
-  if (options.nearestEmergencyDestination && startNode?.floor === 1) {
-    const candidates = [
-      ...exits.filter(exit => exit.isOpen).map(exit => ({ nodeId: exit.id, exit, assembly: null, kind: "exit" })),
-      ...assemblyAreas.map(assembly => ({ nodeId: assembly.id, exit: null, assembly, kind: "safe-place" }))
-    ];
-    const evaluated = candidates.map(candidate => {
-      const path = findShortestPath(startNodeId, candidate.nodeId, nodes, edges, { ...options, isEmergency: true }, crowdData, zoneHazardMap, emergencyPolicies);
-      return { ...candidate, path, cost: path?.totalCost ?? Infinity };
-    }).filter(candidate => candidate.path && candidate.cost < Infinity).sort((a, b) => a.cost - b.cost);
-    // Compare every reachable emergency destination by its real pathway
-    // distance. This lets a nearby safe place beat a farther gate, while a
-    // nearby gate beats a farther safe place.
-    evaluated.sort((a, b) => a.path.totalDistance - b.path.totalDistance || a.cost - b.cost);
-    const best = evaluated[0] || null;
-    return {
-      bestRoute: best?.path || null,
-      recommendedExit: best?.exit || null,
-      recommendedAssembly: best?.assembly || null,
-      emergencyDestinationType: best?.kind || null,
-      isRefugeRoute: false,
-      allExitEvaluations: evaluated
-    };
-  }
-
+  // Evaluate all building exits and their sequential route to outdoor assembly areas
   for (const exit of exits) {
     if (!exit.isOpen) {
       results.push({
         exit,
+        assembly: assemblyAreas.find(a => a.id === exit.assemblyId) || null,
         isOpen: false,
         cost: Infinity,
         distance: Infinity,
@@ -317,6 +292,7 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
     if (!pathToExit) {
       results.push({
         exit,
+        assembly: assemblyAreas.find(a => a.id === exit.assemblyId) || null,
         isOpen: true,
         cost: Infinity,
         distance: Infinity,
@@ -367,9 +343,9 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
     });
   }
 
-  // Sort by lowest evaluated cost
+  // Sort by lowest evaluated dynamic cost (and shortest physical distance as tie-breaker)
   const validResults = results.filter(r => r.path !== null && r.cost < Infinity);
-  validResults.sort((a, b) => a.cost - b.cost);
+  validResults.sort((a, b) => a.cost - b.cost || a.distance - b.distance);
 
   let bestOption = validResults.length > 0 ? validResults[0] : null;
 
@@ -377,7 +353,7 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
   if (!bestOption) {
     const refugeNodes = nodes.filter(n => n.type === "refuge" || n.type === "assembly");
     for (const refNode of refugeNodes) {
-      const refPath = findShortestPath(startNodeId, refNode.id, nodes, edges, options, crowdInput, zoneHazardMap, emergencyPolicies);
+      const refPath = findShortestPath(startNodeId, refNode.id, nodes, edges, { ...options, isEmergency: true }, crowdData, zoneHazardMap, emergencyPolicies);
       if (refPath && refPath.totalCost < Infinity) {
         return {
           bestRoute: refPath,

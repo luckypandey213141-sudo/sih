@@ -64,10 +64,10 @@
   <div id="root"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=campus-layout-5';
-    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=campus-layout-7';
-    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=guided-shortest-1';
-    import { resolveQrCode, getQrPresets } from './services/qrLocation.js';
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=3.3.0';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=3.3.0';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=3.3.0';
+    import { resolveQrCode, getQrPresets } from './services/qrLocation.js?v=3.3.0';
     import {
       subscribeToRealtimeData,
       setEmergencyActive,
@@ -76,7 +76,7 @@
       clearDistressSignal,
       reportDevicePresence,
       getDeviceId
-    } from './services/realtime.js';
+    } from './services/realtime.js?v=3.3.0';
 
     const SafeWay = {
       INITIAL_BUILDING_DATA,

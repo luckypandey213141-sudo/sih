@@ -4,6 +4,8 @@
  * hazards, blocked paths, crowd levels, and animated navigation routes.
  */
 
+import React from 'react';
+
 export function FloorMap({
   buildingData,
   currentFloor,
@@ -68,6 +70,13 @@ export function FloorMap({
 
   const userNode = buildingData.nodes.find(n => n.id === userLocationNodeId);
   const destNode = buildingData.nodes.find(n => n.id === destinationNodeId);
+
+  // Window-level mouseup to prevent drag locking when cursor leaves the element
+  React.useEffect(() => {
+    const handleGlobalMouseUp = () => setIsDragging(false);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
 
   // SVG Pan & Zoom Handlers
   const handleMouseDown = (e) => {
@@ -207,13 +216,14 @@ export function FloorMap({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <svg
           id="safeway-svg-map"
           viewBox="0 0 1000 650"
           className="w-full h-full transition-transform duration-75"
           style={{
-            transform: `scale(${zoomLevel}) translate(${pan.x}px, ${pan.y}px)`,
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`,
             transformOrigin: "center center"
           }}
         >

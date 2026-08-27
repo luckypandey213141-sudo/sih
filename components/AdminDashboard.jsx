@@ -4,6 +4,8 @@
  * block corridors, adjust exit crowd levels, and inspect live routing costs.
  */
 
+import React from 'react';
+
 export function AdminDashboard({
   buildingData,
   isEmergency,

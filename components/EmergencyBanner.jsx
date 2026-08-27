@@ -4,14 +4,14 @@
  * color-coded exit status cards, and direct primary guidance.
  */
 
+import React from 'react';
+
 export function EmergencyBanner({
   isEmergency,
   evacuationResult,
   activeHazardSummary,
   userLocationNode,
-  onClearEmergency,
-  onSwitchFloor,
-  currentFloor
+  onClearEmergency
 }) {
   if (!isEmergency) return null;
 

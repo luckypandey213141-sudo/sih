@@ -15,7 +15,7 @@ export const INITIAL_BUILDING_DATA = {
       id: "zone-a",
       name: "Zone A (Lobby & Admin Wing)",
       floor: 1,
-      nodeIds: ["ent-main", "ent-north", "lobby", "admin", "reception", "junc-1-1", "junc-1-2", "junc-1-3"],
+      nodeIds: ["ent-main", "ent-north", "lobby", "admin", "reception", "exit-3", "junc-1-1", "junc-1-2", "junc-1-3"],
       description: "West Wing on Floor 1 covering main entrance, admin offices, and reception."
     },
     {
@@ -68,7 +68,16 @@ export const INITIAL_BUILDING_DATA = {
       crowdLevel: "Low",
       isOpen: true
     },
-    
+    {
+      id: "exit-3",
+      name: "Exit 3 (West Wing / Back Yard)",
+      floor: 1,
+      zone: "zone-a",
+      assemblyId: "assembly-b",
+      assemblyName: "Safe Assembly Area - Back Yard",
+      crowdLevel: "Low",
+      isOpen: true
+    }
   ],
   assemblyAreas: [
     { id: "assembly-a", name: "Safe Assembly Area - Playground", x: 535, y: 65, floor: 1 },
@@ -94,7 +103,7 @@ export const INITIAL_BUILDING_DATA = {
     { id: "stair-b-1", name: "Bhabha Block Entrance", floor: 1, type: "stair", x: 355, y: 347, stepFree: false, zone: "zone-a", roomWidth: 70, roomHeight: 45, icon: "↗" },
     { id: "exit-1", name: "Gate 2", floor: 1, type: "exit", x: 972, y: 140, stepFree: true, zone: "zone-b", roomWidth: 55, roomHeight: 45, icon: "🚪" },
     { id: "exit-2", name: "Main Gate Exit", floor: 1, type: "exit", x: 440, y: 585, stepFree: true, zone: "zone-c", roomWidth: 55, roomHeight: 40, icon: "🚪" },
-    { id: "exit-3", name: "Back Yard Safe-Place Path", floor: 1, type: "junction", x: 155, y: 225, stepFree: true, zone: "zone-a", roomWidth: 55, roomHeight: 45, icon: "↖" },
+    { id: "exit-3", name: "Exit 3 (West Wing)", floor: 1, type: "exit", x: 155, y: 225, stepFree: true, zone: "zone-a", roomWidth: 55, roomHeight: 45, icon: "🚪" },
     
     // Corridor Junctions Floor 1
     { id: "junc-1-1", name: "Bhabha Junction", floor: 1, type: "junction", x: 355, y: 397, stepFree: true, zone: "zone-a" },
@@ -214,6 +223,9 @@ export const INITIAL_BUILDING_DATA = {
 
     // Safe-place connections join the existing drawn campus pathway; no diagonal shortcut is used.
     { id: "safe-playground-path", from: "playground", to: "assembly-a", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
-    { id: "safe-backyard-path", from: "ent-north", to: "assembly-b", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" }
+    { id: "safe-backyard-path", from: "ent-north", to: "assembly-b", distance: 4, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
+    { id: "safe-exit3-assemblyb", from: "exit-3", to: "assembly-b", distance: 3, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
+    { id: "safe-exit1-assemblya", from: "exit-1", to: "assembly-a", distance: 5, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" },
+    { id: "safe-exit2-assemblyb", from: "exit-2", to: "assembly-b", distance: 15, stepFree: true, blocked: false, hazardLevel: "none", type: "outdoor" }
   ]
 };

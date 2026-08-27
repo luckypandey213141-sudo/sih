@@ -48,7 +48,7 @@
   <div id="root"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js';
+    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js?v=3.3.0';
     import {
       subscribeToRealtimeData,
       setEmergencyActive,
@@ -64,7 +64,7 @@
       clearDistressSignal,
       deleteArchivedDistressSignal,
       clearAllAuditHistory
-    } from '../services/realtime.js';
+    } from '../services/realtime.js?v=3.3.0';
 
     window.INITIAL_BUILDING_DATA = INITIAL_BUILDING_DATA;
     window.SafeWayAPI = {
@@ -167,11 +167,36 @@
     }
 
     function AdminApp() {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [isAuthChecking, setIsAuthChecking] = useState(true);
       const [liveState, setLiveState] = useState(null);
       const [activeTab, setActiveTab] = useState("overview");
       const [bData, setBData] = useState(() => window.INITIAL_BUILDING_DATA || null);
       const [selectedAdminMapId, setSelectedAdminMapId] = useState("campus");
       const [showSosArchive, setShowSosArchive] = useState(false);
+
+      // Route Guard: verify signed admin session cookie
+      useEffect(() => {
+        let mounted = true;
+        async function verifySession() {
+          try {
+            const res = await fetch('/api/admin/verify');
+            if (res.ok) {
+              const data = await res.json();
+              if (data.authenticated && mounted) {
+                setIsAuthenticated(true);
+                setIsAuthChecking(false);
+                return;
+              }
+            }
+          } catch (e) {}
+          if (mounted) {
+            window.location.replace('/admin/login.html');
+          }
+        }
+        verifySession();
+        return () => { mounted = false; };
+      }, []);
 
       useEffect(() => {
         let unsub = null;
@@ -191,6 +216,15 @@
           if (unsub) unsub();
         };
       }, []);
+
+      if (isAuthChecking || !isAuthenticated) {
+        return (
+          <div className="flex h-screen flex-col items-center justify-center gap-3 text-indigo-400 font-bold">
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <span>Verifying Security Console Authorization...</span>
+          </div>
+        );
+      }
 
       if (!liveState || !bData) {
         return (
