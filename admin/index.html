@@ -34,20 +34,26 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    body {
+    html, body, #root {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
       background: #0b0f19;
       color: #f8fafc;
       font-family: 'Outfit', sans-serif;
     }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0b0f19; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    /* Sleek custom scrollbars */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.6); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.75); }
   </style>
   
 </head>
-<body class="min-h-screen text-slate-100 selection:bg-indigo-500 selection:text-white">
-  <div id="root"></div>
+<body class="h-full w-full overflow-hidden text-slate-100 selection:bg-indigo-500 selection:text-white">
+  <div id="root" class="h-full w-full overflow-hidden"></div>
 
   <script type="module">
     import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js?v=3.3.0';
@@ -372,9 +378,9 @@
 
       const bgClass = globalColor === "monochrome" ? "bg-[#000000]" : (globalColor === "light" ? "bg-[#0f172a]" : "bg-[#0b0f19]");
       return (
-        <div className={`relative w-full min-h-screen overflow-hidden ${bgClass} ${className}`}>
+        <div className={`relative w-full h-full overflow-hidden flex flex-col ${bgClass} ${className}`}>
           <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0 pointer-events-none" />
-          <div className="relative z-10 w-full h-full">{children}</div>
+          <div className="relative z-10 w-full h-full flex flex-col min-h-0 overflow-hidden">{children}</div>
         </div>
       );
     }
@@ -682,7 +688,7 @@
 
       if (isAuthChecking || !isAuthenticated) {
         return (
-          <KineticGrid globalColor={theme} className="flex h-screen flex-col items-center justify-center gap-3 text-indigo-400 font-bold">
+          <KineticGrid globalColor={theme} className="w-full h-full flex flex-col items-center justify-center gap-3 text-indigo-400 font-bold">
             <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
             <span>Verifying Security Console Authorization...</span>
           </KineticGrid>
@@ -691,7 +697,7 @@
 
       if (!liveState || !bData) {
         return (
-          <KineticGrid globalColor={theme} className="flex h-screen items-center justify-center text-indigo-400 font-bold">
+          <KineticGrid globalColor={theme} className="w-full h-full flex items-center justify-center text-indigo-400 font-bold">
             Loading SafeWay Security Operations Console...
           </KineticGrid>
         );
@@ -783,7 +789,7 @@
       };
 
       return (
-        <KineticGrid globalColor={theme} className="h-screen w-screen overflow-hidden flex flex-col">
+        <KineticGrid globalColor={theme} className="w-full h-full">
           {/* Header */}
           <header className="bg-slate-900/80 backdrop-blur-2xl border-b border-slate-800 shrink-0 z-40 px-6 py-4">
             <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -879,7 +885,7 @@
             </div>
 
             {/* Right Column: Main Workspace & Interactive Controls (ONLY this section scrolls/slides up & down!) */}
-            <div className="flex-1 min-w-0 w-full h-full overflow-y-auto pr-1.5 space-y-6 min-h-0">
+            <div className="flex-1 min-w-0 w-full h-full overflow-y-auto pr-2 pb-24 space-y-6 min-h-0">
             {/* Active SOS Trapped Beacon Alerts (ROOM + TIME + REASON) */}
             {Object.keys(liveState.distressSignals || {}).length > 0 && (
               <div className="bg-red-950/90 border-2 border-red-500 rounded-3xl p-6 shadow-2xl space-y-4 animate-pulse">
