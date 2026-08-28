@@ -24,7 +24,7 @@ const CELL_SIZE = 55; // Desktop-ish size. Will dictate cols/rows
 const INFLUENCE_RADIUS = 260;
 const MAX_WARP = 24;
 const DOT_SPACING = 28;
-const LERP_SPEED = 0.08;
+const LERP_SPEED = 0.26; // Snappy low-latency tracking
 
 const LINE_BASE = { r: 255, g: 255, b: 255, a: 0.13 };
 const NODE_BASE_RADIUS = 1.8;
@@ -190,8 +190,8 @@ export default function KineticGrid({
         const r = ripples[i];
         const age = (now - r.born) / 1000;
         // FIX: Ensure radius is never negative
-        r.radius = Math.max(0, age * 400);
-        r.opacity = Math.max(0, 1 - age * 1.2);
+        r.radius = Math.max(0, age * 560);
+        r.opacity = Math.max(0, 1 - age * 1.5);
         if (r.opacity <= 0) ripples.splice(i, 1);
       }
 
@@ -345,11 +345,11 @@ export default function KineticGrid({
     setSize();
     window.addEventListener("resize", setSize);
 
-    const onMouseMove = (e: MouseEvent) => {
+    const onPointerMove = (e: PointerEvent) => {
       targetMouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
-    const onClick = (e: MouseEvent) => {
+    const onPointerDown = (e: PointerEvent) => {
       ripplesRef.current.push({
         x: e.clientX,
         y: e.clientY,
@@ -359,14 +359,14 @@ export default function KineticGrid({
       });
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("click", onClick);
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
     rafRef.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("resize", setSize);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("click", onClick);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerdown", onPointerDown);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
