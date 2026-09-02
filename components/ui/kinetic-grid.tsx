@@ -154,11 +154,25 @@ export default function KineticGrid({
 
       const theme = {
         default: {
-          bg: "#161618",
-          lineActive: { r: 74, g: 158, b: 255, a: 0.9 },
-          nodeActive: { r: 74, g: 158, b: 255, a: 1.0 },
-          glow: "74,158,255",
-          ripple: "100,180,255",
+          bg: "#12181a",
+          lineActive: { r: 57, g: 174, b: 169, a: 0.95 },
+          nodeActive: { r: 229, g: 239, b: 193, a: 1.0 },
+          glow: "57,174,169",
+          ripple: "162,213,171",
+        },
+        dark: {
+          bg: "#12181a",
+          lineActive: { r: 57, g: 174, b: 169, a: 0.95 },
+          nodeActive: { r: 229, g: 239, b: 193, a: 1.0 },
+          glow: "57,174,169",
+          ripple: "162,213,171",
+        },
+        light: {
+          bg: "#f6f9f5",
+          lineActive: { r: 32, g: 109, b: 105, a: 0.95 },
+          nodeActive: { r: 32, g: 109, b: 105, a: 1.0 },
+          glow: "32,109,105",
+          ripple: "57,174,169",
         },
         monochrome: {
           bg: "#000000",
@@ -167,7 +181,13 @@ export default function KineticGrid({
           glow: "255,255,255",
           ripple: "255,255,255",
         },
-      }[globalColor ?? "default"];
+      }[globalColor ?? "default"] ?? {
+        bg: "#12181a",
+        lineActive: { r: 57, g: 174, b: 169, a: 0.95 },
+        nodeActive: { r: 229, g: 239, b: 193, a: 1.0 },
+        glow: "57,174,169",
+        ripple: "162,213,171",
+      };
 
       ctx.clearRect(0, 0, W, H);
 

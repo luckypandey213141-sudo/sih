@@ -1175,19 +1175,19 @@
       const [isDestPickerOpen, setIsDestPickerOpen] = useState(false);
       const [isMapFocusOpen, setIsMapFocusOpen] = useState(false);
 
-      // Theme Management (Light / Dark)
+      // Theme Management (Light / Dark - Turtle Palette)
       const [theme, setTheme] = useState(() => localStorage.getItem('aegispath_theme') || 'dark');
 
       useEffect(() => {
         localStorage.setItem('aegispath_theme', theme);
         if (theme === 'light') {
           document.documentElement.classList.remove('dark');
-          document.body.style.backgroundColor = '#f1f5f9';
-          document.body.style.color = '#0f172a';
+          document.body.style.backgroundColor = '#f6f9f5';
+          document.body.style.color = '#12181a';
         } else {
           document.documentElement.classList.add('dark');
-          document.body.style.backgroundColor = '#020617';
-          document.body.style.color = '#f8fafc';
+          document.body.style.backgroundColor = '#12181a';
+          document.body.style.color = '#f4f8f1';
         }
       }, [theme]);
 
@@ -1625,12 +1625,12 @@
       const isLight = theme === 'light';
 
       return (
-        <div className={"min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 " + (isLight ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-100")}>
+        <div className={"min-h-screen flex flex-col justify-between max-w-md mx-auto relative shadow-2xl pb-4 transition-colors duration-300 " + (isLight ? "bg-[#f6f9f5] text-[#12181a]" : "bg-[#12181a] text-[#f4f8f1]")}>
           {/* Top Header */}
           <header className={"p-3.5 border-b flex items-center justify-between sticky top-0 z-40 backdrop-blur-xl transition-colors " + (
             isEmergency 
               ? "bg-red-950/95 border-red-600 text-white shadow-xl shadow-red-600/30 animate-pulse"
-              : (isLight ? "bg-white/95 border-slate-200 shadow-sm text-slate-900" : "bg-slate-900/95 border-slate-800 text-white")
+              : (isLight ? "bg-white/95 border-[#557B83]/25 shadow-sm text-[#12181a]" : "bg-[#162022]/95 border-[#557B83]/40 text-white")
           )}>
             <div className="flex items-center gap-2.5">
               {isEmergency ? (
@@ -1638,17 +1638,17 @@
                   <Icon name="siren" className="w-4 h-4 text-white" />
                 </div>
               ) : (
-                <img src="/assets/aegispath-icon.svg" alt="AegisPath" className="w-8 h-8 rounded-xl shadow-md ring-1 ring-indigo-500/30" />
+                <img src="/assets/aegispath-icon.svg" alt="AegisPath" className="w-8 h-8 rounded-xl shadow-md ring-1 ring-[#39AEA9]/40" />
               )}
               <div>
-                <h1 className={"text-xs font-black flex items-center gap-1.5 " + (isEmergency ? "text-white" : (isLight ? "text-slate-900" : "text-white"))}>
+                <h1 className={"text-xs font-black flex items-center gap-1.5 " + (isEmergency ? "text-white" : (isLight ? "text-[#12181a]" : "text-[#E5EFC1]"))}>
                   AegisPath
-                  <span className={"text-[9px] font-black px-2 py-0.5 rounded-full " + (isEmergency ? "bg-red-600 text-white border border-red-400 animate-pulse" : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30")}>
+                  <span className={"text-[9px] font-black px-2 py-0.5 rounded-full " + (isEmergency ? "bg-red-600 text-white border border-red-400 animate-pulse" : (isLight ? "bg-[#206D69]/15 text-[#206D69] border border-[#206D69]/30" : "bg-[#39AEA9]/20 text-[#E5EFC1] border border-[#39AEA9]/40"))}>
                     {isEmergency ? "🚨 EVACUATION ACTIVE" : ("STAGE " + (activeStageIndex + 1) + "/" + multiFloorPipeline.length)}
                   </span>
                 </h1>
-                <p className={"text-[10px] font-medium truncate max-w-[140px] " + (isEmergency ? "text-red-200" : (isLight ? "text-slate-600" : "text-slate-400"))}>
-                  {activeMapPlan.group} &bull; <b className={isEmergency ? "text-white" : "text-indigo-600 dark:text-indigo-300"}>{activeMapPlan.label}</b>
+                <p className={"text-[10px] font-medium truncate max-w-[140px] " + (isEmergency ? "text-red-200" : (isLight ? "text-[#557B83]" : "text-[#A2D5AB]"))}>
+                  {activeMapPlan.group} &bull; <b className={isEmergency ? "text-white" : (isLight ? "text-[#206D69]" : "text-[#E5EFC1]")}>{activeMapPlan.label}</b>
                 </p>
               </div>
             </div>
@@ -1659,8 +1659,8 @@
                 href="/admin/login.html"
                 className={"px-2.5 py-1.5 rounded-xl border text-[10px] font-black transition flex items-center gap-1 " + (
                   isLight
-                    ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 shadow-sm"
-                    : "bg-slate-800 hover:bg-slate-700 text-indigo-300 border-slate-700"
+                    ? "bg-[#206D69]/10 hover:bg-[#206D69]/20 text-[#206D69] border-[#206D69]/30 shadow-sm"
+                    : "bg-[#12181a] hover:bg-[#1f2b2e] text-[#E5EFC1] border-[#557B83]/40"
                 )}
                 title="Open Admin Security Console"
               >
@@ -1670,8 +1670,8 @@
               {/* Universal Theme Switcher Button */}
               <button
                 onClick={toggleTheme}
-                className={"p-2 rounded-xl border text-xs transition " + (isLight ? "bg-slate-100 text-amber-600 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700")}
-                title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+                className={"p-2 rounded-xl border text-xs transition " + (isLight ? "bg-slate-100 text-[#206D69] border-slate-300 hover:bg-slate-200" : "bg-[#12181a] text-[#E5EFC1] border-[#557B83]/40 hover:bg-[#1f2b2e]")}
+                title={isLight ? "Switch to Dark Mode (Turtle Dark)" : "Switch to Light Mode (Turtle Light)"}
               >
                 <Icon name={isLight ? "sun" : "moon"} className="w-4 h-4" />
               </button>
@@ -1682,8 +1682,8 @@
                   soundEnabled
                     ? (isEmergency 
                         ? "bg-red-600 text-white border-red-400 shadow-md shadow-red-500/40 animate-pulse" 
-                        : (isLight ? "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100" : "bg-indigo-600/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-600/30"))
-                    : (isLight ? "bg-slate-100 text-slate-400 border-slate-300 hover:bg-slate-200" : "bg-slate-800 text-slate-500 border-slate-700 hover:bg-slate-700")
+                        : (isLight ? "bg-[#206D69]/15 text-[#206D69] border-[#206D69]/30 hover:bg-[#206D69]/25" : "bg-[#39AEA9]/20 text-[#E5EFC1] border-[#39AEA9]/40 hover:bg-[#39AEA9]/30"))
+                    : (isLight ? "bg-slate-100 text-slate-400 border-slate-300 hover:bg-slate-200" : "bg-[#12181a] text-slate-500 border-[#557B83]/40 hover:bg-[#1f2b2e]")
                 )}
                 title={soundEnabled ? "Audio & Siren Alerts Active (Click to Mute)" : "Audio & Siren Alerts Muted (Click to Enable)"}
               >
@@ -1695,7 +1695,7 @@
                 className={"px-2.5 py-1.5 rounded-xl border text-[11px] font-black transition flex items-center gap-1 " + (
                   accessibilityMode
                     ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
-                    : (isLight ? "bg-slate-100 text-slate-700 border-slate-300" : "bg-slate-800 text-slate-300 border-slate-700")
+                    : (isLight ? "bg-slate-100 text-[#12181a] border-slate-300" : "bg-[#12181a] text-[#A2D5AB] border-[#557B83]/40")
                 )}
                 title="Step-Free Mode"
               >
