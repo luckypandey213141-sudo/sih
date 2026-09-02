@@ -24,38 +24,183 @@
       }
     }
   </script>
+  <style>
+    @keyframes beam-top {
+      0% { left: -50%; opacity: 0.3; filter: blur(1px); }
+      50% { opacity: 0.85; filter: blur(2.5px); }
+      100% { left: 100%; opacity: 0.3; filter: blur(1px); }
+    }
+    @keyframes beam-right {
+      0% { top: -50%; opacity: 0.3; filter: blur(1px); }
+      50% { opacity: 0.85; filter: blur(2.5px); }
+      100% { top: 100%; opacity: 0.3; filter: blur(1px); }
+    }
+    @keyframes beam-bottom {
+      0% { right: -50%; opacity: 0.3; filter: blur(1px); }
+      50% { opacity: 0.85; filter: blur(2.5px); }
+      100% { right: 100%; opacity: 0.3; filter: blur(1px); }
+    }
+    @keyframes beam-left {
+      0% { bottom: -50%; opacity: 0.3; filter: blur(1px); }
+      50% { opacity: 0.85; filter: blur(2.5px); }
+      100% { bottom: 100%; opacity: 0.3; filter: blur(1px); }
+    }
+    @keyframes corner-pulse {
+      0%, 100% { opacity: 0.2; transform: scale(0.9); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+    @keyframes card-glow-pulse {
+      0%, 100% { box-shadow: 0 0 12px 2px rgba(99,102,241,0.06); opacity: 0.25; }
+      50% { box-shadow: 0 0 26px 8px rgba(99,102,241,0.22); opacity: 0.55; }
+    }
+    @keyframes button-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    .animate-beam-top {
+      animation: beam-top 2.5s ease-in-out infinite;
+    }
+    .animate-beam-right {
+      animation: beam-right 2.5s ease-in-out 0.6s infinite;
+    }
+    .animate-beam-bottom {
+      animation: beam-bottom 2.5s ease-in-out 1.2s infinite;
+    }
+    .animate-beam-left {
+      animation: beam-left 2.5s ease-in-out 1.8s infinite;
+    }
+    .animate-corner-1 { animation: corner-pulse 2s ease-in-out infinite; }
+    .animate-corner-2 { animation: corner-pulse 2.4s ease-in-out 0.5s infinite; }
+    .animate-corner-3 { animation: corner-pulse 2.2s ease-in-out 1s infinite; }
+    .animate-corner-4 { animation: corner-pulse 2.3s ease-in-out 1.5s infinite; }
+    .animate-card-glow { animation: card-glow-pulse 4s ease-in-out infinite; }
+    .animate-btn-sweep { animation: button-sweep 2s ease-in-out infinite; }
+    .card-3d-wrapper {
+      perspective: 1500px;
+    }
+    .card-3d-inner {
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+  </style>
 </head>
 <body class="min-h-screen bg-[#0b0f19] text-slate-100 flex items-center justify-center p-6 relative overflow-hidden font-sans select-none">
-  <!-- Interactive Kinetic Grid Background Canvas -->
+  <!-- Interactive Kinetic Grid Background Canvas (Persisted Exactly as Before) -->
   <canvas id="kinetic-grid-canvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
-  <!-- Login Card Container -->
-  <main class="relative z-10 w-full max-w-md rounded-3xl border border-slate-800/80 bg-slate-900/85 backdrop-blur-2xl p-8 shadow-2xl shadow-black/80 transition-all duration-300 hover:border-indigo-500/40">
-    <div class="mb-8 flex items-center gap-3.5">
-      <img src="/assets/aegispath-icon.svg" alt="AegisPath Logo" class="h-12 w-12 rounded-2xl shadow-lg shadow-indigo-600/30">
-      <div>
-        <h1 class="text-xl font-black tracking-tight text-white">AegisPath</h1>
-        <p class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Security Operations Command Access</p>
+  <!-- 3D Perspective Card Wrapper (sign-in-card-2) -->
+  <div id="card-3d-wrapper" class="card-3d-wrapper relative z-10 w-full max-w-md">
+    <div id="card-3d-inner" class="card-3d-inner relative group">
+      
+      <!-- Outer Card Glow on Hover -->
+      <div class="absolute -inset-[1px] rounded-3xl opacity-0 group-hover:opacity-80 transition-opacity duration-700 animate-card-glow pointer-events-none"></div>
+
+      <!-- Traveling Light Beam Effect along Borders -->
+      <div class="absolute -inset-[1px] rounded-3xl overflow-hidden pointer-events-none z-20">
+        <!-- Top Light Beam -->
+        <div class="absolute top-0 left-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-indigo-300 to-transparent opacity-75 animate-beam-top"></div>
+        <!-- Right Light Beam -->
+        <div class="absolute top-0 right-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-indigo-300 to-transparent opacity-75 animate-beam-right"></div>
+        <!-- Bottom Light Beam -->
+        <div class="absolute bottom-0 right-0 h-[3px] w-[50%] bg-gradient-to-r from-transparent via-indigo-300 to-transparent opacity-75 animate-beam-bottom"></div>
+        <!-- Left Light Beam -->
+        <div class="absolute bottom-0 left-0 h-[50%] w-[3px] bg-gradient-to-b from-transparent via-indigo-300 to-transparent opacity-75 animate-beam-left"></div>
+
+        <!-- Subtle Corner Glow Spots -->
+        <div class="absolute top-0 left-0 h-2 w-2 rounded-full bg-white/60 blur-[1px] animate-corner-1"></div>
+        <div class="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-indigo-300/80 blur-[2px] animate-corner-2"></div>
+        <div class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-indigo-300/80 blur-[2px] animate-corner-3"></div>
+        <div class="absolute bottom-0 left-0 h-2 w-2 rounded-full bg-white/60 blur-[1px] animate-corner-4"></div>
       </div>
+
+      <!-- Card Border Glow -->
+      <div class="absolute -inset-[0.5px] rounded-3xl bg-gradient-to-r from-indigo-500/15 via-indigo-400/25 to-indigo-500/15 opacity-0 group-hover:opacity-75 transition-opacity duration-500 pointer-events-none"></div>
+
+      <!-- Glass Card Background Panel -->
+      <main class="relative z-10 w-full rounded-3xl border border-white/[0.09] bg-slate-950/80 backdrop-blur-2xl p-8 shadow-2xl shadow-black/90 overflow-hidden">
+        <!-- Subtle Inner Grid Pattern Overlay -->
+        <div class="absolute inset-0 opacity-[0.035] pointer-events-none" style="background-image: linear-gradient(135deg, white 0.5px, transparent 0.5px), linear-gradient(45deg, white 0.5px, transparent 0.5px); background-size: 30px 30px;"></div>
+
+        <!-- Logo and Header -->
+        <div class="relative z-10 mb-7 flex items-center gap-3.5">
+          <div class="relative group/logo">
+            <div class="absolute -inset-1 rounded-2xl bg-indigo-500/30 blur-md group-hover/logo:bg-indigo-500/50 transition-colors"></div>
+            <img src="/assets/aegispath-icon.svg" alt="AegisPath Logo" class="relative h-12 w-12 rounded-2xl shadow-xl shadow-indigo-600/30 ring-1 ring-white/10">
+          </div>
+          <div>
+            <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+              <span>AegisPath</span>
+              <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">V3</span>
+            </h1>
+            <p class="text-xs text-indigo-400 font-bold uppercase tracking-wider">Security Operations Command Access</p>
+          </div>
+        </div>
+
+        <h2 class="relative z-10 text-2xl font-black text-white">Admin verification required</h2>
+        <p class="relative z-10 mt-1.5 text-sm text-slate-400">Enter the authorized username and passcode to open the Security Console.</p>
+
+        <!-- Login Form -->
+        <form id="login-form" class="relative z-10 mt-6 space-y-4">
+          <!-- Username Input -->
+          <div class="space-y-1.5">
+            <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-400">Username</label>
+            <div class="relative flex items-center rounded-xl overflow-hidden border border-slate-800 bg-slate-900/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:bg-slate-900/90 transition-all">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
+              <input id="username" autocomplete="username" required autofocus placeholder="Enter admin username" class="w-full bg-transparent px-4 py-3 pl-10 text-sm text-white placeholder:text-slate-500 outline-none">
+            </div>
+          </div>
+
+          <!-- Passcode Input with Eye Toggle -->
+          <div class="space-y-1.5">
+            <label for="password" class="block text-xs font-bold uppercase tracking-wider text-slate-400">Passcode</label>
+            <div class="relative flex items-center rounded-xl overflow-hidden border border-slate-800 bg-slate-900/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/30 focus-within:bg-slate-900/90 transition-all">
+              <svg class="absolute left-3.5 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+              <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••••••" class="w-full bg-transparent px-4 py-3 pl-10 pr-11 text-sm text-white placeholder:text-slate-500 outline-none font-mono">
+              <button type="button" id="toggle-password" class="absolute right-3 p-1 text-slate-400 hover:text-white transition-colors" title="Toggle passcode visibility">
+                <!-- Eye Open -->
+                <svg id="eye-open-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <!-- Eye Closed -->
+                <svg id="eye-closed-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Error Alert Banner -->
+          <p id="error" role="alert" class="min-h-5 text-xs font-semibold text-red-400"></p>
+
+          <!-- Animated Submit Button with Sweep Effect -->
+          <button id="submit-btn" type="submit" class="w-full relative group/btn rounded-xl overflow-hidden bg-indigo-600 hover:bg-indigo-500 px-4 py-3.5 font-bold text-white shadow-xl shadow-indigo-600/35 transition-all duration-300 active:scale-[0.98]">
+            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-btn-sweep pointer-events-none"></div>
+            <div class="relative flex items-center justify-center gap-2">
+              <span id="btn-text" class="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider">
+                <span>Unlock Security Console</span>
+                <svg class="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+              </span>
+              <span id="btn-spinner" class="hidden flex items-center gap-2 text-sm font-bold">
+                <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Verifying Authorization...</span>
+              </span>
+            </div>
+          </button>
+        </form>
+
+        <a href="/mobile.html" class="relative z-10 mt-6 block text-center text-xs font-bold text-slate-400 hover:text-white transition-colors">
+          ← Return to User Application
+        </a>
+      </main>
     </div>
-    <h2 class="text-2xl font-black text-white">Admin verification required</h2>
-    <p class="mt-2 text-sm text-slate-400">Enter the authorized username and passcode to open the Security Console.</p>
-    
-    <form id="login-form" class="mt-7 space-y-5">
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">
-        Username
-        <input id="username" autocomplete="username" required autofocus class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-base text-white outline-none focus:border-indigo-500 transition-colors shadow-inner">
-      </label>
-      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">
-        Passcode
-        <input id="password" type="password" autocomplete="current-password" required class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/90 px-4 py-3 text-base text-white outline-none focus:border-indigo-500 transition-colors shadow-inner">
-      </label>
-      <p id="error" role="alert" class="min-h-5 text-sm font-semibold text-red-400"></p>
-      <button class="w-full rounded-xl bg-indigo-600 px-4 py-3.5 font-black text-white hover:bg-indigo-500 shadow-xl shadow-indigo-600/30 transition-all active:scale-[0.98]" type="submit">Unlock Security Console</button>
-    </form>
-    
-    <a href="/mobile.html" class="mt-6 block text-center text-sm text-slate-400 hover:text-white transition-colors">← Return to User Application</a>
-  </main>
+  </div>
 
   <script>
     // Kinetic Grid Interactive Canvas Animation
@@ -264,11 +409,74 @@
       requestAnimationFrame(draw);
     })();
 
-    // Sign-in Form Submit Handler
+    // 3D Card Interactive Tilt Effect (sign-in-card-2)
+    (function init3DCardTilt() {
+      const cardWrapper = document.getElementById('card-3d-wrapper');
+      const cardInner = document.getElementById('card-3d-inner');
+      if (!cardWrapper || !cardInner) return;
+
+      let currentX = 0, currentY = 0;
+      let targetX = 0, targetY = 0;
+      let isHovering = false;
+
+      cardWrapper.addEventListener('pointermove', e => {
+        isHovering = true;
+        const rect = cardWrapper.getBoundingClientRect();
+        const x = e.clientX - rect.left - rect.width / 2;
+        const y = e.clientY - rect.top - rect.height / 2;
+        targetX = -(y / (rect.height / 2)) * 10;
+        targetY = (x / (rect.width / 2)) * 10;
+      });
+
+      cardWrapper.addEventListener('pointerleave', () => {
+        isHovering = false;
+        targetX = 0;
+        targetY = 0;
+      });
+
+      function render3D() {
+        currentX += (targetX - currentX) * 0.12;
+        currentY += (targetY - currentY) * 0.12;
+        const z = isHovering ? 10 : 0;
+        cardInner.style.transform = `rotateX(${currentX.toFixed(2)}deg) rotateY(${currentY.toFixed(2)}deg) translateZ(${z}px)`;
+        requestAnimationFrame(render3D);
+      }
+      requestAnimationFrame(render3D);
+    })();
+
+    // Toggle Password Visibility
+    (function initPasswordToggle() {
+      const toggleBtn = document.getElementById('toggle-password');
+      const passInput = document.getElementById('password');
+      const eyeOpen = document.getElementById('eye-open-icon');
+      const eyeClosed = document.getElementById('eye-closed-icon');
+      if (!toggleBtn || !passInput) return;
+
+      toggleBtn.addEventListener('click', () => {
+        const isPass = passInput.type === 'password';
+        passInput.type = isPass ? 'text' : 'password';
+        if (eyeOpen && eyeClosed) {
+          eyeOpen.classList.toggle('hidden', isPass);
+          eyeClosed.classList.toggle('hidden', !isPass);
+        }
+      });
+    })();
+
+    // Sign-in Form Submit Handler with Loading State
     document.getElementById('login-form').addEventListener('submit', async event => {
       event.preventDefault();
       const error = document.getElementById('error');
+      const btnText = document.getElementById('btn-text');
+      const btnSpinner = document.getElementById('btn-spinner');
+      const submitBtn = document.getElementById('submit-btn');
+
       error.textContent = '';
+      if (btnText && btnSpinner) {
+        btnText.classList.add('hidden');
+        btnSpinner.classList.remove('hidden');
+      }
+      if (submitBtn) submitBtn.disabled = true;
+
       try {
         const response = await fetch('/api/admin/login', {
           method: 'POST',
@@ -282,10 +490,20 @@
           location.replace('/admin/index.html');
         } else {
           const data = await response.json().catch(() => ({}));
-          error.textContent = data.error || 'Sign-in failed';
+          error.textContent = data.error || 'Sign-in failed. Please verify credentials.';
+          if (btnText && btnSpinner) {
+            btnText.classList.remove('hidden');
+            btnSpinner.classList.add('hidden');
+          }
+          if (submitBtn) submitBtn.disabled = false;
         }
       } catch (err) {
         error.textContent = 'Unable to reach server, please try again';
+        if (btnText && btnSpinner) {
+          btnText.classList.remove('hidden');
+          btnSpinner.classList.add('hidden');
+        }
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
   </script>
