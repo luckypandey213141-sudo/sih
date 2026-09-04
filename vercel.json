@@ -1,6 +1,9 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/", "destination": "/mobile.html", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/login", "destination": "/admin/login.html" },
     { "source": "/mobile", "destination": "/mobile.html" },
