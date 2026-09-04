@@ -84,20 +84,20 @@
     }
   </style>
 </head>
-<body id="login-body" class="min-h-screen bg-[#12181a] text-slate-100 flex items-center justify-center p-6 relative overflow-hidden font-sans select-none transition-colors duration-300">
+<body id="login-body" class="min-h-screen bg-[#12181a] text-slate-100 flex items-center justify-center p-3 sm:p-6 relative overflow-x-hidden overflow-y-auto font-sans select-none transition-colors duration-300">
   <!-- Interactive Kinetic Grid Background Canvas (Turtle Theme) -->
   <canvas id="kinetic-grid-canvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none"></canvas>
 
   <!-- Top-Right Theme Toggle Button -->
-  <div class="fixed top-5 right-5 z-30">
-    <button id="theme-toggle-btn" class="px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 bg-[#162022]/90 border-[#557B83]/40 text-[#E5EFC1] hover:bg-[#1e2a2e]" title="Switch Theme (Turtle Dark / Turtle Light)">
+  <div class="fixed top-3 right-3 sm:top-5 sm:right-5 z-30">
+    <button id="theme-toggle-btn" class="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 sm:gap-2 transition-all shadow-md active:scale-95 bg-[#162022]/90 border-[#557B83]/40 text-[#E5EFC1] hover:bg-[#1e2a2e]" title="Switch Theme (Turtle Dark / Turtle Light)">
       <span id="theme-icon">🌙</span>
-      <span id="theme-label" class="capitalize">Turtle Dark</span>
+      <span id="theme-label" class="capitalize hidden xs:inline sm:inline">Turtle Dark</span>
     </button>
   </div>
 
   <!-- 3D Perspective Card Wrapper (sign-in-card-2) -->
-  <div id="card-3d-wrapper" class="card-3d-wrapper relative z-10 w-full max-w-md">
+  <div id="card-3d-wrapper" class="card-3d-wrapper relative z-10 w-full max-w-md my-auto">
     <div id="card-3d-inner" class="card-3d-inner relative group">
       
       <!-- Outer Card Glow on Hover -->
@@ -125,7 +125,7 @@
       <div class="absolute -inset-[0.5px] rounded-3xl bg-gradient-to-r from-[#39AEA9]/20 via-[#A2D5AB]/25 to-[#39AEA9]/20 opacity-0 group-hover:opacity-75 transition-opacity duration-500 pointer-events-none"></div>
 
       <!-- Glass Card Background Panel -->
-      <main id="card-panel" class="relative z-10 w-full rounded-3xl border border-[#557B83]/40 bg-[#162022]/90 backdrop-blur-2xl p-8 shadow-2xl shadow-black/90 overflow-hidden transition-colors duration-300">
+      <main id="card-panel" class="relative z-10 w-full rounded-3xl border border-[#557B83]/40 bg-[#162022]/90 backdrop-blur-2xl p-5 sm:p-8 shadow-2xl shadow-black/90 overflow-hidden transition-colors duration-300">
         <!-- Subtle Inner Grid Pattern Overlay -->
         <div class="absolute inset-0 opacity-[0.04] pointer-events-none" style="background-image: linear-gradient(135deg, white 0.5px, transparent 0.5px), linear-gradient(45deg, white 0.5px, transparent 0.5px); background-size: 30px 30px;"></div>
 

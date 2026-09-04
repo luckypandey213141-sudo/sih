@@ -35,25 +35,40 @@
 
   <style>
     html, body, #root {
-      height: 100%;
+      min-height: 100%;
       width: 100%;
       margin: 0;
       padding: 0;
-      overflow: hidden;
       background: #0b0f19;
       color: #f8fafc;
       font-family: 'Outfit', sans-serif;
     }
+    @media (min-width: 1024px) {
+      html, body, #root {
+        height: 100%;
+        overflow: hidden;
+      }
+    }
+    @media (max-width: 1023px) {
+      html, body {
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
     /* Sleek custom scrollbars */
-    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: rgba(11, 15, 25, 0.6); border-radius: 9999px; }
     ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 9999px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.75); }
+    /* Utility to hide horizontal scrollbar */
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
   
 </head>
-<body class="h-full w-full overflow-hidden text-slate-100 selection:bg-indigo-500 selection:text-white">
-  <div id="root" class="h-full w-full overflow-hidden"></div>
+<body class="min-h-screen w-full lg:h-full lg:overflow-hidden text-slate-100 selection:bg-indigo-500 selection:text-white">
+  <div id="root" class="min-h-screen w-full lg:h-full lg:overflow-hidden flex flex-col"></div>
 
   <script type="module">
     import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js?v=3.3.0';
@@ -388,9 +403,9 @@
 
       const bgClass = globalColor === "monochrome" ? "bg-[#000000]" : (globalColor === "light" ? "bg-[#f6f9f5]" : "bg-[#12181a]");
       return (
-        <div className={`relative w-full h-full overflow-hidden flex flex-col ${bgClass} ${className}`}>
+        <div className={`relative w-full min-h-screen lg:h-full lg:overflow-hidden flex flex-col ${bgClass} ${className}`}>
           <canvas ref={canvasRef} className="fixed inset-0 w-full h-full z-0 pointer-events-none" />
-          <div className="relative z-10 w-full h-full flex flex-col min-h-0 overflow-hidden">{children}</div>
+          <div className="relative z-10 w-full flex-1 flex flex-col min-h-0 lg:overflow-hidden">{children}</div>
         </div>
       );
     }
@@ -476,7 +491,8 @@
         sun: <><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>,
         moon: <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>,
         palette: <><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></>,
-        x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+        x: <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+        menu: <><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>
       };
       return (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -494,7 +510,8 @@
       isEmergency,
       onToggleEmergency,
       theme = "dark",
-      className = ""
+      className = "",
+      onClose = null
     }) {
       const isLight = theme === "light";
       return (
@@ -507,26 +524,38 @@
           aria-label="Security Operations Menu"
         >
           {/* User Info Header (Fixed Top) */}
-          <div className={`flex items-center space-x-3 p-2.5 rounded-2xl border shadow-inner shrink-0 ${
+          <div className={`flex items-center justify-between p-2.5 rounded-2xl border shadow-inner shrink-0 ${
             isLight ? "bg-[#f0f5f1] border-[#557B83]/20" : "bg-[#12181a]/90 border-[#557B83]/30"
           }`}>
-            <div className="relative shrink-0">
-              <img
-                src={user.avatarUrl}
-                alt={`${user.name}'s avatar`}
-                className="h-10 w-10 rounded-2xl object-cover ring-2 ring-[#39AEA9]/50 shadow-md"
-              />
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-950 animate-pulse" title="System Live"></span>
-            </div>
-            <div className="flex flex-col truncate min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className={`font-bold text-sm truncate ${isLight ? "text-[#12181a]" : "text-[#E5EFC1]"}`}>{user.name}</span>
-                <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border shrink-0 ${
-                  isLight ? "bg-[#206D69]/15 text-[#206D69] border-[#206D69]/30" : "bg-[#39AEA9]/20 text-[#E5EFC1] border-[#39AEA9]/40"
-                }`}>Admin</span>
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="relative shrink-0">
+                <img
+                  src={user.avatarUrl}
+                  alt={`${user.name}'s avatar`}
+                  className="h-10 w-10 rounded-2xl object-cover ring-2 ring-[#39AEA9]/50 shadow-md"
+                />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-950 animate-pulse" title="System Live"></span>
               </div>
-              <span className={`text-[11px] font-mono truncate ${isLight ? "text-[#557B83]" : "text-[#A2D5AB]"}`}>{user.email}</span>
+              <div className="flex flex-col truncate min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-bold text-sm truncate ${isLight ? "text-[#12181a]" : "text-[#E5EFC1]"}`}>{user.name}</span>
+                  <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border shrink-0 ${
+                    isLight ? "bg-[#206D69]/15 text-[#206D69] border-[#206D69]/30" : "bg-[#39AEA9]/20 text-[#E5EFC1] border-[#39AEA9]/40"
+                  }`}>Admin</span>
+                </div>
+                <span className={`text-[11px] font-mono truncate ${isLight ? "text-[#557B83]" : "text-[#A2D5AB]"}`}>{user.email}</span>
+              </div>
             </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors lg:hidden shrink-0"
+                aria-label="Close Navigation Drawer"
+                title="Close Drawer"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           <div className={`my-2.5 border-t shrink-0 ${isLight ? "border-slate-200" : "border-[#557B83]/30"}`} />
@@ -661,6 +690,7 @@
       const [isMapModalOpen, setIsMapModalOpen] = useState(false);
       const [mapZoomScale, setMapZoomScale] = useState(1);
       const [theme, setTheme] = useState(() => localStorage.getItem('aegispath_admin_theme') || 'dark');
+      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
       const toggleTheme = () => {
         const themes = ['dark', 'monochrome', 'light'];
@@ -827,104 +857,164 @@
       return (
         <KineticGrid globalColor={theme} className="w-full h-full">
           {/* Header */}
-          <header className={`backdrop-blur-2xl border-b shrink-0 z-40 px-6 py-4 transition-colors ${
+          <header className={`backdrop-blur-2xl border-b shrink-0 z-40 px-3 sm:px-6 py-3 sm:py-4 transition-colors ${
             theme === 'light'
               ? 'bg-white/95 border-[#557B83]/30 text-slate-900 shadow-sm'
               : 'bg-[#162022]/90 border-[#557B83]/40 text-slate-100'
           }`}>
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <img src="/assets/aegispath-icon.svg" alt="AegisPath Logo" className="w-10 h-10 rounded-2xl shadow-lg shadow-[#39AEA9]/30 ring-1 ring-white/10" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className={`text-xl font-black ${theme === 'light' ? 'text-[#12181a]' : 'text-[#E5EFC1]'}`}>AegisPath</h1>
-                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40">
-                      Security & Emergency Console
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <img src="/assets/aegispath-icon.svg" alt="AegisPath Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl shadow-lg shadow-[#39AEA9]/30 ring-1 ring-white/10 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <h1 className={`text-base sm:text-xl font-black truncate ${theme === 'light' ? 'text-[#12181a]' : 'text-[#E5EFC1]'}`}>AegisPath</h1>
+                    <span className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/40 shrink-0">
+                      Console
                     </span>
                   </div>
-                  <p className={`text-xs ${theme === 'light' ? 'text-[#557B83]' : 'text-[#A2D5AB]'}`}>Live Centralized Hazard & IoT Telemetry Gateway</p>
+                  <p className={`text-[10px] sm:text-xs truncate ${theme === 'light' ? 'text-[#557B83]' : 'text-[#A2D5AB]'}`}>Hazard & IoT Telemetry Gateway</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                 {/* Live Connected Devices Presence Badge */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border text-xs font-mono font-bold shadow-sm ${
+                <div className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl sm:rounded-2xl border text-[11px] sm:text-xs font-mono font-bold shadow-sm ${
                   theme === 'light'
                     ? 'bg-[#f0f5f1] border-[#557B83]/30 text-[#12181a]'
                     : 'bg-[#12181a]/90 border-[#557B83]/40 text-[#E5EFC1]'
                 }`}>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
                   <span className="text-emerald-400 font-black">{Object.values(liveState.presence || {}).filter(d => Date.now() - (d.timestamp || 0) < 45000).length}</span>
-                  <span>{Object.values(liveState.presence || {}).filter(d => Date.now() - (d.timestamp || 0) < 45000).length === 1 ? 'Device Online' : 'Devices Online'}</span>
+                  <span className="hidden xs:inline sm:inline">{Object.values(liveState.presence || {}).filter(d => Date.now() - (d.timestamp || 0) < 45000).length === 1 ? 'Online' : 'Online'}</span>
                 </div>
 
                 {/* Cloud & AI Sync Status Button */}
-                <div className={`px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-1.5 shadow-sm ${
+                <div className={`hidden sm:flex px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl border text-xs font-bold items-center gap-1.5 shadow-sm ${
                   theme === 'light'
                     ? 'border-[#206D69]/30 bg-[#206D69]/10 text-[#206D69]'
                     : 'border-[#39AEA9]/30 bg-[#39AEA9]/10 text-[#E5EFC1]'
                 }`}>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span>⚡ Edge Serverless Live</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                  <span className="hidden md:inline">⚡ Edge Serverless Live</span>
+                  <span className="md:hidden">⚡ Live</span>
                 </div>
 
                 {/* Theme Mode Toggle Button */}
                 <button
                   onClick={toggleTheme}
-                  className={`px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all shadow-sm active:scale-95 ${
+                  className={`p-2 sm:px-3 sm:py-2 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 ${
                     theme === 'light'
                       ? 'bg-white border-[#206D69]/35 text-[#12181a] hover:bg-slate-50 shadow-sm'
                       : theme === 'monochrome'
                       ? 'bg-zinc-800/90 border-zinc-700 text-zinc-200 hover:bg-zinc-700'
                       : 'bg-[#12181a]/90 border-[#39AEA9]/40 text-[#E5EFC1] hover:bg-[#162022]'
                   }`}
-                  title={`Active Theme: ${theme.toUpperCase()}. Click to switch theme (Turtle Dark -> Turtle Light -> Onyx Stealth)`}
+                  title={`Active Theme: ${theme.toUpperCase()}`}
                 >
                   <Icon
                     name={theme === 'light' ? 'sun' : theme === 'monochrome' ? 'palette' : 'moon'}
-                    className={`w-3.5 h-3.5 ${theme === 'light' ? 'text-[#206D69]' : theme === 'monochrome' ? 'text-zinc-300' : 'text-[#39AEA9]'}`}
+                    className={`w-4 h-4 sm:w-3.5 sm:h-3.5 ${theme === 'light' ? 'text-[#206D69]' : theme === 'monochrome' ? 'text-zinc-300' : 'text-[#39AEA9]'}`}
                   />
-                  <span className="capitalize">{theme === 'light' ? 'Turtle Light' : theme === 'monochrome' ? 'Onyx Stealth' : 'Turtle Dark'}</span>
+                  <span className="hidden lg:inline capitalize">{theme === 'light' ? 'Turtle Light' : theme === 'monochrome' ? 'Onyx Stealth' : 'Turtle Dark'}</span>
                 </button>
 
+                {/* Quick Emergency Button in Header */}
+                <button
+                  onClick={() => window.SafeWayAPI.setEmergencyActive(!isEmergency)}
+                  className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-black uppercase tracking-wider transition shadow-lg flex items-center gap-1.5 active:scale-95 ${
+                    isEmergency
+                      ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                      : "bg-red-600 hover:bg-red-500 text-white animate-pulse"
+                  }`}
+                  title="Toggle Master Building Evacuation Alarm"
+                >
+                  <Icon name={isEmergency ? "check" : "siren"} className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{isEmergency ? "Stand Down" : "Emergency"}</span>
+                  <span className="sm:hidden">{isEmergency ? "Clear" : "SOS"}</span>
+                </button>
+
+                {/* Open User App Link (Desktop/Tablet) */}
                 <a
                   href="/mobile.html"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`hidden sm:flex px-4 py-2 text-xs font-bold rounded-2xl border transition items-center gap-2 ${
+                  className={`hidden md:flex px-3.5 py-2 text-xs font-bold rounded-2xl border transition items-center gap-1.5 ${
                     theme === 'light'
                       ? 'bg-slate-100 hover:bg-slate-200 text-[#12181a] border-slate-300'
                       : 'bg-[#12181a]/90 hover:bg-[#1f2d31] text-[#E5EFC1] border-[#557B83]/40'
                   }`}
                 >
-                  <span>Open User App (Mobile)</span>
+                  <span>User App</span>
                   <span className={theme === 'light' ? 'text-[#206D69]' : 'text-[#39AEA9]'}>↗</span>
                 </a>
+
+                {/* Hamburger Menu Toggle Button for Mobile / Tablet */}
+                <button
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className={`lg:hidden p-2 rounded-xl sm:rounded-2xl border text-xs font-bold flex items-center justify-center transition-all shadow-sm active:scale-95 ${
+                    theme === 'light'
+                      ? 'bg-white border-[#206D69]/35 text-[#12181a] hover:bg-slate-50'
+                      : 'bg-[#12181a]/90 border-[#39AEA9]/40 text-[#E5EFC1] hover:bg-[#162022]'
+                  }`}
+                  aria-label="Open Navigation Menu"
+                  title="Open Navigation Menu"
+                >
+                  <Icon name="menu" className="w-5 h-5 text-[#39AEA9]" />
+                </button>
               </div>
             </div>
           </header>
 
           {/* Emergency Alert Banner */}
           {isEmergency && (
-            <div className="bg-red-950 border-b-4 border-red-600 p-4 text-white shadow-2xl shrink-0 z-30">
-              <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-red-400 animate-ping"></span>
-                  <span className="font-black text-sm uppercase tracking-widest text-red-200">
-                    🚨 MASTER EVACUATION ALARM BROADCASTING TO ALL USER APPS
+            <div className="bg-red-950 border-b-4 border-red-600 p-3 sm:p-4 text-white shadow-2xl shrink-0 z-30">
+              <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-3 h-3 rounded-full bg-red-400 animate-ping shrink-0"></span>
+                  <span className="font-black text-xs sm:text-sm uppercase tracking-widest text-red-200">
+                    🚨 MASTER EVACUATION ALARM BROADCASTING
                   </span>
                 </div>
-                <div className="text-xs text-red-300 font-mono">
+                <div className="text-[11px] sm:text-xs text-red-300 font-mono">
                   All user apps actively executing dynamic sequential rerouting
                 </div>
               </div>
             </div>
           )}
 
+          {/* Mobile / Tablet Slide-Over Navigation Drawer */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden flex">
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              {/* Drawer Content */}
+              <div className="relative w-80 max-w-[85vw] h-full p-3.5 z-10 flex flex-col animate-in slide-in-from-left duration-250 ease-out">
+                <UserProfileSidebar
+                  user={adminUser}
+                  navItems={adminNavItems}
+                  activeTab={activeTab}
+                  onSelectTab={(tabId) => {
+                    setActiveTab(tabId);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  logoutItem={logoutItem}
+                  isEmergency={isEmergency}
+                  onToggleEmergency={() => window.SafeWayAPI.setEmergencyActive(!isEmergency)}
+                  theme={theme}
+                  onClose={() => setIsMobileMenuOpen(false)}
+                  className="h-full max-h-full"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Main 2-Column Command Dashboard */}
-          <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col lg:flex-row gap-6 items-stretch min-h-0 overflow-hidden">
-            {/* Left Column: User Profile & Navigation Sidebar (Fixed / Static on Screen) */}
-            <div className="w-full lg:w-72 lg:shrink-0 flex flex-col h-auto lg:h-full min-h-0 z-20">
+          <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 md:p-6 flex flex-col lg:flex-row gap-4 sm:gap-6 items-stretch min-h-0 lg:overflow-hidden">
+            {/* Left Column: User Profile & Navigation Sidebar (Fixed / Static on Desktop Screen) */}
+            <div className="hidden lg:flex lg:w-72 lg:shrink-0 flex-col h-full min-h-0 z-20">
               <UserProfileSidebar
                 user={adminUser}
                 navItems={adminNavItems}
@@ -937,8 +1027,25 @@
               />
             </div>
 
-            {/* Right Column: Main Workspace & Interactive Controls (ONLY this section scrolls/slides up & down!) */}
-            <div className="flex-1 min-w-0 w-full h-full overflow-y-auto pr-2 pb-24 space-y-6 min-h-0">
+            {/* Right Column: Main Workspace & Interactive Controls */}
+            <div className="flex-1 min-w-0 w-full h-full lg:overflow-y-auto pr-0 lg:pr-2 pb-16 sm:pb-24 space-y-4 sm:space-y-6 min-h-0">
+              {/* Mobile / Tablet Horizontal Tab Pill Switcher (Fast 1-Tap Navigation) */}
+              <div className="lg:hidden flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+                {adminNavItems.filter(item => !item.isSeparator && !item.isAction && !item.href).map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border shrink-0 ${
+                      activeTab === item.id
+                        ? (theme === 'light' ? "bg-[#206D69] text-white border-[#39AEA9] shadow-md" : "bg-[#39AEA9] text-[#12181a] font-black border-[#A2D5AB] shadow-md")
+                        : (theme === 'light' ? "bg-white/90 text-slate-700 border-slate-200 hover:bg-slate-100" : "bg-[#162022]/90 text-[#A2D5AB] border-[#557B83]/30 hover:bg-[#1f2d31]")
+                    }`}
+                  >
+                    <span className="w-3.5 h-3.5 shrink-0">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
             {/* Active SOS Trapped Beacon Alerts (ROOM + TIME + REASON) */}
             {Object.keys(liveState.distressSignals || {}).length > 0 && (
               <div className="bg-red-950/90 border-2 border-red-500 rounded-3xl p-6 shadow-2xl space-y-4 animate-pulse">
@@ -1139,7 +1246,7 @@
             {/* TAB 1: OVERVIEW & ZONES */}
             {activeTab === "overview" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {selectedFacilities.map(area => {
                     const hLevel = liveState.hazards[area.id] || "none";
                     const cLevel = liveState.crowds[area.id] || "Low";
@@ -1227,7 +1334,7 @@
 
             {/* TAB 2: EXITS */}
             {activeTab === "exits" && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {selectedDoors.map(door => {
                   const isOpen = liveState.exits[door.id]?.isOpen !== false;
                   const crowd = liveState.crowds[door.id] || "Low";
@@ -1406,13 +1513,13 @@
 
             {/* TAB 5: SIH DEMO SCRIPT */}
             {activeTab === "sih" && (
-              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+              <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-6">
                 <div>
-                  <h3 className="text-lg font-black text-white">Smart India Hackathon (SIH) 6-Stage Demo Flow</h3>
+                  <h3 className="text-base sm:text-lg font-black text-white">Smart India Hackathon (SIH) 6-Stage Demo Flow</h3>
                   <p className="text-xs text-slate-400">Step through the 6 stages of the presentation live in front of the evaluation panel.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {[
                     {
                       step: "Stage 1",
@@ -1464,7 +1571,7 @@
                       }
                     }
                   ].map((s, idx) => (
-                    <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 flex flex-col justify-between">
+                    <div key={idx} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 flex flex-col justify-between">
                       <div>
                         <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-bold">
                           {s.step}
@@ -1474,7 +1581,7 @@
                       </div>
                       <button
                         onClick={s.action}
-                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 active:scale-95 shadow-md shadow-indigo-600/30"
                       >
                         <Icon name="play" className="w-3.5 h-3.5" />
                         Execute {s.step}
@@ -1490,33 +1597,33 @@
           {/* Fullscreen Interactive Map Pop-up / Zoom Modal */}
           {isMapModalOpen && (
             <div 
-              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md"
+              className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/90 backdrop-blur-md"
               onClick={(e) => { if (e.target === e.currentTarget) setIsMapModalOpen(false); }}
             >
-              <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl max-h-[92dvh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Modal Header */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-800 bg-slate-950/80">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                      <Icon name="maximize-2" className="w-5 h-5" />
+                <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 sm:p-5 border-b border-slate-800 bg-slate-950/80">
+                  <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                      <Icon name="maximize-2" className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-black text-white">{selectedAdminMap.group} — {selectedAdminMap.label}</h3>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                          HIGH-RES BLUEPRINT
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <h3 className="text-sm sm:text-base font-black text-white truncate">{selectedAdminMap.group} — {selectedAdminMap.label}</h3>
+                        <span className="hidden xs:inline text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
+                          BLUEPRINT
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400">Interactive Floor Plan & Emergency Zone Inspector</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 truncate">Interactive Floor Plan Inspector</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                     {/* Floor Map Switcher */}
                     <select
                       value={selectedAdminMapId}
                       onChange={e => setSelectedAdminMapId(e.target.value)}
-                      className="bg-slate-950 border border-slate-700 text-white text-xs font-bold rounded-xl px-3 py-2 outline-none focus:border-indigo-500"
+                      className="bg-slate-950 border border-slate-700 text-white text-[11px] sm:text-xs font-bold rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 outline-none focus:border-indigo-500 max-w-[140px] sm:max-w-[200px] truncate"
                     >
                       {[...new Set(ADMIN_MAPS.map(map => map.group))].map(group => (
                         <optgroup key={group} label={group}>
@@ -1531,24 +1638,24 @@
                     <div className="flex items-center bg-slate-950 border border-slate-800 rounded-xl p-0.5">
                       <button
                         onClick={() => setMapZoomScale(prev => Math.max(0.5, +(prev - 0.25).toFixed(2)))}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
                         title="Zoom Out"
                       >
-                        <Icon name="zoom-out" className="w-4 h-4" />
+                        <Icon name="zoom-out" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
-                      <span className="px-2.5 text-xs font-mono font-bold text-indigo-400 min-w-[50px] text-center">
+                      <span className="px-1.5 sm:px-2.5 text-[11px] sm:text-xs font-mono font-bold text-indigo-400 min-w-[42px] sm:min-w-[50px] text-center">
                         {Math.round(mapZoomScale * 100)}%
                       </span>
                       <button
                         onClick={() => setMapZoomScale(prev => Math.min(3, +(prev + 0.25).toFixed(2)))}
-                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                        className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
                         title="Zoom In"
                       >
-                        <Icon name="zoom-in" className="w-4 h-4" />
+                        <Icon name="zoom-in" className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                       <button
                         onClick={() => setMapZoomScale(1)}
-                        className="px-2.5 py-1 text-[11px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition border-l border-slate-800 ml-0.5"
+                        className="hidden sm:inline px-2.5 py-1 text-[11px] font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition border-l border-slate-800 ml-0.5"
                         title="Reset to 100%"
                       >
                         100%
@@ -1558,16 +1665,16 @@
                     {/* Close Button */}
                     <button
                       onClick={() => setIsMapModalOpen(false)}
-                      className="p-2 bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white rounded-xl border border-slate-700 hover:border-red-500 transition shadow"
+                      className="p-1.5 sm:p-2 bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white rounded-xl border border-slate-700 hover:border-red-500 transition shadow"
                       title="Close Pop-up (ESC)"
                     >
-                      <Icon name="x" className="w-5 h-5" />
+                      <Icon name="x" className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                 </div>
 
                 {/* Modal Image Viewport */}
-                <div className="flex-1 p-6 bg-slate-950 overflow-auto flex items-center justify-center relative select-none min-h-[400px]">
+                <div className="flex-1 p-3 sm:p-6 bg-slate-950 overflow-auto flex items-center justify-center relative select-none min-h-[280px] sm:min-h-[400px]">
                   {selectedAdminMap.src ? (
                     <div
                       className="transition-transform duration-150 ease-out origin-center flex items-center justify-center max-w-full max-h-full"
