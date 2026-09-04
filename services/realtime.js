@@ -93,10 +93,13 @@ function isStateEqual(a, b) {
     if (!b.distressSignals || !b.distressSignals[k]) return false;
   }
 
-  // Compare resolved distress signals count
+  // Compare resolved distress signals count & keys
   const aResolvedKeys = Object.keys(a.resolvedDistressSignals || {});
   const bResolvedKeys = Object.keys(b.resolvedDistressSignals || {});
   if (aResolvedKeys.length !== bResolvedKeys.length) return false;
+  for (const k of aResolvedKeys) {
+    if (!b.resolvedDistressSignals || !b.resolvedDistressSignals[k]) return false;
+  }
 
   // Compare presence count
   const aPresKeys = Object.keys(a.presence || {});
@@ -141,15 +144,14 @@ export async function syncWithCloudServer() {
         const now = Date.now();
         const isRecentLocalAction = (now - lastLocalActionTime) < 5000;
 
-        // Anti-flicker Distress Signals Merge
-        const mergedDistress = {
-          ...(currentLiveState.distressSignals || {}),
-          ...(cloudData.distressSignals || {})
-        };
-        const resolvedMap = {
-          ...(currentLiveState.resolvedDistressSignals || {}),
-          ...(cloudData.resolvedDistressSignals || {})
-        };
+        // Authoritative cloud sync with optimistic window for local actions
+        const mergedDistress = isRecentLocalAction
+          ? { ...(cloudData.distressSignals || {}), ...(currentLiveState.distressSignals || {}) }
+          : (cloudData.distressSignals || {});
+
+        const resolvedMap = isRecentLocalAction
+          ? { ...(cloudData.resolvedDistressSignals || {}), ...(currentLiveState.resolvedDistressSignals || {}) }
+          : (cloudData.resolvedDistressSignals || {});
 
         // Remove any distress signals that were resolved
         for (const resId of Object.keys(resolvedMap)) {
@@ -584,17 +586,18 @@ export function clearDistressSignal(id) {
   const updatedSignals = { ...(currentLiveState.distressSignals || {}) };
   const updatedResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
 
-  if (updatedSignals[id]) {
-    updatedResolved[id] = {
-      ...updatedSignals[id],
-      status: "RESCUED_RESOLVED",
-      resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      resolvedTimestamp: Date.now()
-    };
-    delete updatedSignals[id];
-  }
+  const existing = updatedSignals[id] || { id };
+  const resolvedRecord = {
+    ...existing,
+    status: "RESCUED_RESOLVED",
+    resolvedAt: existing.resolvedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    resolvedTimestamp: existing.resolvedTimestamp || Date.now()
+  };
 
-  // Immediate cloud clear push
+  updatedResolved[id] = resolvedRecord;
+  delete updatedSignals[id];
+
+  // Immediate cloud clear push with full resolvedRecord
   if (typeof window !== "undefined" && window.fetch) {
     try {
       fetch(getApiEndpoint(), {
@@ -602,7 +605,8 @@ export function clearDistressSignal(id) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "clear_sos",
-          id
+          id,
+          resolvedRecord
         })
       }).catch(() => {});
     } catch (e) {}

@@ -121,27 +121,33 @@ export default async function handler(req, res) {
         };
       }
     } else if (action === 'clear_sos') {
-      const { id } = payload;
-      if (id && currentState.distressSignals && currentState.distressSignals[id]) {
-        const activeSignal = currentState.distressSignals[id];
+      const { id, resolvedRecord } = payload;
+      if (id) {
         if (!currentState.resolvedDistressSignals) currentState.resolvedDistressSignals = {};
+        const activeSignal = (currentState.distressSignals && currentState.distressSignals[id]) || resolvedRecord || { id };
         currentState.resolvedDistressSignals[id] = {
           ...activeSignal,
           status: 'RESCUED_RESOLVED',
-          resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          resolvedTimestamp: Date.now()
+          resolvedAt: activeSignal.resolvedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          resolvedTimestamp: activeSignal.resolvedTimestamp || Date.now()
         };
-        delete currentState.distressSignals[id];
+        if (currentState.distressSignals && currentState.distressSignals[id]) {
+          delete currentState.distressSignals[id];
+        }
+        currentState.version = (currentState.version || 0) + 1;
+        currentState.lastUpdated = new Date().toISOString();
       }
     } else if (action === 'delete_archived_sos') {
       const { id } = payload;
       if (id && currentState.resolvedDistressSignals && currentState.resolvedDistressSignals[id]) {
         delete currentState.resolvedDistressSignals[id];
         currentState.version = (currentState.version || 0) + 1;
+        currentState.lastUpdated = new Date().toISOString();
       }
     } else if (action === 'clear_all_audit') {
       currentState.resolvedDistressSignals = {};
       currentState.version = (currentState.version || 0) + 1;
+      currentState.lastUpdated = new Date().toISOString();
     } else if (action === 'update_master') {
       const { state } = payload;
       if (state && typeof state === 'object') {
@@ -150,7 +156,7 @@ export default async function handler(req, res) {
           ...state,
           presence: { ...currentState.presence, ...(state.presence || {}) },
           distressSignals: { ...currentState.distressSignals, ...(state.distressSignals || {}) },
-          resolvedDistressSignals: { ...currentState.resolvedDistressSignals, ...(state.resolvedDistressSignals || {}) },
+          resolvedDistressSignals: state.resolvedDistressSignals !== undefined ? state.resolvedDistressSignals : (currentState.resolvedDistressSignals || {}),
           version: (currentState.version || 0) + 1,
           lastUpdated: new Date().toISOString()
         };
@@ -180,7 +186,7 @@ export default async function handler(req, res) {
         ...payload,
         presence: { ...(currentState.presence || {}), ...(payload.presence || {}) },
         distressSignals: { ...(currentState.distressSignals || {}), ...(payload.distressSignals || {}) },
-        resolvedDistressSignals: { ...(currentState.resolvedDistressSignals || {}), ...(payload.resolvedDistressSignals || {}) },
+        resolvedDistressSignals: payload.resolvedDistressSignals !== undefined ? payload.resolvedDistressSignals : (currentState.resolvedDistressSignals || {}),
         version: (currentState.version || 0) + 1,
         lastUpdated: new Date().toISOString()
       };
