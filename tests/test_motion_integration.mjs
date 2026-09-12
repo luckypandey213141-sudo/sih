@@ -1,0 +1,11 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';import {MotionTracker,interpolatePositionOnRoute} from '../utils/motionTracker.js';
+const listeners=new Map();const win={DeviceMotionEvent:class{},SafeWay:{MotionTracker},addEventListener:(name,fn)=>{if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(fn);},removeEventListener:(name,fn)=>listeners.get(name)?.delete(fn)};globalThis.window=win;
+let cleanup,steps=0,heading=0;const ctx={window:win,isMotionTracking:false,notify(){},useRef:v=>({current:v}),useEffect:fn=>{cleanup=fn();},takeStep:()=>steps++,setCompassHeading:v=>heading=v};ctx.setIsMotionTracking=v=>ctx.isMotionTracking=v;vm.createContext(ctx);
+const html=fs.readFileSync(new URL('../mobile.html',import.meta.url),'utf8');vm.runInContext(html.slice(html.indexOf('      const stepCallback='),html.indexOf('      const triggerSosDistress'))+';this.toggle=toggleSensors;',ctx);
+await ctx.toggle();assert.equal(listeners.get('devicemotion').size,1);assert.equal(listeners.get('deviceorientation').size,1);
+for(const fn of listeners.get('devicemotion'))fn({accelerationIncludingGravity:{x:0,y:0,z:13}});assert.equal(steps,1);
+for(const fn of listeners.get('deviceorientation'))fn({alpha:45});assert.equal(heading,315);
+await ctx.toggle();assert.equal(listeners.get('devicemotion').size,0);assert.equal(listeners.get('deviceorientation').size,0);
+await ctx.toggle();assert.equal(listeners.get('deviceorientation').size,1);cleanup();assert.equal(listeners.get('deviceorientation').size,0);assert.equal(listeners.get('devicemotion').size,0);
+assert.equal(interpolatePositionOnRoute([],10),null);assert.deepEqual(interpolatePositionOnRoute([[0,0],[10,0],[10,10]],15).slice(0,2),[10,5]);
+console.log('PASS: mobile sensor enable delivers steps and heading; pause/unmount removes both listeners; re-enable does not duplicate listeners; movement follows polyline bend.');
