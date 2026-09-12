@@ -40,7 +40,7 @@ export function calculateEdgeCost(edge, options = {}, crowdData = {}, emergencyP
     return Infinity;
   }
 
-  let cost = edge.distance;
+  let cost = edge.distance + (edge.routingPenalty || 0);
 
   // In Normal Mode, return base metric distance (unless blocked or stairs restricted)
   if (!isEmergency) {
@@ -51,6 +51,7 @@ export function calculateEdgeCost(edge, options = {}, crowdData = {}, emergencyP
   if (edge.hazardLevel === "high") {
     return Infinity; // Fire / structural compromise
   }
+  if (options.distanceOnly) return edge.distance;
   if (edge.hazardLevel === "low") {
     cost += 50; // Smoke / heat warning
   }
@@ -115,7 +116,7 @@ export function buildAdjacencyList(nodes, edges, options = {}, crowdInput = {}, 
     };
 
     let cost = calculateEdgeCost(effectiveEdge, options, crowdData, emergencyPolicies);
-    if (options.isEmergency && cost < Infinity) {
+    if (options.isEmergency && !options.distanceOnly && cost < Infinity) {
       cost += getCrowdWeight(maxZoneCrowd);
     }
 
@@ -234,6 +235,8 @@ export function findShortestPath(startNodeId, targetNodeId, nodes, edges, option
  * [USER -> SAFE INTERNAL CORRIDORS -> EXIT DOORWAY -> OUTDOOR ASSEMBLY AREA]
  */
 export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assemblyAreas, options = {}, crowdInput = {}, zoneHazardMap = {}, emergencyPolicies = DEFAULT_EMERGENCY_POLICIES) {
+  const closedExitIds=new Set(exits.filter(e=>e.isOpen===false).map(e=>e.id));
+  edges=edges.filter(e=>!closedExitIds.has(e.from)&&!closedExitIds.has(e.to));
   const { accessibilityMode = false } = options;
   const startNode = nodes.find(n => n.id === startNodeId);
   const crowdData = normalizeCrowdData(crowdInput);
@@ -266,6 +269,31 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
         safetyGuidance: `Elevators locked down for fire safety. Proceed immediately to ${chosenRefuge.name} (Fire-rated 2-hour compartment with emergency intercom) and await evacuation chair assistance.`
       };
     }
+  }
+
+  // Compare the four assigned destinations directly. A gate is a destination,
+  // not an intermediate stop followed by an additional assembly-area journey.
+  if (options.nearestEmergencyDestination) {
+    const gates=exits.filter(exit=>['exit-1','exit-2'].includes(exit.id));
+    const destinations=[...gates.map(exit=>({destination:exit,kind:'gate'})),...assemblyAreas.filter(area=>['assembly-a','assembly-b'].includes(area.id)).map(area=>({destination:area,kind:'safe-place'}))];
+    const evaluations=destinations.map(({destination,kind})=>{
+      const node=nodes.find(n=>n.id===destination.id);
+      const permitted=node && (kind!=='gate'||destination.isOpen!==false) && zoneHazardMap[node.zone]!=='high';
+      const path=permitted?findShortestPath(startNodeId,destination.id,nodes,edges,{...options,isEmergency:true,distanceOnly:true},crowdData,zoneHazardMap,emergencyPolicies):null;
+      return {destination,kind,path,distance:path?.totalDistance??Infinity};
+    });
+    const reachable=evaluations.filter(e=>e.path).sort((a,b)=>a.distance-b.distance || (a.kind==='gate'?0:1)-(b.kind==='gate'?0:1));
+    const chosen=reachable[0];
+    return {
+      bestRoute:chosen?.path||null,
+      recommendedExit:chosen?.kind==='gate'?chosen.destination:null,
+      recommendedAssembly:chosen?.kind==='safe-place'?chosen.destination:null,
+      isRefugeRoute:false,
+      destinationKind:chosen?.kind||null,
+      destinationEvaluations:evaluations,
+      allExitEvaluations:evaluations.filter(e=>e.kind==='gate').map(e=>({exit:e.destination,assembly:null,isOpen:e.destination.isOpen!==false,path:e.path,distance:e.distance,cost:e.distance,crowdLevel:crowdData.exits[e.destination.id]||'Low',statusText:e.path?'Reachable':'Unavailable'})),
+      safetyGuidance:chosen?('Follow the mapped route to '+chosen.destination.name+'.'): 'No reachable assigned destination. Request assistance using SOS.'
+    };
   }
 
   const results = [];
@@ -310,6 +338,7 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
     if (assembly) {
       const pathToAssembly = findShortestPath(exit.id, assembly.id, nodes, edges, { ...options, isEmergency: true }, crowdData, zoneHazardMap, emergencyPolicies);
       
+      if (!pathToAssembly) continue;
       if (pathToAssembly && pathToAssembly.pathNodes.length > 1) {
         const combinedNodes = [...pathToExit.pathNodes, ...pathToAssembly.pathNodes.slice(1)];
         const combinedEdges = [...pathToExit.edges, ...pathToAssembly.edges];
@@ -351,7 +380,7 @@ export function findSafestEvacuationPath(startNodeId, nodes, edges, exits, assem
 
   // FAIL-SAFE DEADLOCK PROTECTION: If all building exits are blocked, find closest reachable refuge zone
   if (!bestOption) {
-    const refugeNodes = nodes.filter(n => n.type === "refuge" || n.type === "assembly");
+    const refugeNodes = nodes.filter(n => n.type === "refuge" || n.type === "assembly").map(n=>({node:n,route:findShortestPath(startNodeId,n.id,nodes,edges,{...options,isEmergency:true},crowdData,zoneHazardMap,emergencyPolicies)})).filter(x=>x.route).sort((a,b)=>a.route.totalCost-b.route.totalCost).map(x=>x.node);
     for (const refNode of refugeNodes) {
       const refPath = findShortestPath(startNodeId, refNode.id, nodes, edges, { ...options, isEmergency: true }, crowdData, zoneHazardMap, emergencyPolicies);
       if (refPath && refPath.totalCost < Infinity) {
