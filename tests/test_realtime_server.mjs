@@ -14,6 +14,16 @@ try{
  assert.equal((await post({action:'clear_sos',id:'test-sos'},'')).status,403);
  assert.equal((await post({action:'sos',signal:{id:'test-sos'}},'')).status,403);
  assert.equal((await post({action:'clear_sos',id:'test-sos'},sos.cookie)).status,200);
+ await post({action:'sos',signal:{id:'test-sos'}},sos.cookie);
+ assert(!(await(await fetch(base+'/api/realtime')).json()).distressSignals['test-sos'],'retry must not resurrect resolved SOS');
+ await post({action:'delete_archived_sos',id:'test-sos'});
+ await post({action:'sos',signal:{id:'test-sos'}},sos.cookie);
+ current=await(await fetch(base+'/api/realtime')).json();
+ assert(!current.distressSignals['test-sos']&&!current.resolvedDistressSignals['test-sos'],'deleted SOS stays deleted after retry');
+ await Promise.all(Array.from({length:20},(_,i)=>post({action:'sos',signal:{id:'device-sos-'+i,reason:'report '+i}},'').then(r=>assert.equal(r.status,200))));
+ await post({action:'reset_all'});
+ current=await(await fetch(base+'/api/realtime')).json();
+ for(let i=0;i<20;i++)assert.equal(current.distressSignals['device-sos-'+i].reason,'report '+i,'each device report survives reset and polling');
  const sensor=await fetch(base+'/api/sensor',{method:'POST',headers:{Authorization:'Bearer audit-only-sensor','Content-Type':'application/json'},body:JSON.stringify({sensorId:'test-sensor',zone:'area-ramanujan-ground-r1',smokeDetected:true})});assert.equal(sensor.status,200,await sensor.text());
  current=await(await fetch(base+'/api/realtime')).json();assert(current.sensors['test-sensor']);assert.equal(current.hazards['area-ramanujan-ground-r1'],'high');
  await fetch(base+'/api/admin/logout',{method:'POST',headers:{cookie:admin}});assert.equal((await post({action:'update_master',patch:{emergencyActive:false}})).status,401);

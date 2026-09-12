@@ -69,3 +69,7 @@ const detour = {step:8,cells:[[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],costs:{'1,0':
 const short=current.shortestPathOnIndoorNetwork(detour,[4,4],[20,4]);
 assert.equal(short.distance,16);
 console.log('Shortest-distance oracle: all 1,500 pairs and high-penalty detour regression passed.');
+const html=fs.readFileSync('mobile.html','utf8');
+function campusRenderer(id){const start=html.indexOf('<g id="'+id+'">');return html.slice(start,html.indexOf('</g>',start)).replaceAll('focus-seg-','route-seg-').replaceAll('focus-campus-route','active-campus-route');}
+assert.equal(campusRenderer('focus-campus-route'),campusRenderer('active-campus-route'),'focus map must use exactly the same bends as normal map');
+console.log('PASS: focus and normal campus maps use identical route geometry.');
