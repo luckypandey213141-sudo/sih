@@ -63,7 +63,7 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
     broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
     broadcastChannel.onmessage = (event) => {
       if (event.data && event.data.type === "STATE_UPDATE") {
-        if (!isStateEqual(currentLiveState, event.data.state)) {
+        if ((event.data.state.version||0)>=(currentLiveState.version||0) && !isStateEqual(currentLiveState, event.data.state)) {
           currentLiveState = { ...currentLiveState, ...event.data.state };
           notifyListeners();
         }
@@ -80,115 +80,48 @@ function getApiEndpoint() {
 /**
  * Fast deep comparison to prevent unnecessary React re-renders & lag
  */
-function isStateEqual(a, b) {
-  if (!a || !b) return false;
-  if (a.emergencyActive !== b.emergencyActive) return false;
-  if (a.version && b.version && a.version !== b.version) return false;
-
-  // Compare active distress signals count & IDs
-  const aDistressKeys = Object.keys(a.distressSignals || {});
-  const bDistressKeys = Object.keys(b.distressSignals || {});
-  if (aDistressKeys.length !== bDistressKeys.length) return false;
-  for (const k of aDistressKeys) {
-    if (!b.distressSignals || !b.distressSignals[k]) return false;
-  }
-
-  // Compare resolved distress signals count & keys
-  const aResolvedKeys = Object.keys(a.resolvedDistressSignals || {});
-  const bResolvedKeys = Object.keys(b.resolvedDistressSignals || {});
-  if (aResolvedKeys.length !== bResolvedKeys.length) return false;
-  for (const k of aResolvedKeys) {
-    if (!b.resolvedDistressSignals || !b.resolvedDistressSignals[k]) return false;
-  }
-
-  // Compare presence count
-  const aPresKeys = Object.keys(a.presence || {});
-  const bPresKeys = Object.keys(b.presence || {});
-  if (aPresKeys.length !== bPresKeys.length) return false;
-
-  // Compare hazards, crowds, exits, blockedEdges JSON fingerprints
-  if (JSON.stringify(a.hazards) !== JSON.stringify(b.hazards)) return false;
-  if (JSON.stringify(a.crowds) !== JSON.stringify(b.crowds)) return false;
-  if (JSON.stringify(a.exits) !== JSON.stringify(b.exits)) return false;
-  if (JSON.stringify(a.blockedEdges) !== JSON.stringify(b.blockedEdges)) return false;
-
-  return true;
+function isStateEqual(a,b) { return JSON.stringify(a) === JSON.stringify(b); }
+let pendingWrites = 0;
+let saveError = null;
+let writeQueue = Promise.resolve();
+let connection = {isLiveCloud:false, badgeText:'Connecting', color:'amber', mode:'Realtime sync'};
+function status(ok, message) {
+ connection={isLiveCloud:ok,badgeText:message,color:ok?'emerald':'red',mode:'Realtime sync'};
+ if(typeof window!=='undefined') window.dispatchEvent(new CustomEvent('safeway-sync-status',{detail:connection}));
+ notifyListeners();
 }
-
+async function command(payload) {
+ pendingWrites++;
+ const run=async()=>{
+  try {
+   const res=await fetch(getApiEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+   const state=await res.json();
+   if(!res.ok) throw new Error(state.error || 'Save failed ('+res.status+')');
+   saveLocalState(state,false); saveError=null; status(true,'Cloud Connected'); return state;
+  } catch(error) { saveError=error.message; status(false,error.message); throw error; }
+  finally {pendingWrites--;}
+ };
+ const result=writeQueue.then(run); writeQueue=result.catch(()=>{}); return result;
+}
 /**
  * Poll the central cloud server for real-time multi-device sync
  */
 export async function syncWithCloudServer() {
-  if (typeof window === "undefined" || !window.fetch) return;
-  if (isSyncInProgress) return; // Prevent overlapping requests
-
-  // If page is hidden, reduce unnecessary background polling
-  if (typeof document !== "undefined" && document.hidden) return;
-
-  isSyncInProgress = true;
-  try {
-    const deviceId = getDeviceId();
-    const mapId = encodeURIComponent(currentDeviceLocation.mapId || "campus");
-    const roomName = encodeURIComponent(currentDeviceLocation.roomName || "Campus Ground");
-    const floor = currentDeviceLocation.floor || 1;
-
-    const url = `${getApiEndpoint()}?deviceId=${deviceId}&mapId=${mapId}&roomName=${roomName}&floor=${floor}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "Cache-Control": "no-cache" }
-    });
-
-    if (res.ok) {
-      const cloudData = await res.json();
-      if (cloudData && typeof cloudData === "object") {
-        const now = Date.now();
-        const isRecentLocalAction = (now - lastLocalActionTime) < 5000;
-
-        // Authoritative cloud sync with optimistic window for local actions
-        const mergedDistress = isRecentLocalAction
-          ? { ...(cloudData.distressSignals || {}), ...(currentLiveState.distressSignals || {}) }
-          : (cloudData.distressSignals || {});
-
-        const resolvedMap = isRecentLocalAction
-          ? { ...(cloudData.resolvedDistressSignals || {}), ...(currentLiveState.resolvedDistressSignals || {}) }
-          : (cloudData.resolvedDistressSignals || {});
-
-        // Remove any distress signals that were resolved
-        for (const resId of Object.keys(resolvedMap)) {
-          if (mergedDistress[resId]) {
-            delete mergedDistress[resId];
-          }
-        }
-
-        const merged = {
-          ...currentLiveState,
-          ...cloudData,
-          // If a local action was performed in the last 5 seconds, keep optimistic local emergencyActive & exits
-          emergencyActive: isRecentLocalAction ? currentLiveState.emergencyActive : (cloudData.emergencyActive ?? currentLiveState.emergencyActive),
-          exits: isRecentLocalAction ? currentLiveState.exits : (cloudData.exits || currentLiveState.exits),
-          blockedEdges: isRecentLocalAction ? currentLiveState.blockedEdges : (cloudData.blockedEdges || currentLiveState.blockedEdges),
-          hazards: isRecentLocalAction ? currentLiveState.hazards : (cloudData.hazards || currentLiveState.hazards),
-          presence: cloudData.presence || currentLiveState.presence || {},
-          distressSignals: mergedDistress,
-          resolvedDistressSignals: resolvedMap,
-          source: "cloud"
-        };
-
-        // Only update & notify React if data actually changed
-        if (!isStateEqual(currentLiveState, merged)) {
-          saveLocalState(merged, false);
-        }
-      }
-    }
-  } catch (e) {
-  } finally {
-    isSyncInProgress = false;
-  }
+ if(typeof window==='undefined'||!window.fetch||isSyncInProgress||pendingWrites) return;
+ isSyncInProgress=true;
+ try {
+  const query=new URLSearchParams({deviceId:getDeviceId(),mapId:currentDeviceLocation.mapId,roomName:currentDeviceLocation.roomName,floor:currentDeviceLocation.floor ?? 1});
+  const res=await fetch(getApiEndpoint()+'?'+query,{cache:'no-store'});
+  if(!res.ok) throw new Error('Connection failed ('+res.status+')');
+  const state=await res.json();
+  if(!pendingWrites && (state.version||0)>=(currentLiveState.version||0) && !isStateEqual(currentLiveState,state)) saveLocalState(state,false);
+  if(!pendingWrites && !saveError) status(true,'Cloud Connected');
+ } catch(e){status(false,e.message);} finally{isSyncInProgress=false;}
 }
 
 // Background sync interval (2.5 seconds for optimal responsiveness + battery efficiency)
 if (typeof window !== "undefined") {
-  syncWithCloudServer();
+  queueMicrotask(syncWithCloudServer);
   setInterval(syncWithCloudServer, 2500);
 
   // Immediate sync when tab becomes visible again
@@ -210,50 +143,21 @@ function loadLocalState() {
   return { ...INITIAL_STATE };
 }
 
-function saveLocalState(newState, pushToCloud = true) {
-  currentLiveState = {
-    ...newState,
-    version: (currentLiveState.version || 0) + 1,
-    lastUpdated: new Date().toISOString()
-  };
-
-  if (typeof window !== "undefined" && window.localStorage) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentLiveState));
-    } catch (e) {}
+function saveLocalState(newState,pushToCloud=true) {
+ if(pushToCloud) {
+  const patch={};
+  for(const key of ['emergencyActive','hazards','crowds','corridorCrowds','exits','blockedEdges','emergencyPolicies','sensors']) {
+   if(JSON.stringify(newState[key])===JSON.stringify(currentLiveState[key])) continue;
+   if(key==='emergencyActive') patch[key]=newState[key];
+   else {patch[key]={}; for(const [id,value] of Object.entries(newState[key]||{})) if(JSON.stringify(value)!==JSON.stringify(currentLiveState[key]?.[id])) patch[key][id]=value;}
   }
-
-  if (broadcastChannel) {
-    try {
-      broadcastChannel.postMessage({ type: "STATE_UPDATE", state: currentLiveState });
-    } catch (e) {}
-  }
-
-  if (pushToCloud && typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "update_master",
-          state: {
-            emergencyActive: currentLiveState.emergencyActive,
-            hazards: currentLiveState.hazards,
-            crowds: currentLiveState.crowds,
-            corridorCrowds: currentLiveState.corridorCrowds,
-            exits: currentLiveState.exits,
-            blockedEdges: currentLiveState.blockedEdges,
-            emergencyPolicies: currentLiveState.emergencyPolicies,
-            distressSignals: currentLiveState.distressSignals,
-            resolvedDistressSignals: currentLiveState.resolvedDistressSignals,
-            presence: currentLiveState.presence
-          }
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  notifyListeners();
+  // Display only server-acknowledged state. A rejected save cannot look successful.
+  return command({action:'update_master',patch}).catch(()=>{});
+ }
+ currentLiveState={...INITIAL_STATE,...newState};
+ try {localStorage.setItem(STORAGE_KEY,JSON.stringify(currentLiveState));}catch{}
+ if(broadcastChannel) broadcastChannel.postMessage({type:'STATE_UPDATE',state:currentLiveState});
+ notifyListeners();
 }
 
 function notifyListeners() {
@@ -471,6 +375,7 @@ export function recordSensorReading(sensorId, data) {
     }
   };
 
+  if (merged.zone && data.hazardLevel) updated.hazards={...updated.hazards,[merged.zone]:data.hazardLevel};
   if (data.smokeDetected || data.flameDetected || data.hazardLevel === "high") {
     if (merged.zone) {
       updated.hazards = {
@@ -526,7 +431,7 @@ export function registerActiveRoute(userId, exitId, zoneId) {
   saveLocalState({
     ...currentLiveState,
     crowds: updatedCrowds
-  }, true);
+  }, false);
 }
 
 /**
@@ -543,7 +448,7 @@ export function sendDistressSignal(signal) {
     locationName: signal.locationName || "Unknown Location",
     roomName: signal.roomName || signal.locationName || "Unspecified Room",
     mapId: signal.mapId || "campus",
-    floor: signal.floor || 1,
+    floor: signal.floor ?? 1,
     zone: signal.zone || "Campus",
     reason: signal.reason || "🔥 Trapped by Smoke / Fire",
     audioClip: signal.audioClip || null,
@@ -552,161 +457,18 @@ export function sendDistressSignal(signal) {
     status: "ACTIVE"
   };
 
-  const updatedSignals = {
-    ...(currentLiveState.distressSignals || {}),
-    [id]: record
-  };
-
-  // Immediate cloud SOS push
-  if (typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "sos",
-          signal: record
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  saveLocalState({
-    ...currentLiveState,
-    distressSignals: updatedSignals
-  }, false);
-  return id;
+  return command({action:'sos',signal:record}).then(()=>id);
 }
 
 /**
  * Clear a resolved SOS beacon from the console and safely archive it to incident history
  */
-export function clearDistressSignal(id) {
-  lastLocalActionTime = Date.now();
-  const updatedSignals = { ...(currentLiveState.distressSignals || {}) };
-  const updatedResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
-
-  const existing = updatedSignals[id] || { id };
-  const resolvedRecord = {
-    ...existing,
-    status: "RESCUED_RESOLVED",
-    resolvedAt: existing.resolvedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    resolvedTimestamp: existing.resolvedTimestamp || Date.now()
-  };
-
-  updatedResolved[id] = resolvedRecord;
-  delete updatedSignals[id];
-
-  // Immediate cloud clear push with full resolvedRecord
-  if (typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "clear_sos",
-          id,
-          resolvedRecord
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  saveLocalState({
-    ...currentLiveState,
-    distressSignals: updatedSignals,
-    resolvedDistressSignals: updatedResolved
-  }, false);
-}
-
-/**
- * Permanently delete a specific archived SOS record from the audit log
- */
-export function deleteArchivedDistressSignal(id) {
-  lastLocalActionTime = Date.now();
-  const updatedResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
-  delete updatedResolved[id];
-
-  if (typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "delete_archived_sos",
-          id
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  saveLocalState({
-    ...currentLiveState,
-    resolvedDistressSignals: updatedResolved
-  }, false);
-}
-
-/**
- * Clear all archived audit logs permanently
- */
-export function clearAllAuditHistory() {
-  lastLocalActionTime = Date.now();
-  if (typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "clear_all_audit"
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  saveLocalState({
-    ...currentLiveState,
-    resolvedDistressSignals: {}
-  }, false);
-}
-
-/**
- * Reset all building hazards, blockages, and alarms to normal (preserving historical records)
- */
-export function resetAllToNormal() {
-  lastLocalActionTime = Date.now();
-  activeRouteRegistry.clear();
-  const keepPresence = { ...(currentLiveState.presence || {}) };
-  const keepResolved = { ...(currentLiveState.resolvedDistressSignals || {}) };
-
-  // Immediate cloud reset push
-  if (typeof window !== "undefined" && window.fetch) {
-    try {
-      fetch(getApiEndpoint(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "reset_all"
-        })
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  saveLocalState({
-    ...INITIAL_STATE,
-    presence: keepPresence,
-    resolvedDistressSignals: keepResolved,
-    lastUpdated: new Date().toISOString()
-  }, false);
-}
+export function clearDistressSignal(id) {return command({action:'clear_sos',id}).catch(()=>{});}
+export function deleteArchivedDistressSignal(id) {return command({action:'delete_archived_sos',id}).catch(()=>{});}
+export function clearAllAuditHistory() {return command({action:'clear_all_audit'}).catch(()=>{});}
+export function resetAllToNormal() {activeRouteRegistry.clear();return command({action:'reset_all'}).catch(()=>{});}
 
 /**
  * Get current system connection status
  */
-export function getConnectionStatus() {
-  return {
-    isLiveCloud: true,
-    mode: "Vercel Realtime Cloud Sync + Local Bus",
-    badgeText: "Cloud Connected",
-    color: "emerald"
-  };
-}
+export function getConnectionStatus() {return connection;}

@@ -1,0 +1,17 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+import {INITIAL_BUILDING_DATA as d} from '../data/buildingGraph.js';
+import {findShortestPath as route} from '../utils/pathfinder.js';
+const html=fs.readFileSync(new URL('../mobile.html',import.meta.url),'utf8'), ctx={};vm.createContext(ctx);
+vm.runInContext(html.slice(html.indexOf('    function campusDistanceEdges'),html.indexOf('    function getControlId')),ctx);
+const edges=ctx.campusDistanceEdges(d.nodes,d.edges);
+const normal=route('admin','auditorium',d.nodes,edges,{});
+const accessible=route('admin','auditorium',d.nodes,edges,{accessibilityMode:true});
+assert(normal.edges.some(e=>e.id==='campus-garden-northwest-stairs'));
+assert(!normal.pathNodeIds.includes('playground'));
+assert(!normal.pathNodeIds.includes('junc-1-1'));
+assert(normal.edges.some(e=>e.id==='campus-central-bend')); 
+assert(!normal.pathNodeIds.includes('campus-east-bottom'));
+assert(!accessible.edges.some(e=>e.id==='campus-garden-northwest-stairs'));
+const blocked=route('admin','auditorium',d.nodes,edges.map(e=>e.id==='campus-garden-northwest-stairs'?{...e,blocked:true}:e),{});
+assert(!blocked.edges.some(e=>e.id==='campus-garden-northwest-stairs'));
+console.log(JSON.stringify({normal:normal.pathNodeIds,distance:normal.totalDistance,accessible:accessible.totalDistance,blocked:blocked.totalDistance}));

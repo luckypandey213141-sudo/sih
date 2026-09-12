@@ -1,23 +1,10 @@
-/**
- * SafeWay V3 - Persistent Serverless Storage Adapter
- * Backed by Vercel KV (Redis REST API) with automatic persistent file fallback in /tmp/.
- */
-
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-
-const KV_URL = process.env.KV_REST_API_URL;
-const KV_TOKEN = process.env.KV_REST_API_TOKEN;
-
-const TMP_DIR = os.tmpdir();
-const REALTIME_STATE_FILE = path.join(TMP_DIR, 'safeway_live_realtime_state.json');
-const SENSOR_DATA_FILE = path.join(TMP_DIR, 'safeway_live_sensor_data.json');
-
-// In-memory cache
-let inMemoryRealtimeState = null;
-let inMemorySensorData = null;
-
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+const scope=crypto.createHash('sha256').update(new URL('..',import.meta.url).pathname).digest('hex').slice(0,16);
+const folder=process.env.SAFEWAY_STATE_DIR || path.join(os.tmpdir(),'safeway-'+scope);
+const kvUrl=process.env.KV_REST_API_URL, kvToken=process.env.KV_REST_API_TOKEN;
 const DEFAULT_REALTIME_STATE = {
   emergencyActive: false,
   hazards: {
@@ -83,124 +70,41 @@ const DEFAULT_SENSOR_DATA = {
   }
 };
 
-/**
- * Execute command against Vercel KV REST API if configured
- */
-async function kvCommand(cmd, ...args) {
-  if (!KV_URL || !KV_TOKEN) return null;
-  try {
-    const url = `${KV_URL}/${cmd}/${args.map(a => encodeURIComponent(typeof a === 'object' ? JSON.stringify(a) : String(a))).join('/')}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` }
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.result;
-  } catch (err) {
-    console.warn('[Vercel KV] REST fetch error, falling back:', err?.message);
-    return null;
-  }
+
+export const initialRealtimeState=()=>structuredClone(DEFAULT_REALTIME_STATE);
+async function redis(command){
+ const r=await fetch(kvUrl,{method:'POST',headers:{Authorization:'Bearer '+kvToken,'Content-Type':'application/json'},body:JSON.stringify(command)});
+ if(!r.ok)throw new Error('Persistent storage unavailable');const data=await r.json();if(data.error)throw new Error('Persistent storage rejected operation');return data.result;
 }
-
-/**
- * Load Realtime State with persistence
- */
-export async function getRealtimeState() {
-  // 1. Try Vercel KV
-  if (KV_URL && KV_TOKEN) {
-    const kvData = await kvCommand('get', 'safeway:realtime_state');
-    if (kvData) {
-      try {
-        const parsed = typeof kvData === 'string' ? JSON.parse(kvData) : kvData;
-        inMemoryRealtimeState = { ...DEFAULT_REALTIME_STATE, ...parsed };
-        return inMemoryRealtimeState;
-      } catch {}
-    }
-  }
-
-  // 2. Try file storage fallback
-  if (inMemoryRealtimeState) return inMemoryRealtimeState;
-  try {
-    if (fs.existsSync(REALTIME_STATE_FILE)) {
-      const data = fs.readFileSync(REALTIME_STATE_FILE, 'utf8');
-      inMemoryRealtimeState = { ...DEFAULT_REALTIME_STATE, ...JSON.parse(data) };
-      return inMemoryRealtimeState;
-    }
-  } catch (err) {
-    console.warn('[Store] Local file read error:', err?.message);
-  }
-
-  // 3. Return default initial state
-  inMemoryRealtimeState = { ...DEFAULT_REALTIME_STATE };
-  return inMemoryRealtimeState;
+const transactionQueues=new Map();
+async function transact(name,defaults,change){
+ if(kvUrl&&kvToken)return transactStorage(name,defaults,change);
+ const next=(transactionQueues.get(name)||Promise.resolve()).then(()=>transactStorage(name,defaults,change));
+ transactionQueues.set(name,next.catch(()=>{}));return next;
 }
-
-/**
- * Save Realtime State with persistence
- */
-export async function saveRealtimeState(state) {
-  inMemoryRealtimeState = state;
-
-  // 1. Save to Vercel KV
-  if (KV_URL && KV_TOKEN) {
-    kvCommand('set', 'safeway:realtime_state', JSON.stringify(state)).catch(() => {});
-  }
-
-  // 2. Save to file storage
-  try {
-    fs.writeFileSync(REALTIME_STATE_FILE, JSON.stringify(state), 'utf8');
-  } catch (err) {
-    console.warn('[Store] Local file write error:', err?.message);
-  }
-
-  return inMemoryRealtimeState;
+async function transactStorage(name,defaults,change){
+ if(process.env.VERCEL && (!kvUrl||!kvToken))throw new Error('Configure shared KV storage before using live controls');
+ if(kvUrl&&kvToken){
+  const key='safeway:'+name;
+  for(let attempt=0;attempt<12;attempt++){
+   const raw=await redis(['GET',key]);const value=raw?JSON.parse(raw):structuredClone(defaults);
+   const result=await change(value);if(!result.write)return result.result;
+   const script="local v=redis.call('GET',KEYS[1]); if (v or '') ~= ARGV[1] then return 0 end; redis.call('SET',KEYS[1],ARGV[2]); return 1";
+   if(await redis(['EVAL',script,1,key,raw||'',JSON.stringify(value)]))return result.result;
+  }throw new Error('Concurrent state update; retry the command');
+ }
+ await fs.mkdir(folder,{recursive:true});const file=path.join(folder,name+'.json'),lock=file+'.lock';let acquired=false;
+ for(let i=0;i<200;i++){try{await fs.mkdir(lock);acquired=true;break;}catch(e){if(e.code!=='EEXIST')throw e;await new Promise(r=>setTimeout(r,10));}}
+ if(!acquired)throw new Error('State is busy; retry the command');
+ try{
+  let value;try{value=JSON.parse(await fs.readFile(file,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;value=structuredClone(defaults);}
+  const result=await change(value);if(result.write){const tmp=file+'.'+crypto.randomUUID()+'.tmp';await fs.writeFile(tmp,JSON.stringify(value));await fs.rename(tmp,file);}return result.result;
+ }finally{await fs.rmdir(lock);}
 }
+export async function updateRealtimeState(change){return transact('realtime_state',DEFAULT_REALTIME_STATE,async state=>{const result=await change(state);return {write:true,result:structuredClone(result??state)};});}
+export async function getRealtimeState(){return transact('realtime_state',DEFAULT_REALTIME_STATE,state=>({write:false,result:structuredClone(state)}));}
+export async function getSensorData(){return transact('sensor_data',DEFAULT_SENSOR_DATA,state=>({write:false,result:structuredClone(state)}));}
+export async function updateSensorData(change){return transact('sensor_data',DEFAULT_SENSOR_DATA,async state=>{await change(state);return {write:true,result:structuredClone(state)};});}
 
-/**
- * Load Sensor Data with persistence
- */
-export async function getSensorData() {
-  if (KV_URL && KV_TOKEN) {
-    const kvData = await kvCommand('get', 'safeway:sensor_data');
-    if (kvData) {
-      try {
-        const parsed = typeof kvData === 'string' ? JSON.parse(kvData) : kvData;
-        inMemorySensorData = { ...DEFAULT_SENSOR_DATA, ...parsed };
-        return inMemorySensorData;
-      } catch {}
-    }
-  }
-
-  if (inMemorySensorData) return inMemorySensorData;
-  try {
-    if (fs.existsSync(SENSOR_DATA_FILE)) {
-      const data = fs.readFileSync(SENSOR_DATA_FILE, 'utf8');
-      inMemorySensorData = { ...DEFAULT_SENSOR_DATA, ...JSON.parse(data) };
-      return inMemorySensorData;
-    }
-  } catch (err) {
-    console.warn('[Store] Local sensor file read error:', err?.message);
-  }
-
-  inMemorySensorData = { ...DEFAULT_SENSOR_DATA };
-  return inMemorySensorData;
-}
-
-/**
- * Save Sensor Data with persistence
- */
-export async function saveSensorData(data) {
-  inMemorySensorData = data;
-
-  if (KV_URL && KV_TOKEN) {
-    kvCommand('set', 'safeway:sensor_data', JSON.stringify(data)).catch(() => {});
-  }
-
-  try {
-    fs.writeFileSync(SENSOR_DATA_FILE, JSON.stringify(data), 'utf8');
-  } catch (err) {
-    console.warn('[Store] Local sensor file write error:', err?.message);
-  }
-
-  return inMemorySensorData;
-}
+export async function revokeSession(id,exp){return transact('session_revocations',{},state=>{for(const [key,until] of Object.entries(state))if(until<Date.now())delete state[key];state[id]=exp;return {write:true,result:true};});}
+export async function isSessionRevoked(id){return transact('session_revocations',{},state=>({write:false,result:(state[id]||0)>Date.now()}));}

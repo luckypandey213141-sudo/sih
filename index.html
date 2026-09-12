@@ -66,10 +66,13 @@
   <div id="root"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=3.3.0';
-    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=3.3.0';
-    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=3.3.0';
-    import { resolveQrCode, getQrPresets } from './services/qrLocation.js?v=3.3.0';
+    import * as RouteControls from './data/adminRouteControls.js?v=3.4.0';
+    import * as IndoorRoutePlanner from './utils/indoorRoutePlanner.js?v=3.4.0';
+    window.SafeWayRouteControls=RouteControls;window.SafeWayIndoorPlanner=IndoorRoutePlanner;
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=3.4.0';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=3.4.1';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=3.4.0';
+    import { resolveQrCode, getQrPresets } from './services/qrLocation.js?v=3.4.0';
     import {
       subscribeToRealtimeData,
       setEmergencyActive,
@@ -78,7 +81,7 @@
       clearDistressSignal,
       reportDevicePresence,
       getDeviceId
-    } from './services/realtime.js?v=3.3.0';
+    } from './services/realtime.js?v=3.4.0';
 
     const SafeWay = {
       INITIAL_BUILDING_DATA,
@@ -628,58 +631,9 @@ const BLOCK_STAIRS_OPTIONS = {
     { id: "Emergency Exit", name: "Emergency Exit", label: "NORTH ESCAPE STAIRS", point: [175, 300], corridorY: 300, hubX: 300, groundStairs: [500, 120] }
   ]
 };
-function selectBestEgressDoor(groundMapId, liveState) {
-  const options = BLOCK_EGRESS_OPTIONS[groundMapId] || [];
-  if (options.length === 0) {
-    return { id: "Exit", label: "MAIN EXIT", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500 };
-  }
-  const viable = options.filter(opt => {
-    const doorKey = getControlId("door", groundMapId, opt.id);
-    const areaKey = getControlId("area", groundMapId, opt.id);
-    if (liveState?.exits?.[doorKey]?.isOpen === false) return false;
-    if (liveState?.exits?.[opt.id]?.isOpen === false) return false;
-    if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
-    if (liveState?.hazards?.[opt.id] === "high") return false;
-    if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
-    return true;
-  });
-  if (viable.length === 0) {
-    return {
-      id: "Area of Refuge",
-      label: "SAFE AREA OF REFUGE (ALL EXITS BLOCKED)",
-      point: [500, 390],
-      campusNode: "admin",
-      corridorY: 400,
-      hubX: 500,
-      isTrapped: true
-    };
-  }
-  viable.sort((a, b) => {
-    const doorKeyA = getControlId("door", groundMapId, a.id);
-    const doorKeyB = getControlId("door", groundMapId, b.id);
-    const crowdValA = liveState?.crowds?.[doorKeyA] || liveState?.crowds?.[a.id] || "Low";
-    const crowdValB = liveState?.crowds?.[doorKeyB] || liveState?.crowds?.[b.id] || "Low";
-    const crowdPenaltyA = crowdValA === "High" ? 80 : (crowdValA === "Medium" ? 30 : 0);
-    const crowdPenaltyB = crowdValB === "High" ? 80 : (crowdValB === "Medium" ? 30 : 0);
-    return (crowdPenaltyA + (a.defaultPriority || 1)) - (crowdPenaltyB + (b.defaultPriority || 1));
-  });
-  return viable[0];
-}
-function selectBestStairs(upperMapId, liveState) {
-  const options = BLOCK_STAIRS_OPTIONS[upperMapId] || [];
-  if (options.length === 0) {
-    return { id: "Stairs", label: "STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] };
-  }
-  const viable = options.filter(opt => {
-    const doorKey = getControlId("door", upperMapId, opt.name || opt.id);
-    const areaKey = getControlId("area", upperMapId, opt.name || opt.id);
-    if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
-    if (liveState?.hazards?.[opt.id] === "high") return false;
-    if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
-    return true;
-  });
-  return viable.length > 0 ? viable[0] : options[0];
-}
+function selectBestEgressDoor(map,state){return window.SafeWayIndoorPlanner.selectBestEgressDoor(map,state);}
+function selectBestStairs(map,state){return window.SafeWayIndoorPlanner.selectBestStairs(map,state);}
+
 const FLOOR_CONNECTIONS = {
   "ramanujan-ground": [{
     id: "rj-lift",
@@ -1105,55 +1059,11 @@ function buildIndoorRoute(planId, destination, accessibilityMode, targetPoint = 
     path: `M ${points.map(point => point.join(" ")).join(" L ")}`
   };
 }
-function shortestPathOnIndoorNetwork(network, startPoint, targetPoint) {
-  if (!network?.cells?.length || !startPoint || !targetPoint) return null;
-  const step = network.step;
-  const keys = new Set(network.cells.map(([x, y]) => `${x},${y}`));
-  const nearest = point => network.cells.reduce((best, cell) => {
-    const distance = Math.hypot(cell[0] * step - point[0], cell[1] * step - point[1]);
-    return !best || distance < best.distance ? {
-      cell,
-      distance
-    } : best;
-  }, null)?.cell;
-  const start = nearest(startPoint);
-  const target = nearest(targetPoint);
-  if (!start || !target) return null;
-  const startKey = `${start[0]},${start[1]}`;
-  const targetKey = `${target[0]},${target[1]}`;
-  const queue = [start];
-  const previous = new Map([[startKey, null]]);
-  const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-  for (let index = 0; index < queue.length; index++) {
-    const [x, y] = queue[index];
-    const key = `${x},${y}`;
-    if (key === targetKey) break;
-    for (const [dx, dy] of directions) {
-      const next = [x + dx, y + dy];
-      const nextKey = `${next[0]},${next[1]}`;
-      if (keys.has(nextKey) && !previous.has(nextKey)) {
-        previous.set(nextKey, key);
-        queue.push(next);
-      }
-    }
-  }
-  if (!previous.has(targetKey)) return null;
-  const raw = [];
-  let cursor = targetKey;
-  while (cursor) {
-    const [x, y] = cursor.split(",").map(Number);
-    raw.push([x * step + step / 2, y * step + step / 2]);
-    cursor = previous.get(cursor);
-  }
-  raw.reverse();
-  const points = raw.filter((point, index) => index === 0 || index === raw.length - 1 || raw[index - 1][0] - point[0] !== point[0] - raw[index + 1][0] || raw[index - 1][1] - point[1] !== point[1] - raw[index + 1][1]);
-  const distance = raw.slice(1).reduce((total, point, index) => total + Math.hypot(point[0] - raw[index][0], point[1] - raw[index][1]), 0);
-  return {
-    points,
-    distance,
-    path: `M ${points.map(point => point.join(" ")).join(" L ")}`
-  };
+function shortestPathOnIndoorNetwork(network,startPoint,targetPoint,mapId,state){
+ const planner=window.SafeWayIndoorPlanner;if(!planner||!network)return null;
+ return planner.shortestPathOnIndoorNetwork(planner.constrainedNetwork(mapId,network,planner.normalizeDoorControls(mapId,state)),startPoint,targetPoint);
 }
+
 function App() {
   const [bData, setBData] = useState(() => SafeWay.INITIAL_BUILDING_DATA);
   const [liveState, setLiveState] = useState(() => ({
@@ -1207,53 +1117,30 @@ function App() {
   const [sosSent, setSosSent] = useState(false);
   const [sosEmergencyType, setSosEmergencyType] = useState("Trapped in Room / Smoke");
 
-  const triggerSosDistress = () => {
+  const sosIdRef=React.useRef(null);
+  const triggerSosDistress = async () => {
+    try {
     if (SafeWay?.sendDistressSignal) {
-      SafeWay.sendDistressSignal({
+      sosIdRef.current = await SafeWay.sendDistressSignal({
         userId: "aegispath-pc-terminal",
         locationName: `${activeQuickCheckpoint?.name || userNode?.name || "Campus Ground"} (${displayedMapPlan.label})`,
         roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
         mapId: displayedMapId,
         nodeId: userLocationNodeId,
-        floor: displayedMapPlan.floor || 1,
+        floor: displayedMapPlan.floor ?? 1,
         zone: displayedMapPlan.group,
         reason: sosEmergencyType,
         accessibilityUser: accessibilityMode
       });
     }
     setSosSent(true);
+    }catch(error){setSosSent(false);window.alert("SOS was not delivered: "+error.message);}
   };
 
-  const cancelSosDistress = () => {
-    if (SafeWay?.clearDistressSignal) {
-      SafeWay.clearDistressSignal("aegispath-pc-terminal");
-    }
-    setSosSent(false);
-    setIsSosModalOpen(false);
+  const cancelSosDistress = async () => {
+    if(sosIdRef.current){const result=await SafeWay.clearDistressSignal(sosIdRef.current);if(!result){window.alert('Unable to resolve the SOS. Please retry.');return;}}
+    sosIdRef.current=null;setSosSent(false);setIsSosModalOpen(false);
   };
-
-  // Live Presence Heartbeat
-  useEffect(() => {
-    if (SafeWay?.reportDevicePresence) {
-      SafeWay.reportDevicePresence({
-        mapId: displayedMapId,
-        roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
-        name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
-        floor: displayedMapPlan.floor || 1
-      });
-    }
-    const interval = setInterval(() => {
-      if (SafeWay?.reportDevicePresence) {
-        SafeWay.reportDevicePresence({
-          mapId: displayedMapId,
-          roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
-          name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
-          floor: displayedMapPlan.floor || 1
-        });
-      }
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [displayedMapId, activeQuickCheckpoint, userNode]);
 
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [qrInputText, setQrInputText] = useState("");
@@ -1274,6 +1161,37 @@ function App() {
   const selectedMapPlan = MAP_PLANS.find(plan => plan.id === selectedMapId) || MAP_PLANS[0];
   const displayedMapId = guidanceMapOverride || selectedMapId;
   const displayedMapPlan = MAP_PLANS.find(plan => plan.id === displayedMapId) || MAP_PLANS[0];
+  const userNodeBase = bData?.nodes.find(n => n.id === userLocationNodeId);
+  const userNode = activeQuickCheckpoint ? {
+    ...userNodeBase,
+    name: activeQuickCheckpoint.name,
+    floor: activeQuickCheckpoint.floor,
+    zone: activeQuickCheckpoint.mapId.replaceAll("-", " ")
+  } : userNodeBase;
+
+  // Live Presence Heartbeat
+  useEffect(() => {
+    if (SafeWay?.reportDevicePresence) {
+      SafeWay.reportDevicePresence({
+        mapId: displayedMapId,
+        roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+        name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+        floor: displayedMapPlan.floor ?? 1
+      });
+    }
+    const interval = setInterval(() => {
+      if (SafeWay?.reportDevicePresence) {
+        SafeWay.reportDevicePresence({
+          mapId: displayedMapId,
+          roomName: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+          name: activeQuickCheckpoint?.name || userNode?.name || "Campus Ground",
+          floor: displayedMapPlan.floor ?? 1
+        });
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [displayedMapId, displayedMapPlan.floor, activeQuickCheckpoint, userNodeBase]);
+
   const currentLocationMapId = activeQuickCheckpoint?.mapId || POSITION_TO_MAP[userLocationNodeId] || "campus";
   const currentLocationMapPlan = MAP_PLANS.find(plan => plan.id === currentLocationMapId) || MAP_PLANS[0];
   const quickCheckpoints = useMemo(() => {
@@ -1330,9 +1248,9 @@ function App() {
   }, [displayedMapId, liveState]);
   const emergencyGroundStart = chosenBestStairs?.groundStairs || recognizedEntryExit?.point;
   const emergencyIndoorStart = emergencyRouteMode && displayedMapId === emergencyCurrentGroundMapId && currentLocationMapId !== emergencyCurrentGroundMapId ? emergencyGroundStart : currentIndoorPoint || recognizedEntryExit?.point;
-  const emergencyIndoorTarget = emergencyRouteMode ? (displayedMapId.endsWith("-ground") ? chosenBestEgress.point : (chosenBestStairs?.point || [500, 300])) : null;
-  const shortestIndoorPath = useMemo(() => shortestPathOnIndoorNetwork(SafeWay?.INDOOR_ROUTE_NETWORKS?.[displayedMapId], emergencyIndoorStart, emergencyIndoorTarget || indoorRoute?.points?.[indoorRoute.points.length - 1]), [displayedMapId, emergencyIndoorStart, emergencyIndoorTarget, indoorRoute]);
-  const selectedGuidedPath = shortestIndoorPath?.path || SELECTED_GUIDED_PATHS[displayedMapId] || null;
+  const emergencyIndoorTarget = emergencyRouteMode ? (displayedMapId.endsWith("-ground") ? (chosenBestEgress.isTrapped ? null : chosenBestEgress.point) : (accessibilityMode ? null : chosenBestStairs?.point)) : null;
+  const shortestIndoorPath = useMemo(() => emergencyRouteMode && !emergencyIndoorTarget ? null : shortestPathOnIndoorNetwork(SafeWay?.INDOOR_ROUTE_NETWORKS?.[displayedMapId], emergencyIndoorStart, emergencyIndoorTarget || indoorRoute?.points?.[indoorRoute.points.length - 1], displayedMapId, liveState), [displayedMapId, emergencyIndoorStart, emergencyIndoorTarget, indoorRoute, liveState, emergencyRouteMode]);
+  const selectedGuidedPath = shortestIndoorPath?.path || null;
   useEffect(() => {
     setInternalDestination(activeQuickCheckpoint?.mapId === selectedMapId && activeQuickCheckpoint?.room ? activeQuickCheckpoint.room : selectedMapPlan.rooms?.[0] || "");
     setActiveGuidanceStep(0);
@@ -1527,7 +1445,7 @@ function App() {
   }, crowdInput, liveState.hazards, liveState.emergencyPolicies) : null;
 
   // Emergency Evacuation Route
-  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, {
+  const evacuationResult = isEmergency ? SafeWay.findSafestEvacuationPath(userLocationNodeId, bData.nodes, effectiveEdges, effectiveExits, bData.assemblyAreas, { nearestEmergencyDestination: true,
     isEmergency: true,
     accessibilityMode,
     nearestEmergencyDestination: true
@@ -1653,13 +1571,6 @@ function App() {
       }
     }
   }
-  const userNodeBase = bData.nodes.find(n => n.id === userLocationNodeId);
-  const userNode = activeQuickCheckpoint ? {
-    ...userNodeBase,
-    name: activeQuickCheckpoint.name,
-    floor: activeQuickCheckpoint.floor,
-    zone: activeQuickCheckpoint.mapId.replaceAll("-", " ")
-  } : userNodeBase;
   const destNode = bData.nodes.find(n => n.id === destinationNodeId);
   const displayedGuidanceSteps = isEmergency ? emergencyGuidanceSteps : internalGuidanceSteps;
   const showMapGuidance = isEmergency ? emergencyGuidanceSteps.length > 0 : selectedMapId !== "campus" && internalGuidanceSteps.length > 0;

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node local_server.js",
-    "test": "node tests/test_pathfinder.js"
+    "test": "node tests/run_all.mjs"
   },
   "keywords": [
     "indoor-navigation",

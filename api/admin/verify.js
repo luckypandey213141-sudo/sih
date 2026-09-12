@@ -1,6 +1,6 @@
 import { authenticateAdmin } from '../_auth.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -12,7 +12,7 @@ export default function handler(req, res) {
     return res.end();
   }
 
-  const auth = authenticateAdmin(req);
+  const auth = await authenticateAdmin(req);
   if (!auth.authenticated) {
     res.statusCode = 401;
     res.setHeader('Content-Type', 'application/json');
