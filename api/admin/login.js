@@ -1,20 +1,14 @@
 import crypto from 'crypto';
+import { createSignedToken } from '../_auth.js';
 
 const ADMIN_USER = process.env.SAFEWAY_ADMIN_USER || 'admin';
-const ADMIN_PASSWORD = process.env.SAFEWAY_ADMIN_PASSWORD || 'SafeWay-Demo-2026';
+const ADMIN_PASSWORD = process.env.SAFEWAY_ADMIN_PASSWORD || (process.env.VERCEL ? '' : 'SafeWay-Demo-2026');
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const SECRET_KEY = process.env.SESSION_SECRET || 'safeway-v3-secret-session-key-2026';
 
 function safeEqual(value, expected) {
   const a = Buffer.from(String(value));
   const b = Buffer.from(String(expected));
   return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
-function createSignedToken(payload) {
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', SECRET_KEY).update(data).digest('base64url');
-  return `${data}.${signature}`;
 }
 
 export default async function handler(req, res) {
@@ -33,6 +27,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'Method Not Allowed' }));
   }
 
+  if(!ADMIN_PASSWORD || (process.env.VERCEL && !process.env.SESSION_SECRET)){res.statusCode=503;return res.end(JSON.stringify({error:'Configure administrator credentials and SESSION_SECRET'}));}
   let body = req.body;
   if (typeof body === 'string') {
     try {
