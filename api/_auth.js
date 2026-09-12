@@ -1,3 +1,4 @@
+import {revokeSession,isSessionRevoked} from './_store.js';
 /**
  * SafeWay V3 - Server-Side Authentication & Session Verification Helper
  * Validates HMAC-SHA256 signed session tokens from cookies or Authorization header.
@@ -5,8 +6,15 @@
 
 import crypto from 'crypto';
 
-const SECRET_KEY = process.env.SESSION_SECRET || 'safeway-v3-secret-session-key-2026';
-const SENSOR_SHARED_SECRET = process.env.SAFEWAY_SENSOR_SECRET || 'safeway-iot-sensor-auth-2026';
+const SECRET_KEY = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const revoked = new Set();
+export function createSignedToken(payload) {
+ if(process.env.VERCEL && !process.env.SESSION_SECRET) throw new Error('SESSION_SECRET must be configured');
+ const data=Buffer.from(JSON.stringify(payload)).toString('base64url');
+ return data+'.'+crypto.createHmac('sha256',SECRET_KEY).update(data).digest('base64url');
+}
+export async function revokeSignedToken(token){if(!token)return;const payload=verifySignedToken(token);revoked.add(token);await revokeSession(crypto.createHash('sha256').update(token).digest('hex'),payload?.exp||Date.now()+8*3600000);}
+const SENSOR_SHARED_SECRET = process.env.SAFEWAY_SENSOR_SECRET || '';
 
 export function parseCookies(req) {
   return Object.fromEntries((req.headers?.cookie || '').split(';').filter(Boolean).map(part => {
@@ -17,7 +25,7 @@ export function parseCookies(req) {
 }
 
 export function verifySignedToken(token) {
-  if (!token || typeof token !== 'string') return null;
+  if (!token || revoked.has(token) || typeof token !== 'string') return null;
   const parts = token.split('.');
   if (parts.length !== 2) return null;
 
@@ -43,28 +51,29 @@ export function verifySignedToken(token) {
   }
 }
 
+async function verifyAdminToken(token){const payload=verifySignedToken(token);if(!payload?.user)return null;return await isSessionRevoked(crypto.createHash('sha256').update(token).digest('hex'))?null:payload;}
 /**
  * Authenticates request against admin session cookie, Bearer token, or IoT sensor secret.
  */
-export function authenticateAdmin(req) {
+export async function authenticateAdmin(req) {
   const cookies = parseCookies(req);
   const cookieToken = cookies.safeway_admin_session;
 
   // 1. Check session cookie
   if (cookieToken) {
-    const payload = verifySignedToken(cookieToken);
-    if (payload) return { authenticated: true, user: payload.user, role: 'admin' };
+    const payload = await verifyAdminToken(cookieToken);
+    if (payload?.user) return { authenticated: true, user: payload.user, role: 'admin' };
   }
 
   // 2. Check Authorization header
   const authHeader = req.headers?.authorization || '';
   if (authHeader.startsWith('Bearer ')) {
     const bearerToken = authHeader.slice(7).trim();
-    const payload = verifySignedToken(bearerToken);
-    if (payload) return { authenticated: true, user: payload.user, role: 'admin' };
+    const payload = await verifyAdminToken(bearerToken);
+    if (payload?.user) return { authenticated: true, user: payload.user, role: 'admin' };
 
     // Also allow configured sensor secret key
-    if (bearerToken === SENSOR_SHARED_SECRET) {
+    if (SENSOR_SHARED_SECRET && bearerToken === SENSOR_SHARED_SECRET) {
       return { authenticated: true, user: 'iot-sensor-node', role: 'sensor' };
     }
   }
@@ -75,8 +84,8 @@ export function authenticateAdmin(req) {
     if (customAuth === SENSOR_SHARED_SECRET) {
       return { authenticated: true, user: 'iot-sensor-node', role: 'sensor' };
     }
-    const payload = verifySignedToken(customAuth);
-    if (payload) return { authenticated: true, user: payload.user, role: 'admin' };
+    const payload = await verifyAdminToken(customAuth);
+    if (payload?.user) return { authenticated: true, user: payload.user, role: 'admin' };
   }
 
   return { authenticated: false };

@@ -1,206 +1,54 @@
-/**
- * AegisPath Live Centralized Realtime State & Presence Hub
- * Deployed as a Vercel Serverless Endpoint at /api/realtime
- * Backed by Persistent Storage Adapter + Server-Side HMAC Admin Authentication.
- */
-
-import { authenticateAdmin } from './_auth.js';
-import { getRealtimeState, saveRealtimeState } from './_store.js';
-
-function prunePresence(state) {
-  const now = Date.now();
-  const active = {};
-  for (const [id, dev] of Object.entries(state.presence || {})) {
-    if (now - (dev.timestamp || 0) < 35000) {
-      active[id] = dev;
-    }
-  }
-  state.presence = active;
-  return active;
+import { authenticateAdmin, parseCookies, verifySignedToken, createSignedToken } from './_auth.js';
+import { updateRealtimeState, getRealtimeState, initialRealtimeState } from './_store.js';
+import crypto from 'node:crypto';
+export async function readPayload(req){
+ if(req.body!==undefined)return typeof req.body==='string'?JSON.parse(req.body):req.body;
+ let text='';for await(const chunk of req)text+=chunk;return text?JSON.parse(text):{};
 }
-
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Sensor-Auth, X-Admin-Auth, X-Requested-With');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-
-  if (req.method === 'OPTIONS') {
-    res.statusCode = 204;
-    return res.end();
+function deviceOwner(req,res){
+ const token=parseCookies(req).safeway_device;const payload=verifySignedToken(token);
+ if(payload?.deviceId)return payload.deviceId;
+ const deviceId=crypto.randomUUID();const value=createSignedToken({deviceId,exp:Date.now()+30*86400000});
+ res.setHeader('Set-Cookie','safeway_device='+value+'; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000');return deviceId;
+}
+function prune(state){for(const [id,p] of Object.entries(state.presence||{}))if(Date.now()-(p.timestamp||0)>35000)delete state.presence[id];}
+export default async function handler(req,res){
+ res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
+ if(req.method==='OPTIONS'){res.statusCode=204;return res.end();}
+ try{
+  const owner=deviceOwner(req,res);
+  if(req.method==='GET'){
+   const url=new URL(req.url,'http://localhost'),deviceId=url.searchParams.get('deviceId');
+   const state=deviceId?await updateRealtimeState(s=>{s.presence??={};s.presence[deviceId]={deviceId,mapId:url.searchParams.get('mapId')||'campus',roomName:url.searchParams.get('roomName')||'Campus',floor:Number(url.searchParams.get('floor')??1),timestamp:Date.now()};prune(s);}):await getRealtimeState();
+   res.statusCode=200;return res.end(JSON.stringify(state));
   }
-
-  let currentState = await getRealtimeState();
-  prunePresence(currentState);
-
-  if (req.method === 'GET') {
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const deviceId = url.searchParams.get('deviceId');
-    const mapId = url.searchParams.get('mapId');
-    const roomName = url.searchParams.get('roomName');
-    const floor = url.searchParams.get('floor');
-
-    if (deviceId) {
-      if (!currentState.presence) currentState.presence = {};
-      currentState.presence[deviceId] = {
-        deviceId,
-        deviceType: deviceId.startsWith('dev_mob_') ? 'Mobile Phone' : 'PC / Workstation',
-        mapId: mapId || 'campus',
-        roomName: roomName || 'Campus Ground',
-        floor: floor ? Number(floor) : 1,
-        timestamp: Date.now()
-      };
-      await saveRealtimeState(currentState);
-    }
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(currentState));
-  }
-
-  if (req.method === 'POST' || req.method === 'PUT') {
-    let payload = req.body;
-    if (typeof payload === 'string') {
-      try {
-        payload = JSON.parse(payload);
-      } catch {
-        payload = {};
-      }
-    } else if (!payload && typeof req.on === 'function') {
-      payload = await new Promise((resolve) => {
-        let data = '';
-        req.on('data', chunk => { data += chunk; });
-        req.on('end', () => {
-          try { resolve(JSON.parse(data)); } catch { resolve({}); }
-        });
-      });
-    }
-
-    if (!payload || typeof payload !== 'object') {
-      payload = {};
-    }
-
-    const { action } = payload;
-
-    // Public actions allowed without admin authentication
-    const isPublicAction = action === 'heartbeat' || action === 'sos' || action === 'clear_sos';
-
-    // State-mutating actions require admin authentication
-    if (!isPublicAction) {
-      const auth = authenticateAdmin(req);
-      if (!auth.authenticated) {
-        res.statusCode = 401;
-        res.setHeader('Content-Type', 'application/json');
-        return res.end(JSON.stringify({ error: 'Unauthorized: Valid Admin Session or Auth Token Required' }));
-      }
-    }
-
-    if (action === 'heartbeat') {
-      const { deviceId, mapId, roomName, floor } = payload;
-      if (deviceId) {
-        if (!currentState.presence) currentState.presence = {};
-        currentState.presence[deviceId] = {
-          deviceId,
-          deviceType: deviceId.startsWith('dev_mob_') ? 'Mobile Phone' : 'PC / Workstation',
-          mapId: mapId || 'campus',
-          roomName: roomName || 'Campus Ground',
-          floor: floor ? Number(floor) : 1,
-          timestamp: Date.now()
-        };
-      }
-    } else if (action === 'sos') {
-      const { signal } = payload;
-      if (signal && signal.id) {
-        if (!currentState.distressSignals) currentState.distressSignals = {};
-        currentState.distressSignals[signal.id] = {
-          ...signal,
-          timestamp: signal.timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          rawTimestamp: Date.now(),
-          status: 'ACTIVE'
-        };
-      }
-    } else if (action === 'clear_sos') {
-      const { id, resolvedRecord } = payload;
-      if (id) {
-        if (!currentState.resolvedDistressSignals) currentState.resolvedDistressSignals = {};
-        const activeSignal = (currentState.distressSignals && currentState.distressSignals[id]) || resolvedRecord || { id };
-        currentState.resolvedDistressSignals[id] = {
-          ...activeSignal,
-          status: 'RESCUED_RESOLVED',
-          resolvedAt: activeSignal.resolvedAt || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          resolvedTimestamp: activeSignal.resolvedTimestamp || Date.now()
-        };
-        if (currentState.distressSignals && currentState.distressSignals[id]) {
-          delete currentState.distressSignals[id];
-        }
-        currentState.version = (currentState.version || 0) + 1;
-        currentState.lastUpdated = new Date().toISOString();
-      }
-    } else if (action === 'delete_archived_sos') {
-      const { id } = payload;
-      if (id && currentState.resolvedDistressSignals && currentState.resolvedDistressSignals[id]) {
-        delete currentState.resolvedDistressSignals[id];
-        currentState.version = (currentState.version || 0) + 1;
-        currentState.lastUpdated = new Date().toISOString();
-      }
-    } else if (action === 'clear_all_audit') {
-      currentState.resolvedDistressSignals = {};
-      currentState.version = (currentState.version || 0) + 1;
-      currentState.lastUpdated = new Date().toISOString();
-    } else if (action === 'update_master') {
-      const { state } = payload;
-      if (state && typeof state === 'object') {
-        currentState = {
-          ...currentState,
-          ...state,
-          presence: { ...currentState.presence, ...(state.presence || {}) },
-          distressSignals: { ...currentState.distressSignals, ...(state.distressSignals || {}) },
-          resolvedDistressSignals: state.resolvedDistressSignals !== undefined ? state.resolvedDistressSignals : (currentState.resolvedDistressSignals || {}),
-          version: (currentState.version || 0) + 1,
-          lastUpdated: new Date().toISOString()
-        };
-      }
-    } else if (action === 'reset_all') {
-      const keepPresence = { ...(currentState.presence || {}) };
-      const keepResolvedDistress = { ...(currentState.resolvedDistressSignals || {}) };
-      currentState = {
-        emergencyActive: false,
-        hazards: { "zone-a": "none", "zone-b": "none", "zone-c": "none", "zone-d": "none", "zone-e": "none" },
-        crowds: { "exit-1": "Low", "exit-2": "Low", "exit-3": "Low", "zone-a": "Low", "zone-b": "Low", "zone-c": "Low", "zone-d": "Low", "zone-e": "Low" },
-        corridorCrowds: {},
-        exits: { "exit-1": { isOpen: true }, "exit-2": { isOpen: true }, "exit-3": { isOpen: true } },
-        blockedEdges: {},
-        emergencyPolicies: { allowElevatorsInFire: false, accessibleEvacuationStrategy: "refuge_zone" },
-        distressSignals: {},
-        resolvedDistressSignals: keepResolvedDistress,
-        presence: keepPresence,
-        sensors: {},
-        version: (currentState.version || 0) + 1,
-        lastUpdated: new Date().toISOString()
-      };
-    } else if (payload.emergencyActive !== undefined || payload.hazards || payload.exits || payload.blockedEdges) {
-      // Direct state payload from Admin Console
-      currentState = {
-        ...currentState,
-        ...payload,
-        presence: { ...(currentState.presence || {}), ...(payload.presence || {}) },
-        distressSignals: { ...(currentState.distressSignals || {}), ...(payload.distressSignals || {}) },
-        resolvedDistressSignals: payload.resolvedDistressSignals !== undefined ? payload.resolvedDistressSignals : (currentState.resolvedDistressSignals || {}),
-        version: (currentState.version || 0) + 1,
-        lastUpdated: new Date().toISOString()
-      };
-    }
-
-    prunePresence(currentState);
-    await saveRealtimeState(currentState);
-
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    return res.end(JSON.stringify(currentState));
-  }
-
-  res.statusCode = 405;
-  res.setHeader('Content-Type', 'application/json');
-  return res.end(JSON.stringify({ error: 'Method not allowed' }));
+  if(!['POST','PUT'].includes(req.method)){res.statusCode=405;return res.end(JSON.stringify({error:'Method not allowed'}));}
+  const p=await readPayload(req),action=p.action;const auth=await authenticateAdmin(req);
+  const isAdmin=auth.authenticated&&auth.role==='admin';
+  if(!['heartbeat','sos','clear_sos'].includes(action)&&!isAdmin){res.statusCode=401;return res.end(JSON.stringify({error:'Sign in to save admin changes'}));}
+  const state=await updateRealtimeState(s=>{
+   s.presence??={};s.distressSignals??={};s.resolvedDistressSignals??={};
+   if(action==='heartbeat'){
+    if(p.deviceId)s.presence[p.deviceId]={deviceId:p.deviceId,mapId:p.mapId||'campus',roomName:p.roomName||'Campus',floor:p.floor??1,timestamp:Date.now()};
+   }else if(action==='sos'){
+    if(!p.signal?.id)throw new Error('Missing incident identifier');
+    if(s.distressSignals[p.signal.id] && s.distressSignals[p.signal.id].owner!==owner){const e=new Error('Incident belongs to another reporting device');e.status=403;throw e;}
+    s.distressSignals[p.signal.id]={...p.signal,owner,status:'ACTIVE',rawTimestamp:Date.now()};
+   }else if(action==='clear_sos'){
+    const incident=s.distressSignals[p.id];
+    if(!incident || (!isAdmin&&incident.owner!==owner)){const e=new Error('Only the reporting device or an administrator can resolve this incident');e.status=403;throw e;}
+    s.resolvedDistressSignals[p.id]={...incident,status:'RESCUED_RESOLVED',resolvedTimestamp:Date.now()};delete s.distressSignals[p.id];
+   }else if(action==='delete_archived_sos'){delete s.resolvedDistressSignals[p.id];
+   }else if(action==='clear_all_audit'){s.resolvedDistressSignals={};
+   }else if(action==='reset_all'){
+    const keep={distressSignals:s.distressSignals,presence:s.presence,resolvedDistressSignals:s.resolvedDistressSignals,version:s.version};Object.assign(s,initialRealtimeState(),keep);
+   }else if(action==='update_master'){
+    const patch=p.patch;
+    if(!patch){const e=new Error('Reload this page to use the current control protocol');e.status=409;throw e;}
+    for(const key of ['hazards','crowds','corridorCrowds','exits','blockedEdges','emergencyPolicies','sensors'])if(patch[key])s[key]={...(s[key]||{}),...patch[key]};
+    if(typeof patch.emergencyActive==='boolean')s.emergencyActive=patch.emergencyActive;
+   }else{const e=new Error('Unsupported action');e.status=400;throw e;}
+   if(action!=='heartbeat'){s.version=(s.version||0)+1;s.lastUpdated=new Date().toISOString();}prune(s);
+  });res.statusCode=200;return res.end(JSON.stringify(state));
+ }catch(e){res.statusCode=e.status||503;return res.end(JSON.stringify({error:e.message}));}
 }
