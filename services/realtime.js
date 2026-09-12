@@ -84,6 +84,14 @@ function isStateEqual(a,b) { return JSON.stringify(a) === JSON.stringify(b); }
 let pendingWrites = 0;
 let saveError = null;
 let writeQueue = Promise.resolve();
+const SOS_OUTBOX_KEY='safeway_sos_outbox_v1';
+let sosOutbox={};
+try {sosOutbox=JSON.parse(localStorage.getItem(SOS_OUTBOX_KEY)||'{}');}catch{}
+function persistSosOutbox(){localStorage.setItem(SOS_OUTBOX_KEY,JSON.stringify(sosOutbox));}
+async function deliverSos(record){
+ await command({action:'sos',signal:record});
+ delete sosOutbox[record.id];try{persistSosOutbox();}catch{}return record.id;
+}
 let connection = {isLiveCloud:false, badgeText:'Connecting', color:'amber', mode:'Realtime sync'};
 function status(ok, message) {
  connection={isLiveCloud:ok,badgeText:message,color:ok?'emerald':'red',mode:'Realtime sync'};
@@ -97,7 +105,8 @@ async function command(payload) {
    const res=await fetch(getApiEndpoint(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
    const state=await res.json();
    if(!res.ok) throw new Error(state.error || 'Save failed ('+res.status+')');
-   saveLocalState(state,false); saveError=null; status(true,'Cloud Connected'); return state;
+   if((state.version||0)>=(currentLiveState.version||0))saveLocalState(state,false);
+   saveError=null; status(true,'Cloud Connected'); return state;
   } catch(error) { saveError=error.message; status(false,error.message); throw error; }
   finally {pendingWrites--;}
  };
@@ -110,6 +119,7 @@ export async function syncWithCloudServer() {
  if(typeof window==='undefined'||!window.fetch||isSyncInProgress||pendingWrites) return;
  isSyncInProgress=true;
  try {
+  for(const record of Object.values(sosOutbox)) await deliverSos(record);
   const query=new URLSearchParams({deviceId:getDeviceId(),mapId:currentDeviceLocation.mapId,roomName:currentDeviceLocation.roomName,floor:currentDeviceLocation.floor ?? 1});
   const res=await fetch(getApiEndpoint()+'?'+query,{cache:'no-store'});
   if(!res.ok) throw new Error('Connection failed ('+res.status+')');
@@ -457,7 +467,9 @@ export function sendDistressSignal(signal) {
     status: "ACTIVE"
   };
 
-  return command({action:'sos',signal:record}).then(()=>id);
+  sosOutbox[id]=record;
+  try {persistSosOutbox();}catch { /* Still attempt delivery if local storage is full. */ }
+  return deliverSos(record);
 }
 
 /**
