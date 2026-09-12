@@ -193,6 +193,13 @@ export const INITIAL_BUILDING_DATA = {
     { id: "e1-gate2-destination", from: "exit-1", to: "gate-2-destination", distance: 1, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e1-lab101-exit3", from: "junc-1-7", to: "junc-1-6", distance: 12, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
 
+    // Direct bend from the north walkway into the main junction, shown beside Bhabha.
+    { id: "campus-central-bend", from: "junc-1-2", to: "junc-1-4", distance: 16, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor", waypoints: [{ x: 365, y: 240 }, { x: 365, y: 325 }, { x: 405, y: 340 }] },
+
+    // Garden northwest stair entrance visible in the supplied campus plan.
+    // Keep this approach unavailable in Step-Free mode.
+    { id: "campus-garden-northwest-stairs", from: "campus-ary-left", to: "auditorium", distance: 36, stepFree: false, blocked: false, hazardLevel: "none", type: "stair", waypoints: [{ x: 500, y: 410 }, { x: 500, y: 445 }] },
+
     // FLOOR 2 CONNECTIONS
     { id: "e2-r201-j1", from: "room-201", to: "junc-2-1", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
     { id: "e2-r202-j2", from: "room-202", to: "junc-2-2", distance: 7, stepFree: true, blocked: false, hazardLevel: "none", type: "corridor" },
