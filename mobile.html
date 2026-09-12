@@ -70,10 +70,14 @@
 
   <!-- SafeWay Module Data Loader -->
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=3.3.0';
-    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=3.3.0';
-    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=3.3.0';
-    import { resolveQrCode, getQrPresets } from './services/qrLocation.js?v=3.3.0';
+    import * as RouteControls from './data/adminRouteControls.js?v=3.4.0';
+    window.SafeWayRouteControls=RouteControls;
+    import { INITIAL_BUILDING_DATA } from './data/buildingGraph.js?v=3.4.0';
+    import { findShortestPath, findSafestEvacuationPath } from './utils/pathfinder.js?v=3.4.1';
+    import { INDOOR_ROUTE_NETWORKS } from './data/indoorRouteNetworks.js?v=3.4.0';
+    import { INDOOR_ROUTE_COSTS } from './data/indoorRouteCosts.js';
+    for (const [id, network] of Object.entries(INDOOR_ROUTE_NETWORKS)) network.costs = INDOOR_ROUTE_COSTS[id];
+    import { resolveQrCode, getQrPresets } from './services/qrLocation.js?v=3.4.0';
     import {
       subscribeToRealtimeData,
       setEmergencyActive,
@@ -83,8 +87,8 @@
       clearDistressSignal,
       reportDevicePresence,
       getDeviceId
-    } from './services/realtime.js?v=3.3.0';
-    import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js?v=3.3.0';
+    } from './services/realtime.js?v=3.4.0';
+    import { MotionTracker, interpolatePositionOnRoute } from './utils/motionTracker.js?v=3.4.0';
 
     const SafeWay = {
       INITIAL_BUILDING_DATA,
@@ -114,8 +118,23 @@
     const { useState, useEffect, useMemo, useRef } = React;
     const SafeWay = window.SafeWay || window.SafeWayData || {};
 
+    // Compare campus alternatives using the geometry actually drawn, not legacy
+    // edge weights that made a trip across the playground appear only 5m long.
+    function campusDistanceEdges(nodes, edges) {
+      const byId = new Map(nodes.map(n => [n.id, n]));
+      return edges.map(edge => {
+        const a = byId.get(edge.from), b = byId.get(edge.to);
+        if (a?.floor !== 1 || b?.floor !== 1) return edge;
+        const points = [a, ...(edge.waypoints || []), b];
+        const pixels = points.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - points[i].x, p.y - points[i].y), 0);
+        // Common display scale; physical distance remains an estimate.
+        return {...edge, distance: pixels * 0.1};
+      });
+    }
+
     function getControlId(kind, mapId, name) {
       if (!name || !mapId) return "";
+      name = kind === "door" ? (window.SafeWayRouteControls?.DOOR_ALIASES?.[mapId]?.[name] || name) : name;
       return kind + "-" + mapId + "-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
 
@@ -251,8 +270,7 @@
 
     const BLOCK_STAIRS_OPTIONS = {
       "ramanujan-first": [
-        { id: "East Stairs", name: "Stairs", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] },
-        { id: "West Lobby", name: "Lift", label: "WEST STAIRS / LOBBY", point: [190, 235], corridorY: 325, hubX: 350, groundStairs: [190, 235] }
+        { id: "East Stairs", name: "Stairs", label: "EAST STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] }
       ],
       "ramanujan-basement": [
         { id: "Stairs 1", name: "Stairs 1", label: "BASEMENT STAIRS 1", point: [550, 260], corridorY: 300, hubX: 500, groundStairs: [760, 250] },
@@ -280,6 +298,7 @@
     };
 
     function selectBestEgressDoor(groundMapId, liveState) {
+      liveState = normalizeDoorControls(groundMapId,liveState);
       const options = BLOCK_EGRESS_OPTIONS[groundMapId] || [];
       if (options.length === 0) {
         return { id: "Exit", label: "MAIN EXIT", point: [250, 590], campusNode: "admin", corridorY: 455, hubX: 500 };
@@ -292,6 +311,7 @@
         if (liveState?.exits?.[doorKey]?.isOpen === false) return false;
         if (liveState?.exits?.[opt.id]?.isOpen === false) return false;
 
+        if (liveState?.exits?.[doorKey]?.isOpen === false) return false;
         if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
         if (liveState?.hazards?.[opt.id] === "high") return false;
 
@@ -329,22 +349,59 @@
     }
 
     function selectBestStairs(upperMapId, liveState) {
+      liveState = normalizeDoorControls(upperMapId,liveState);
       const options = BLOCK_STAIRS_OPTIONS[upperMapId] || [];
       if (options.length === 0) {
-        return { id: "Stairs", label: "STAIRS", point: [800, 235], corridorY: 325, hubX: 520, groundStairs: [760, 250] };
+        return null;
       }
 
       const viable = options.filter(opt => {
         const doorKey = getControlId("door", upperMapId, opt.name || opt.id);
         const areaKey = getControlId("area", upperMapId, opt.name || opt.id);
 
+        if(liveState?.exits?.[doorKey]?.isOpen===false)return false;
         if (liveState?.hazards?.[doorKey] === "high" || liveState?.hazards?.[areaKey] === "high") return false;
         if (liveState?.hazards?.[opt.id] === "high") return false;
         if (liveState?.blockedEdges?.[doorKey] || liveState?.blockedEdges?.[opt.id]) return false;
         return true;
       });
 
-      return viable.length > 0 ? viable[0] : options[0];
+      return viable.length > 0 ? viable[0] : null;
+    }
+
+    function normalizeDoorControls(mapId,state={}) {
+      const exits={...state.exits},hazards={...state.hazards},blockedEdges={...state.blockedEdges};
+      for(const [alias,name] of Object.entries(window.SafeWayRouteControls?.DOOR_ALIASES?.[mapId]||{})){
+        const old='door-'+mapId+'-'+alias.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const id=getControlId('door',mapId,name);
+        if(exits[old]?.isOpen===false)exits[id]={isOpen:false};if(hazards[old]==='high')hazards[id]='high';if(blockedEdges[old])blockedEdges[id]=true;
+      }return {...state,exits,hazards,blockedEdges};
+    }
+    const floorRestrictionCache=new Map();
+    function constrainedNetwork(mapId,net,state) {
+      if(!state)return net;
+      const fingerprint=JSON.stringify([mapId,state.blockedEdges,state.hazards,state.corridorCrowds,state.crowds,state.exits]);
+      if(floorRestrictionCache.has(fingerprint))return floorRestrictionCache.get(fingerprint);
+      const blocked=new Set(),penalties={};
+      const cellOf=p=>net.cells.reduce((a,c)=>!a||Math.hypot(c[0]*net.step+net.step/2-p[0],c[1]*net.step+net.step/2-p[1])<Math.hypot(a[0]*net.step+net.step/2-p[0],a[1]*net.step+net.step/2-p[1])?c:a,null)?.join(',');
+      const targets={...(ROOM_ROUTE_TARGETS[mapId]||{}),...Object.fromEntries((BLOCK_EGRESS_OPTIONS[mapId]||[]).map(d=>[d.id,d.point])),...Object.fromEntries((BLOCK_STAIRS_OPTIONS[mapId]||[]).map(d=>[d.name||d.id,d.point]))};
+      const names=window.SafeWayRouteControls?.ADMIN_FACILITIES?.[mapId]||[];
+      for(const [name,p] of Object.entries(targets)){
+        const id=getControlId('area',mapId,name),door=getControlId('door',mapId,name),key=cellOf(p);
+        if(state.hazards?.[id]==='high'||state.hazards?.[door]==='high'||state.exits?.[door]?.isOpen===false||state.blockedEdges?.[door])blocked.add(key);
+        const crowd=state.crowds?.[id] || state.crowds?.[door]; if(crowd==='High'||crowd==='Medium')penalties[key]=crowd==='High'?5:2; if(state.hazards?.[id]==='low')penalties[key]=Math.max(penalties[key]||1,3);
+      }
+      for(let i=0;i<names.length-1;i++){
+        const id=getControlId('path',mapId,names[i]+'-'+names[i+1]);
+        if(!state.blockedEdges?.[id]&&!state.corridorCrowds?.[id])continue;
+        const from=targets[names[i]],to=targets[names[i+1]];
+        if(!from||!to)continue;
+        const path=shortestPathOnIndoorNetwork(net,from,to)?.points;if(!path)continue;
+        for(let j=0;j<path.length-1;j++){
+          const p=path[j],q=path[j+1],n=Math.round(Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]))/net.step);
+          for(let k=0;k<=n;k++){const key=[Math.round((p[0]+(q[0]-p[0])*k/(n||1)-net.step/2)/net.step),Math.round((p[1]+(q[1]-p[1])*k/(n||1)-net.step/2)/net.step)].join(',');if(state.blockedEdges?.[id])blocked.add(key);else penalties[key]=Math.max(penalties[key]||1,state.corridorCrowds[id]==='High'?5:state.corridorCrowds[id]==='Medium'?2:1);}
+        }
+      }
+      const result={...net,blocked,penalties};if(floorRestrictionCache.size>32)floorRestrictionCache.clear();floorRestrictionCache.set(fingerprint,result);return result;
     }
 
     function shortestPathOnIndoorNetwork(network, startPoint, targetPoint) {
@@ -352,31 +409,40 @@
       const step = network.step;
       const keys = new Set(network.cells.map(([x, y]) => `${x},${y}`));
       const nearest = point => network.cells.reduce((best, cell) => {
-        const distance = Math.hypot(cell[0] * step - point[0], cell[1] * step - point[1]);
+        const distance = Math.hypot(cell[0] * step + step / 2 - point[0], cell[1] * step + step / 2 - point[1]);
         return !best || distance < best.distance ? { cell, distance } : best;
       }, null)?.cell;
 
       const start = nearest(startPoint);
       const target = nearest(targetPoint);
-      if (!start || !target) return null;
+      if (!start || !target || network.blocked?.has(start.join(",")) || network.blocked?.has(target.join(","))) return null;
+      for(const key of network.blocked||[])keys.delete(key);
 
       const startKey = `${start[0]},${start[1]}`;
       const targetKey = `${target[0]},${target[1]}`;
-      const queue = [start];
+      const queue = [{ cell: start, cost: 0, alignment: 0 }];
       const previous = new Map([[startKey, null]]);
+      const distances = new Map([[startKey, 0]]);
+      const alignments = new Map([[startKey, 0]]);
       const directions = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-
-      for (let index = 0; index < queue.length; index++) {
-        const [x, y] = queue[index];
-        const key = `${x},${y}`;
+      while (queue.length) {
+        queue.sort((a, b) => b.cost - a.cost || b.alignment - a.alignment);
+        const {cell: [x, y], cost, alignment} = queue.pop();
+        const key = x + "," + y;
+        if (cost !== distances.get(key) || alignment !== alignments.get(key)) continue;
         if (key === targetKey) break;
         for (const [dx, dy] of directions) {
-          const next = [x + dx, y + dy];
-          const nextKey = `${next[0]},${next[1]}`;
-          if (keys.has(nextKey) && !previous.has(nextKey)) {
-            previous.set(nextKey, key);
-            queue.push(next);
-          }
+          const next = [x + dx, y + dy], nextKey = next.join(",");
+          if (!keys.has(nextKey)) continue;
+          if (dx && dy && (!keys.has((x + dx) + "," + y) || !keys.has(x + "," + (y + dy)))) continue;
+          const nextCost = cost + Math.hypot(dx, dy) * Math.max(network.penalties?.[nextKey] || 1,network.penalties?.[key] || 1);
+          const nextAlignment = alignment + (network.costs?.[nextKey] || 1);
+          const knownCost = distances.get(nextKey) ?? Infinity;
+          if (nextCost > knownCost || (nextCost === knownCost && nextAlignment >= (alignments.get(nextKey) ?? Infinity))) continue;
+          distances.set(nextKey, nextCost);
+          alignments.set(nextKey, nextAlignment);
+          previous.set(nextKey, key);
+          queue.push({cell: next, cost: nextCost, alignment: nextAlignment});
         }
       }
 
@@ -391,7 +457,7 @@
       }
       raw.reverse();
 
-      const pointsWithAnchors = [startPoint, ...raw, targetPoint];
+      const pointsWithAnchors = raw;
       const points = pointsWithAnchors.filter((point, index, arr) => {
         if (index === 0 || index === arr.length - 1) return true;
         const prev = arr[index - 1];
@@ -413,40 +479,16 @@
     }
 
     function computeFloorPath(mapId, startPt, endPt, corridorY = 455, hubX = 500) {
-      if (!startPt || !endPt) return [startPt || [500, 500], endPt || [500, 500]];
+      if (!startPt || !endPt) return [];
       const net = window.SafeWay?.INDOOR_ROUTE_NETWORKS?.[mapId] || window.SafeWayData?.INDOOR_ROUTE_NETWORKS?.[mapId];
       if (net) {
-        const indoorRes = shortestPathOnIndoorNetwork(net, startPt, endPt);
-        if (indoorRes && indoorRes.points && indoorRes.points.length >= 2) {
+        const indoorRes = shortestPathOnIndoorNetwork(constrainedNetwork(mapId,net,normalizeDoorControls(mapId,window.SafeWayRouteState)), startPt, endPt);
+        if (indoorRes && indoorRes.points && indoorRes.points.length >= 1) {
           return indoorRes.points;
         }
       }
 
-      const [x1, y1] = startPt;
-      const [x2, y2] = endPt;
-
-      if (Math.abs(x1 - x2) < 30) {
-        return [
-          [x1, y1],
-          [x1, corridorY],
-          [x2, y2]
-        ];
-      }
-
-      if (Math.abs(y1 - y2) < 30) {
-        return [
-          [x1, y1],
-          [x2, y2]
-        ];
-      }
-
-      return [
-        [x1, y1],
-        [x1, corridorY],
-        [hubX, corridorY],
-        [x2, corridorY],
-        [x2, y2]
-      ];
+      return [];
     }
 
     const ALL_CAMPUS_LOCATIONS_HIERARCHY = [
@@ -467,79 +509,79 @@
         group: "📐 Ramanujan Block — Ground Floor",
         mapId: "ramanujan-ground",
         items: ["R1", "R2", "R3", "R4", "R6", "R7", "R8", "R9", "R10", "R11", "R12", "Badminton Court", "Lift", "Entry / Exit 1", "Entry / Exit 2", "Entry / Exit 3"]
-          .map(r => ({ key: "ramanujan-ground:" + r, name: "Ramanujan Ground — " + r, mapId: "ramanujan-ground", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || [350, 455] }))
+          .map(r => ({ key: "ramanujan-ground:" + r, name: "Ramanujan Ground — " + r, mapId: "ramanujan-ground", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-ground"][r] || null }))
       },
       {
         group: "📐 Ramanujan Block — First Floor",
         mapId: "ramanujan-first",
         items: ["Drawing Lab", "LT 1", "LT 2", "LT 3", "LT 4", "Boys W/C", "Girls W/C", "Lift", "Stairs"]
-          .map(r => ({ key: "ramanujan-first:" + r, name: "Ramanujan 1F — " + r, mapId: "ramanujan-first", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || [500, 325] }))
+          .map(r => ({ key: "ramanujan-first:" + r, name: "Ramanujan 1F — " + r, mapId: "ramanujan-first", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-first"][r] || null }))
       },
       {
         group: "📐 Ramanujan Block — Basement",
         mapId: "ramanujan-basement",
         items: ["Lab 1", "Lab 2", "Lab 3", "Lab 4", "Lab 5", "Lab 6", "Lift", "Stairs 1", "Stairs 2"]
-          .map(r => ({ key: "ramanujan-basement:" + r, name: "Ramanujan Basement — " + r, mapId: "ramanujan-basement", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || [600, 275] }))
+          .map(r => ({ key: "ramanujan-basement:" + r, name: "Ramanujan Basement — " + r, mapId: "ramanujan-basement", room: r, point: ROOM_ROUTE_TARGETS["ramanujan-basement"][r] || null }))
       },
       {
         group: "⚛️ Bhabha Block — Ground Floor",
         mapId: "bhabha-ground",
         items: ["Lecture Hall 1", "Lecture Hall 2", "Reception", "Registrar", "Director Office", "Admission Cell", "Sitting Hall", "Drinking Water", "Stairs 1", "Stairs 2", "Entry"]
-          .map(r => ({ key: "bhabha-ground:" + r, name: "Bhabha Ground — " + r, mapId: "bhabha-ground", room: r, point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || [300, 320] }))
+          .map(r => ({ key: "bhabha-ground:" + r, name: "Bhabha Ground — " + r, mapId: "bhabha-ground", room: r, point: ROOM_ROUTE_TARGETS["bhabha-ground"][r] || null }))
       },
       {
         group: "⚛️ Bhabha Block — First Floor",
         mapId: "bhabha-first",
         items: ["HOD ME", "LT 1", "LT 2", "LT 3", "Faculty Cabins", "ECE Lab", "Stairs"]
-          .map(r => ({ key: "bhabha-first:" + r, name: "Bhabha 1F — " + r, mapId: "bhabha-first", room: r, point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || [300, 300] }))
+          .map(r => ({ key: "bhabha-first:" + r, name: "Bhabha 1F — " + r, mapId: "bhabha-first", room: r, point: ROOM_ROUTE_TARGETS["bhabha-first"][r] || null }))
       },
       {
         group: "⚛️ Bhabha Block — Basement",
         mapId: "bhabha-basement",
         items: ["Digital Library", "Library", "Main Library", "Lobby / Corridor", "Entry Gate"]
-          .map(r => ({ key: "bhabha-basement:" + r, name: "Bhabha Basement — " + r, mapId: "bhabha-basement", room: r, point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || [300, 335] }))
+          .map(r => ({ key: "bhabha-basement:" + r, name: "Bhabha Basement — " + r, mapId: "bhabha-basement", room: r, point: ROOM_ROUTE_TARGETS["bhabha-basement"][r] || null }))
       },
       {
         group: "🚀 Kalpana Chawla Block — Ground Floor",
         mapId: "kalpana-ground",
         items: ["LT 1", "LT 2", "LT 3", "CCPD 1", "CCPD 2", "Computer Lab 1", "HOD CSE", "Lift", "Stairs", "Entry", "Emergency Exit"]
-          .map(r => ({ key: "kalpana-ground:" + r, name: "Kalpana Ground — " + r, mapId: "kalpana-ground", room: r, point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || [640, 220] }))
+          .map(r => ({ key: "kalpana-ground:" + r, name: "Kalpana Ground — " + r, mapId: "kalpana-ground", room: r, point: ROOM_ROUTE_TARGETS["kalpana-ground"][r] || null }))
       },
       {
         group: "🚀 Kalpana Chawla Block — First Floor",
         mapId: "kalpana-first",
         items: ["Training Hall 1", "Training Hall 2", "Class Room 1", "Class Room 2", "Class Room 3", "Class Room 4", "Store"]
-          .map(r => ({ key: "kalpana-first:" + r, name: "Kalpana 1F — " + r, mapId: "kalpana-first", room: r, point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || [300, 325] }))
+          .map(r => ({ key: "kalpana-first:" + r, name: "Kalpana 1F — " + r, mapId: "kalpana-first", room: r, point: ROOM_ROUTE_TARGETS["kalpana-first"][r] || null }))
       },
       {
         group: "🚀 Kalpana Chawla Block — Basement",
         mapId: "kalpana-basement",
         items: ["Fluid Mechanics Lab", "Computer Lab 1", "Computer Lab 2", "Automobile Lab", "Store Room", "Lift"]
-          .map(r => ({ key: "kalpana-basement:" + r, name: "Kalpana Basement — " + r, mapId: "kalpana-basement", room: r, point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || [320, 290] }))
+          .map(r => ({ key: "kalpana-basement:" + r, name: "Kalpana Basement — " + r, mapId: "kalpana-basement", room: r, point: ROOM_ROUTE_TARGETS["kalpana-basement"][r] || null }))
       },
       {
         group: "🔬 Raman Block — Ground Floor",
         mapId: "raman-ground",
         items: ["Lecture Hall 1", "Lecture Hall 2", "Samvaad Club", "Kalakrit Club", "Medical Room", "Drinking Water", "Lift", "Stairs", "Entry / Exit 1", "Entry / Exit 2"]
-          .map(r => ({ key: "raman-ground:" + r, name: "Raman Ground — " + r, mapId: "raman-ground", room: r, point: ROOM_ROUTE_TARGETS["raman-ground"][r] || [380, 350] }))
+          .map(r => ({ key: "raman-ground:" + r, name: "Raman Ground — " + r, mapId: "raman-ground", room: r, point: ROOM_ROUTE_TARGETS["raman-ground"][r] || null }))
       },
       {
         group: "🔬 Raman Block — First Floor",
         mapId: "raman-first",
         items: ["Auditorium Hall", "Lecture Hall", "Drinking Water", "Lift", "Stairs"]
-          .map(r => ({ key: "raman-first:" + r, name: "Raman 1F — " + r, mapId: "raman-first", room: r, point: ROOM_ROUTE_TARGETS["raman-first"][r] || [500, 270] }))
+          .map(r => ({ key: "raman-first:" + r, name: "Raman 1F — " + r, mapId: "raman-first", room: r, point: ROOM_ROUTE_TARGETS["raman-first"][r] || null }))
       },
       {
         group: "🔭 Aryabhatta Block — Ground Floor",
         mapId: "aryabhatta-ground",
         items: ["Large Room", "Room 1", "Room 2", "Room 3", "Room 4", "Room 5", "Lab", "Temple", "Lift", "Stairs 1", "Stairs 2", "Entry / Exit"]
-          .map(r => ({ key: "aryabhatta-ground:" + r, name: "Aryabhatta Ground — " + r, mapId: "aryabhatta-ground", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || [440, 290] }))
+          .map(r => ({ key: "aryabhatta-ground:" + r, name: "Aryabhatta Ground — " + r, mapId: "aryabhatta-ground", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-ground"][r] || null }))
       },
       {
         group: "🔭 Aryabhatta Block — Basement",
         mapId: "aryabhatta-basement",
         items: ["Classroom 1", "Classroom 2", "Classroom 3", "Lab 1", "Lab 2", "Lift", "Stairs 1"]
-          .map(r => ({ key: "aryabhatta-basement:" + r, name: "Aryabhatta Basement — " + r, mapId: "aryabhatta-basement", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || [300, 330] }))
+          .map(r => ({ key: "aryabhatta-basement:" + r, name: "Aryabhatta Basement — " + r, mapId: "aryabhatta-basement", room: r, point: ROOM_ROUTE_TARGETS["aryabhatta-basement"][r] || null }))
       }
     ];
 
@@ -564,8 +606,39 @@
     }) {
       const buildingData = bData || window.SafeWay?.INITIAL_BUILDING_DATA || window.SafeWayData?.INITIAL_BUILDING_DATA || { nodes: [], edges: [], exits: [], assemblyAreas: [] };
       const stages = [];
+      if(!activeOriginLocation.point || (!liveState?.emergencyActive && !activeDestLocation.point))return [{stageKey:'no-safe-route',mapId:activeOriginLocation.mapId,title:'Location mapping needed',description:'This location needs a confirmed map position before navigation.',targetBadge:'UNAVAILABLE',points:[],d:'',pixelLength:0}];
+      if (liveState?.emergencyActive) {
+        const refuge = activeCampusRoute?.pathNodes?.[activeCampusRoute.pathNodes.length - 1];
+        if (!refuge) {
+          return [{stageKey: "no-safe-route", mapId: activeOriginLocation.mapId,
+            title: "No safe route available", description: "No reachable safe destination was found. Use SOS for assistance.",
+            targetBadge: "UNAVAILABLE", startPoint: activeOriginLocation.point,
+            points: [], d: "", pixelLength: 0, nextMapId: activeOriginLocation.mapId}];
+        }
+        // Emergency stages must end at the selected safe destination, never continue
+        // into the normal-mode destination building.
+        activeDestLocation = {name: refuge.name, nodeId: refuge.id, mapId: "campus", point: [refuge.x, refuge.y]};
+      }
+      window.SafeWayRouteState = liveState || {};
+      const unavailable = (message='No mapped safe route is available. Use SOS for assistance.') => [{stageKey:'no-safe-route',mapId:activeOriginLocation.mapId,title:'No safe route available',description:message,targetBadge:'UNAVAILABLE',points:[],d:'',pixelLength:0,nextMapId:activeOriginLocation.mapId}];
       const originMap = activeOriginLocation.mapId;
       const destMap = activeDestLocation.mapId;
+
+      // Normal same-floor journeys stay on that floor's supplied pathway network.
+      if (originMap === destMap && originMap !== "campus" && !liveState?.emergencyActive) {
+        const points = computeFloorPath(originMap, activeOriginLocation.point, activeDestLocation.point);
+        return [{
+          stageKey: "same-floor", mapId: originMap,
+          title: "Navigate to " + activeDestLocation.name,
+          description: points.length ? "Follow corridor to destination doorway." : "No mapped route available.",
+          targetBadge: "TARGET", targetBadgeColor: "#2563eb",
+          targetLabel: activeDestLocation.room || activeDestLocation.name,
+          startPoint: points[0], endPoint: points[points.length - 1], points,
+          d: points.length ? "M " + points.map(p => p.join(" ")).join(" L ") : "",
+          pixelLength: calculatePolylineLength(points), nextMapId: destMap,
+          switchPrompt: null, voiceAnnouncement: "Arrived at " + activeDestLocation.name + "."
+        }];
+      }
 
       const originBlockPrefix = originMap !== "campus" ? originMap.split("-")[0] : null;
       const destBlockPrefix = destMap !== "campus" ? destMap.split("-")[0] : null;
@@ -573,11 +646,46 @@
       const isOriginUpperOrLower = originMap.includes("first") || originMap.includes("basement");
       const isDestUpperOrLower = destMap.includes("first") || destMap.includes("basement");
 
+      if (accessibilityMode && (isOriginUpperOrLower || isDestUpperOrLower)) return unavailable('No verified step-free floor connection is mapped. Request assistance using SOS.');
+      if (isOriginUpperOrLower && !selectBestStairs(originMap,liveState) || isDestUpperOrLower && !selectBestStairs(destMap,liveState)) return unavailable('All mapped stair connections are unavailable. Use SOS for assistance.');
+      // A journey inside one block must end at the requested floor and room.
+      if (!liveState?.emergencyActive && originBlockPrefix && originBlockPrefix===destBlockPrefix) {
+        const make=(mapId,start,end,label,nextMapId)=>{const points=computeFloorPath(mapId,start,end);return {stageKey:mapId,mapId,title:'Navigate to '+label,targetLabel:label,targetBadge:nextMapId!==mapId?'STAIRS':'TARGET',description:'Follow the mapped corridor.',points,startPoint:points[0],endPoint:points.at(-1),d:points.length?'M '+points.map(p=>p.join(' ')).join(' L '):'',pixelLength:calculatePolylineLength(points),nextMapId,switchPrompt:nextMapId!==mapId?'Continue to '+nextMapId:null};};
+        const ground=originBlockPrefix+'-ground';
+        const from=isOriginUpperOrLower?selectBestStairs(originMap,liveState):null;
+        const to=isDestUpperOrLower?selectBestStairs(destMap,liveState):null;
+        if(from) stages.push(make(originMap,activeOriginLocation.point,from.point,from.label,ground));
+        stages.push(make(ground,from?from.groundStairs:activeOriginLocation.point,to?to.groundStairs:activeDestLocation.point,to?to.label:activeDestLocation.name,to?destMap:ground));
+        if(to) stages.push(make(destMap,to.point,activeDestLocation.point,activeDestLocation.name,destMap));
+        return stages.some(stage=>!stage.points.length)?unavailable():stages;
+      }
       // Dynamic Egress & Stairs Selection based on liveState
-      const chosenStairs = isOriginUpperOrLower ? selectBestStairs(originMap, liveState) : null;
+      let chosenStairs = isOriginUpperOrLower ? selectBestStairs(originMap, liveState) : null;
       const groundMapId = originBlockPrefix ? (originBlockPrefix + "-ground") : "campus";
       const chosenEgressDoor = selectBestEgressDoor(groundMapId, liveState);
 
+      if(originMap!=='campus' && chosenEgressDoor.isTrapped) return unavailable('All mapped exits are blocked. Use SOS for assistance.');
+      if(destMap!=='campus' && selectBestEgressDoor(destBlockPrefix+'-ground',liveState).isTrapped) return unavailable('Destination entry is blocked.');
+      // For normal walking, minimize both sides of the stair transition to the
+      // selected exit instead of always taking the first staircase in the list.
+      if (isOriginUpperOrLower && !accessibilityMode) {
+        let bestDistance = Infinity;
+        chosenStairs = null;
+        for (const stairs of BLOCK_STAIRS_OPTIONS[originMap] || []) {
+          const key = getControlId("door", originMap, stairs.name || stairs.id);
+          const area = getControlId("area", originMap, stairs.name || stairs.id);
+          if (liveState?.exits?.[key]?.isOpen === false || liveState?.hazards?.[key] === "high" || liveState?.hazards?.[area] === "high" || liveState?.hazards?.[stairs.id] === "high" || liveState?.blockedEdges?.[key] || liveState?.blockedEdges?.[stairs.id]) continue;
+          const upper = computeFloorPath(originMap, activeOriginLocation.point, stairs.point);
+          const ground = computeFloorPath(groundMapId, stairs.groundStairs, chosenEgressDoor.point);
+          if (!upper.length || !ground.length) continue;
+          const crowd = liveState?.crowds?.[key] || liveState?.crowds?.[stairs.id];
+          const penalty = liveState?.emergencyActive ? (crowd === "High" ? 80 : crowd === "Medium" ? 30 : 0) : 0;
+          const distance = calculatePolylineLength(upper) + calculatePolylineLength(ground) + penalty;
+          if (distance < bestDistance) { bestDistance = distance; chosenStairs = stairs; }
+        }
+      }
+
+      if(isOriginUpperOrLower && !chosenStairs) return unavailable();
       // SCENARIO 1: Origin is on 1F or Basement -> Route Down to Ground Floor first
       if (isOriginUpperOrLower) {
         const roomPt = activeOriginLocation.point || [500, 325];
@@ -676,7 +784,8 @@
             campusPts.push([v.x, v.y]);
           }
         } else {
-          campusPts.push([355, 206], [760, 490]);
+          if(activeCampusRoute?.pathNodes?.length===1) campusPts.push([activeCampusRoute.pathNodes[0].x,activeCampusRoute.pathNodes[0].y]);
+          else return unavailable();
         }
         const targetBlockName = activeDestLocation.name.split('—')[0];
 
@@ -757,23 +866,15 @@
         }
       }
 
-      return stages.length > 0 ? stages : [
-        {
-          stageKey: "fallback",
-          mapId: originMap,
-          title: "Navigate to " + activeDestLocation.name,
-          description: "Follow guidance path.",
-          targetBadge: "TARGET",
-          targetBadgeColor: "#2563eb",
-          targetLabel: activeDestLocation.name,
-          startPoint: [440, 565],
-          endPoint: [760, 490],
-          points: [[440, 565], [760, 490]],
-          d: "M 440 565 L 760 490",
-          pixelLength: 300,
-          nextMapId: destMap
-        }
-      ];
+      if(stages.some(stage=>!stage.points?.length)) return unavailable();
+      return stages.length > 0 ? stages.map(stage => {
+        if (stage.mapId === "campus") return stage;
+        // Keep movement and both badges on precisely the polyline being displayed.
+        const points = stage.points || [];
+        return { ...stage, startPoint: points[0], endPoint: points[points.length - 1],
+          d: points.length ? "M " + points.map(p => p.join(" ")).join(" L ") : "",
+          description: points.length ? stage.description : "No mapped route available." };
+      }) : unavailable();
     }
 
     let audioCtx = null;
@@ -1288,29 +1389,6 @@
 
       const activeMapPlan = MAP_PLANS.find(p => p.id === selectedMapId) || MAP_PLANS[0];
 
-      // Live Presence Heartbeat
-      useEffect(() => {
-        if (window.SafeWay?.reportDevicePresence && activeOriginLocation) {
-          window.SafeWay.reportDevicePresence({
-            mapId: activeOriginLocation.mapId || "campus",
-            roomName: activeOriginLocation.room || (activeOriginLocation.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
-            name: activeOriginLocation.name || "Campus",
-            floor: activeMapPlan?.floor ?? 1
-          });
-        }
-        const interval = setInterval(() => {
-          if (window.SafeWay?.reportDevicePresence && activeOriginLocation) {
-            window.SafeWay.reportDevicePresence({
-              mapId: activeOriginLocation.mapId || "campus",
-              roomName: activeOriginLocation.room || (activeOriginLocation.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
-              name: activeOriginLocation.name || "Campus",
-              floor: activeMapPlan?.floor ?? 1
-            });
-          }
-        }, 8000);
-        return () => clearInterval(interval);
-      }, [activeOriginLocation, activeMapPlan]);
-
       // Robust data readiness & subscribe Realtime Sync
       useEffect(() => {
         let unsub = null;
@@ -1458,11 +1536,21 @@
         : (dynamicEgressDoor?.campusNode || BLOCK_CAMPUS_ENTRANCE_NODES[activeOriginLocation.mapId] || "admin");
       const campusDestNodeId = targetBlockEntranceNodeId || "admin";
 
+      const campusNodeHazards=new Set();
+      const campusPenalties={};
+      for(const [name,node] of Object.entries(window.SafeWayRouteControls?.CAMPUS_NODES || {})){
+        const key=getControlId('area','campus',name),hazard=liveState.hazards?.[key],crowd=liveState.crowds?.[key];
+        if(hazard==='high')campusNodeHazards.add(node);
+        campusPenalties[node]=Math.max(campusPenalties[node]||1,hazard==='low'?3:crowd==='High'?5:crowd==='Medium'?2:1);
+      }
+      const mappedEdges = campusDistanceEdges(bData.nodes, effectiveEdges).filter(e=>!campusNodeHazards.has(e.from)&&!campusNodeHazards.has(e.to));
+      for(const e of mappedEdges){e.routingPenalty=(Math.max(campusPenalties[e.from]||1,campusPenalties[e.to]||1)-1)*20;}
+
       const normalRoute = !isEmergency && window.SafeWay?.findShortestPath ? window.SafeWay.findShortestPath(
         campusOriginNodeId,
         campusDestNodeId,
         bData.nodes,
-        effectiveEdges,
+        mappedEdges,
         { isEmergency: false, accessibilityMode },
         crowdInput,
         liveState.hazards,
@@ -1472,7 +1560,7 @@
       const evacuationResult = isEmergency && window.SafeWay?.findSafestEvacuationPath ? window.SafeWay.findSafestEvacuationPath(
         campusOriginNodeId,
         bData.nodes,
-        effectiveEdges,
+        mappedEdges,
         effectiveExits,
         bData.assemblyAreas,
         { isEmergency: true, accessibilityMode, nearestEmergencyDestination: true },
@@ -1495,9 +1583,13 @@
         });
       }, [activeOriginLocation, activeDestLocation, activeCampusRoute, liveState, accessibilityMode, bData]);
 
+      const routeFingerprint=JSON.stringify(multiFloorPipeline.map(s=>[s.mapId,s.d,s.targetLabel]));
+      useEffect(()=>{setActiveStageIndex(0);setStageStepCount(0);setAutoWalkActive(false);},[routeFingerprint,isEmergency]);
       // Current active stage object in pipeline
       const currentActiveStage = multiFloorPipeline[activeStageIndex] || multiFloorPipeline[0];
 
+      const reportedPosition={mapId:currentActiveStage?.mapId||activeOriginLocation.mapId,roomName:stageStepCount===0 && activeStageIndex===0?(activeOriginLocation.room||activeOriginLocation.name):('Along route to '+(currentActiveStage?.targetLabel||'unknown destination')),floor:MAP_PLANS.find(p=>p.id===(currentActiveStage?.mapId||activeOriginLocation.mapId))?.floor??1};
+      useEffect(()=>{const report=()=>window.SafeWay?.reportDevicePresence?.(reportedPosition);report();const timer=setInterval(report,8000);return()=>clearInterval(timer);},[reportedPosition.mapId,reportedPosition.roomName,reportedPosition.floor]);
       // Keep selectedMapId synced with currentActiveStage map
       useEffect(() => {
         if (currentActiveStage?.mapId && selectedMapId !== currentActiveStage.mapId) {
@@ -1511,7 +1603,7 @@
           const dist = activeCampusRoute?.totalDistance || 45;
           return Math.max(15, Math.round(dist / 1.5));
         }
-        return 18;
+        return Math.max(1,Math.ceil((currentActiveStage?.pixelLength || 0)*0.1/0.75));
       }, [currentActiveStage, activeCampusRoute]);
 
       // Stage progress ratio (0.0 to 1.0)
@@ -1544,6 +1636,7 @@
 
       // Step Execution & Automatic Multi-Floor Handoff
       const takeStep = () => {
+        if(!currentActiveStage?.points?.length || stageProgress>=1) {setAutoWalkActive(false);return;}
         setTotalStepCount(prev => prev + 1);
         const nextSteps = stageStepCount + 1;
         setStageStepCount(nextSteps);
@@ -1552,8 +1645,8 @@
           if (activeStageIndex < multiFloorPipeline.length - 1) {
             advanceToStage(activeStageIndex + 1);
           } else {
-            notify("🎯 Arrived at " + activeDestLocation.name + "!");
-            speakText("You have arrived at your destination: " + activeDestLocation.name + ".");
+            notify("🎯 Arrived at " + currentActiveStage.targetLabel + "!");
+            speakText("You have arrived at " + currentActiveStage.targetLabel + ".");
             setAutoWalkActive(false);
           }
         }
@@ -1571,42 +1664,27 @@
         return () => { if (timer) clearInterval(timer); };
       }, [autoWalkActive, walkSpeedMode, stageStepCount, activeStageIndex, stageTargetSteps, multiFloorPipeline]);
 
-      const toggleSensors = async () => {
-        if (isMotionTracking) {
-          setIsMotionTracking(false);
-          notify("Sensors paused");
-        } else {
-          if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            try {
-              const res = await DeviceOrientationEvent.requestPermission();
-              if (res === 'granted') {
-                setIsMotionTracking(true);
-                window.addEventListener('deviceorientation', (e) => {
-                  if (e.alpha !== null) setCompassHeading(Math.round(e.alpha));
-                });
-                notify("🟢 Physical Sensors Active!");
-              }
-            } catch(e) {}
-          } else {
-            setIsMotionTracking(true);
-            window.addEventListener('deviceorientation', (e) => {
-              if (e.alpha !== null) setCompassHeading(Math.round(e.alpha));
-            });
-            notify("🟢 Physical Sensors Active!");
-          }
-        }
+      const stepCallback=useRef(null); stepCallback.current=takeStep;
+      const trackerRef=useRef(null);
+      useEffect(()=>()=>{trackerRef.current?.stop();},[]);
+      const toggleSensors=async()=>{
+        if(isMotionTracking){trackerRef.current?.stop();setIsMotionTracking(false);notify('Sensors paused');return;}
+        if(!window.DeviceMotionEvent || !window.SafeWay?.MotionTracker){notify('Motion sensors are unavailable on this device.');return;}
+        if(!trackerRef.current){trackerRef.current=new window.SafeWay.MotionTracker();trackerRef.current.subscribe(e=>{if(e.type==='STEP')stepCallback.current?.();if(e.type==='ORIENTATION')setCompassHeading(e.heading);});}
+        if(await trackerRef.current.requestPermission()){trackerRef.current.start();setIsMotionTracking(true);notify('Physical sensors listening');}else notify('Sensor permission was not granted.');
       };
 
-      const triggerSosDistress = () => {
+      const triggerSosDistress = async () => {
+        try {
         if (window.SafeWay?.sendDistressSignal) {
-          window.SafeWay.sendDistressSignal({
+          await window.SafeWay.sendDistressSignal({
             userId: "aegispath-user-mobile",
-            locationName: (activeOriginLocation?.name || "Campus") + " (" + activeMapPlan.label + ")",
-            roomName: activeOriginLocation?.room || (activeOriginLocation?.name ? activeOriginLocation.name.split('—')[1]?.trim() : "Campus"),
-            mapId: activeOriginLocation?.mapId || "campus",
+            locationName: reportedPosition.roomName,
+            roomName: reportedPosition.roomName,
+            mapId: currentActiveStage?.mapId || activeOriginLocation?.mapId || "campus",
             nodeId: "mobile-node",
-            floor: activeMapPlan.floor || 1,
-            zone: activeMapPlan.group,
+            floor: (MAP_PLANS.find(p=>p.id===currentActiveStage?.mapId)?.floor ?? 1),
+            zone: MAP_PLANS.find(p=>p.id===reportedPosition.mapId)?.group || "Campus",
             reason: sosReason,
             audioClip: audioClipData
           });
@@ -1614,12 +1692,13 @@
         setSosSent(true);
         notify(audioClipData ? "🆘 Trapped Distress Beacon + Voice Clip Sent!" : "🆘 Trapped Distress Beacon Sent!");
         speakText("Distress beacon transmitted to emergency operations console.");
+        } catch(error) {setSosSent(false);notify("SOS was not delivered: "+error.message+". Contact emergency services directly.");}
       };
 
       const campusNodes = bData.nodes.filter(n => n.floor === 1);
       const campusEdges = bData.edges.filter(e => e.floor === 1);
 
-      const totalEstimatedMeters = (activeCampusRoute?.totalDistance || 35) + (multiFloorPipeline.length * 15);
+      const totalEstimatedMeters = Math.round(multiFloorPipeline.reduce((sum,stage)=>sum+(stage.pixelLength||0)*0.1,0));
       const totalEstimatedSeconds = Math.ceil(totalEstimatedMeters / 1.2);
 
       const isLight = theme === 'light';
@@ -1727,7 +1806,7 @@
                       <span className="text-red-300 text-[10px] font-mono">DYNAMIC RE-ROUTING</span>
                     </div>
                     <h2 className="text-xs font-black text-white mt-0.5">
-                      Follow Illuminated Safe Green Evacuation Route
+                      {currentActiveStage?.points?.length ? 'Follow the mapped evacuation route' : 'No safe route available — request assistance'}
                     </h2>
                   </div>
                 </div>
@@ -1738,14 +1817,14 @@
               </div>
 
               {/* Dynamic Evacuation Destination Card */}
-              {evacuationResult && (
+              {evacuationResult && currentActiveStage?.points?.length > 0 && (
                 <div className="bg-slate-950 rounded-2xl p-3 border-2 border-emerald-400 shadow-xl space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-black text-emerald-400">
                     <span className="flex items-center gap-1">
                       <Icon name="shield" className="w-3.5 h-3.5 text-emerald-400" />
                       {evacuationResult.isRefugeRoute ? "FIRE POLICY: SAFE REFUGE ASSIGNED" : "NEAREST SAFE DESTINATION"}
                     </span>
-                    <span className="font-mono text-emerald-300 font-bold">~{(evacuationResult.bestRoute?.totalDistance || 25) + "m"}</span>
+                    <span className="font-mono text-emerald-300 font-bold">~{totalEstimatedMeters + "m (estimate)"}</span>
                   </div>
                   <div className="text-sm font-black text-emerald-300 leading-snug">
                     {"Proceed to " + (evacuationResult.recommendedExit?.name || evacuationResult.recommendedAssembly?.name || evacuationResult.refugeNode?.name || "Designated Safe Zone")}
@@ -2126,7 +2205,7 @@
                 <span className={"text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg border " + (
                   isLight ? "bg-emerald-50 text-emerald-800 border-emerald-300" : "bg-emerald-950/60 text-emerald-400 border-emerald-500/30"
                 )}>
-                  {"~" + totalEstimatedMeters + "m (" + totalEstimatedSeconds + "s)"}
+                  {currentActiveStage?.points?.length ? ('~' + totalEstimatedMeters + 'm (' + totalEstimatedSeconds + 's), approximate') : 'Route unavailable'}
                 </span>
               </div>
 
@@ -2199,7 +2278,7 @@
           )}>
             <div className="grid grid-cols-3 gap-2">
               <button
-                onClick={takeStep}
+                disabled={!currentActiveStage?.points?.length} onClick={takeStep}
                 className={"py-3 rounded-2xl font-black text-xs border flex items-center justify-center gap-1 transition " + (
                   isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 shadow-sm" : "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
                 )}
@@ -2210,7 +2289,7 @@
               {/* Auto-Walk with Speed Toggle */}
               <div className="flex flex-col gap-0.5">
                 <button
-                  onClick={() => setAutoWalkActive(!autoWalkActive)}
+                  disabled={!currentActiveStage?.points?.length} onClick={() => setAutoWalkActive(!autoWalkActive)}
                   className={"py-2 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1 " + (
                     autoWalkActive
                       ? "bg-amber-600/30 text-amber-600 dark:text-amber-300 border-amber-500/50 animate-pulse"
@@ -2546,13 +2625,13 @@
               {/* Floating Bottom Step Bar */}
               <div className="pt-3 flex items-center justify-between gap-3">
                 <button
-                  onClick={takeStep}
+                  disabled={!currentActiveStage?.points?.length} onClick={takeStep}
                   className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-indigo-600/40 flex items-center justify-center gap-1.5 transition active:scale-95"
                 >
                   <span>🚶 Next Step (+1)</span>
                 </button>
                 <button
-                  onClick={() => setAutoWalkActive(!autoWalkActive)}
+                  disabled={!currentActiveStage?.points?.length} onClick={() => setAutoWalkActive(!autoWalkActive)}
                   className={"px-5 py-3.5 rounded-2xl font-black text-xs border transition flex items-center justify-center gap-1.5 " + (
                     autoWalkActive ? "bg-amber-600 text-white border-amber-400 animate-pulse shadow-lg shadow-amber-600/40" : "bg-slate-800 text-slate-200 border-slate-700"
                   )}
@@ -2588,5 +2667,5 @@
     const root = ReactDOM.createRoot(container);
     root.render(<MobileApp />);
   </script>
-</body>
+<script>window.addEventListener('safeway-sync-status',function(e){let el=document.getElementById('sync-error');if(!el){el=document.createElement('div');el.id='sync-error';el.setAttribute('role','alert');el.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#991b1b;color:white;padding:12px;text-align:center';document.body.appendChild(el);}el.hidden=e.detail.isLiveCloud;el.textContent=e.detail.isLiveCloud?'':'Changes could not be saved: '+e.detail.badgeText;});</script></body>
 </html>

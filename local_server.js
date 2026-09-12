@@ -9,6 +9,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import realtimeHandler from './api/realtime.js';
+import sensorHandler from './api/sensor.js';
+import logoutHandler from './api/admin/logout.js';
+import { createSignedToken, revokeSignedToken } from './api/_auth.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +32,7 @@ function isAdmin(req) {
   const token = parseCookies(req).safeway_admin_session;
   const expiresAt = token && adminSessions.get(token);
   if (!expiresAt || expiresAt < Date.now()) {
-    if (token) adminSessions.delete(token);
+    if (token) { adminSessions.delete(token); revokeSignedToken(token).catch(()=>{}); }
     return false;
   }
   return true;
@@ -85,7 +88,7 @@ const server = http.createServer((req, res) => {
           res.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
           return res.end(JSON.stringify({ error: 'Invalid username or passcode' }));
         }
-        const token = crypto.randomBytes(32).toString('base64url');
+        const token = createSignedToken({user:ADMIN_USER,exp:Date.now()+SESSION_TTL_MS});
         adminSessions.set(token, Date.now() + SESSION_TTL_MS);
         res.writeHead(200, {
           'Content-Type': 'application/json',
@@ -112,13 +115,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (reqPath === '/api/admin/logout' && req.method === 'POST') {
-    const token = parseCookies(req).safeway_admin_session;
-    if (token) adminSessions.delete(token);
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Set-Cookie': 'safeway_admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
-    res.end(JSON.stringify({ ok: true }));
-    return;
-  }
+  if(reqPath==='/api/admin/logout' && req.method==='POST'){adminSessions.delete(parseCookies(req).safeway_admin_session);return logoutHandler(req,res);}
 
   if ((reqPath === '/admin' || reqPath === '/admin/' || (reqPath.startsWith('/admin/') && reqPath !== '/admin/login.html')) && !isAdmin(req)) {
     res.writeHead(302, { Location: '/login', 'Cache-Control': 'no-store' });
@@ -131,35 +128,7 @@ const server = http.createServer((req, res) => {
     return realtimeHandler(req, res);
   }
 
-  // IoT Sensor Ingestion Endpoint for ESP32 Nodes
-  if (reqPath.startsWith('/api/sensor') && (req.method === 'POST' || req.method === 'PUT')) {
-    let body = '';
-    req.on('data', chunk => { body += chunk.toString(); });
-    req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        const sensorId = payload.sensorId || 'esp32-node';
-        liveSensorData[sensorId] = {
-          ...payload,
-          receivedAt: new Date().toISOString()
-        };
-        console.log(`[IoT Gateway] Telemetry from ${sensorId}:`, payload);
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', sensorId, time: new Date().toISOString() }));
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
-      }
-    });
-    return;
-  }
-
-  // Get live sensors API
-  if ((reqPath === '/api/sensor' || reqPath === '/api/sensors') && req.method === 'GET') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(liveSensorData));
-    return;
-  }
+  if (['/api/sensor','/api/sensors'].includes(reqPath)) return sensorHandler(req,res);
 
   // Map route URLs to files
   if (reqPath === '/' || reqPath === '') {
@@ -168,7 +137,9 @@ const server = http.createServer((req, res) => {
     reqPath = '/admin/index.html';
   }
 
-  const filePath = path.join(__dirname, reqPath);
+  if(reqPath==='/mobile')reqPath='/mobile.html';
+  const filePath = path.resolve(__dirname, '.'+reqPath);
+  if(!filePath.startsWith(__dirname+path.sep)||reqPath.startsWith('/api/')||reqPath.startsWith('/_backups/')||reqPath.includes('/.')){res.writeHead(403);return res.end('Forbidden');}
   const ext = path.extname(filePath).toLowerCase();
 
   fs.readFile(filePath, (err, content) => {
