@@ -71,7 +71,9 @@
   <div id="root" class="min-h-screen w-full lg:h-full lg:overflow-hidden flex flex-col"></div>
 
   <script type="module">
-    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js?v=3.3.0';
+    import * as RouteControls from '../data/adminRouteControls.js?v=3.4.0';
+    window.SafeWayRouteControls=RouteControls;
+    import { INITIAL_BUILDING_DATA } from '../data/buildingGraph.js?v=3.4.0';
     import {
       subscribeToRealtimeData,
       setEmergencyActive,
@@ -86,8 +88,9 @@
       resetAllToNormal,
       clearDistressSignal,
       deleteArchivedDistressSignal,
-      clearAllAuditHistory
-    } from '../services/realtime.js?v=3.3.0';
+      clearAllAuditHistory,
+      getConnectionStatus
+    } from '../services/realtime.js?v=3.4.0';
 
     window.INITIAL_BUILDING_DATA = INITIAL_BUILDING_DATA;
     window.SafeWayAPI = {
@@ -104,7 +107,8 @@
       resetAllToNormal,
       clearDistressSignal,
       deleteArchivedDistressSignal,
-      clearAllAuditHistory
+      clearAllAuditHistory,
+      getConnectionStatus
     };
   </script>
 
@@ -464,7 +468,7 @@
       "bhabha-ground": ["Main Entry", "Stair 1 Exit", "Stair 2 Exit"],
       "bhabha-first": ["Entry / Exit 1", "Entry / Exit 2"]
     };
-    const controlId = (kind, mapId, name) => `${kind}-${mapId}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+    const controlId = (kind,mapId,name) => window.SafeWayRouteControls.controlId(kind,mapId,name);
 
     function Icon({ name, className = "w-4 h-4" }) {
       const icons = {
@@ -777,9 +781,9 @@
       const scopedExits = selectedAdminMapId === "campus" ? bData.exits : bData.exits.filter((exit, index) => index === selectedBlockIndex % bData.exits.length);
       const availableEdges = bData.edges.filter(edge => !edge.id.startsWith("evac-"));
       const scopedEdges = selectedAdminMapId === "campus" ? availableEdges : availableEdges.filter((edge, index) => index % 5 === selectedBlockIndex);
-      const selectedFacilities = (ADMIN_FACILITIES[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("area", selectedAdminMapId, name), proxyZoneId: scopedZones[index % Math.max(scopedZones.length, 1)]?.id }));
-      const selectedDoors = (ADMIN_DOORS[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("door", selectedAdminMapId, name), proxyExitId: scopedExits[index % Math.max(scopedExits.length, 1)]?.id }));
-      const selectedCorridors = selectedFacilities.slice(0, -1).map((facility, index) => ({ id: controlId("path", selectedAdminMapId, `${facility.name}-${selectedFacilities[index + 1].name}`), from: facility.name, to: selectedFacilities[index + 1].name, proxyEdgeId: scopedEdges[index % Math.max(scopedEdges.length, 1)]?.id }));
+      const selectedFacilities = (ADMIN_FACILITIES[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("area", selectedAdminMapId, name), mapped: selectedAdminMapId === "campus" ? Boolean(window.SafeWayRouteControls.CAMPUS_NODES[name]) : Boolean(window.SafeWayRouteControls.ROOM_TARGETS[selectedAdminMapId]?.[name]), proxyZoneId: null }));
+      const selectedDoors = (ADMIN_DOORS[selectedAdminMapId] || []).map((name, index) => ({ name, id: controlId("door", selectedAdminMapId, name), mapped: selectedAdminMapId === "campus" || window.SafeWayRouteControls.ROUTE_DOORS[selectedAdminMapId]?.includes(window.SafeWayRouteControls.DOOR_ALIASES[selectedAdminMapId]?.[name] || name), proxyExitId: selectedAdminMapId === "campus" ? ({"Main Gate":"exit-2","Gate No. 2":"exit-1"}[name]) : null }));
+      const selectedCorridors = selectedAdminMapId === "campus" ? (bData?.edges || []).filter(e=>e.floor===1).map(e=>({id:e.id,mapped:true,from:(bData.nodes.find(n=>n.id===e.from)?.name||e.from),to:(bData.nodes.find(n=>n.id===e.to)?.name||e.to)})) : selectedFacilities.slice(0, -1).map((facility, index) => ({ id: controlId("path", selectedAdminMapId, `${facility.name}-${selectedFacilities[index + 1].name}`), from: facility.name, to: selectedFacilities[index + 1].name, mapped: Boolean(window.SafeWayRouteControls.ROOM_TARGETS[selectedAdminMapId]?.[facility.name] && window.SafeWayRouteControls.ROOM_TARGETS[selectedAdminMapId]?.[selectedFacilities[index+1].name]), proxyEdgeId: null }));
       const campusSensorNodes = ADMIN_MAPS.flatMap(map => {
         const locations = [...new Set([...(ADMIN_FACILITIES[map.id] || []), ...(ADMIN_DOORS[map.id] || [])])];
         return locations.map((location, index) => {
@@ -790,7 +794,7 @@
           const hazardLevel = liveState.hazards[areaId] || recorded?.hazardLevel || "none";
           const crowdLevel = liveState.crowds[doorId] || liveState.crowds[areaId] || recorded?.crowdLevel || "Low";
           const occupancy = recorded?.occupancy ?? (crowdLevel === "High" ? 24 : crowdLevel === "Medium" ? 12 : 4 + (index % 4));
-          return { sensorId, location, mapId: map.id, block: map.group, floor: map.label, smokeDetected: recorded?.smokeDetected || hazardLevel === "low" || hazardLevel === "high", flameDetected: recorded?.flameDetected || hazardLevel === "high", hazardLevel, crowdLevel, occupancy, lastUpdate: recorded?.lastUpdate || Date.now(), isDoorSensor: (ADMIN_DOORS[map.id] || []).includes(location) };
+          return { sensorId, location, mapId: map.id, block: map.group, floor: map.label, smokeDetected: recorded?.smokeDetected || hazardLevel === "low" || hazardLevel === "high", flameDetected: recorded?.flameDetected || hazardLevel === "high", hazardLevel, crowdLevel, occupancy, lastUpdate: recorded?.lastUpdate || null, isDoorSensor: (ADMIN_DOORS[map.id] || []).includes(location) };
         });
       });
       const selectedSensorNodes = campusSensorNodes.filter(sensor => sensor.mapId === selectedAdminMapId);
@@ -910,8 +914,8 @@
                     : 'border-[#39AEA9]/30 bg-[#39AEA9]/10 text-[#E5EFC1]'
                 }`}>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-                  <span className="hidden md:inline">⚡ Edge Serverless Live</span>
-                  <span className="md:hidden">⚡ Live</span>
+                  <span className="hidden md:inline">{window.SafeWayAPI?.getConnectionStatus?.().badgeText || "Connecting"}</span>
+                  <span className="md:hidden">{window.SafeWayAPI?.getConnectionStatus?.().badgeText || "Connecting"}</span>
                 </div>
 
                 {/* Theme Mode Toggle Button */}
@@ -1256,7 +1260,7 @@
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">Independent mapped area control</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{area.mapped ? "Mapped area control" : "Location mapping needed — route control unavailable"}</p>
                           </div>
                           <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
                             hLevel === 'high' ? 'bg-red-600 text-white animate-pulse' : hLevel === 'low' ? 'bg-amber-600 text-white' : 'bg-emerald-600/20 text-emerald-400'
@@ -1269,19 +1273,19 @@
                           <div className="text-[10px] text-slate-400 uppercase font-black mb-1.5">Set Hazard Level:</div>
                           <div className="grid grid-cols-3 gap-1.5">
                             <button
-                              onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "none"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "none"); }}
+                              disabled={!area.mapped} onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "none"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "none"); }}
                               className={`py-2 rounded-xl text-xs font-bold transition ${hLevel === 'none' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
                             >
                               Clear
                             </button>
                             <button
-                              onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "low"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "low"); }}
+                              disabled={!area.mapped} onClick={() => { window.SafeWayAPI.setZoneHazardLevel(area.id, "low"); if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "low"); }}
                               className={`py-2 rounded-xl text-xs font-bold transition ${hLevel === 'low' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
                             >
                               Smoke (+50)
                             </button>
                             <button
-                              onClick={() => {
+                              disabled={!area.mapped} onClick={() => {
                                 window.SafeWayAPI.setZoneHazardLevel(area.id, "high");
                                 if (area.proxyZoneId) window.SafeWayAPI.setZoneHazardLevel(area.proxyZoneId, "high");
                                 window.SafeWayAPI.setEmergencyActive(true);
@@ -1299,7 +1303,7 @@
                             {["Low", "Medium", "High"].map(lvl => (
                               <button
                                 key={lvl}
-                                onClick={() => { window.SafeWayAPI.setZoneCrowdLevel(area.id, lvl); if (area.proxyZoneId) window.SafeWayAPI.setZoneCrowdLevel(area.proxyZoneId, lvl); }}
+                                disabled={!area.mapped} onClick={() => { window.SafeWayAPI.setZoneCrowdLevel(area.id, lvl); if (area.proxyZoneId) window.SafeWayAPI.setZoneCrowdLevel(area.proxyZoneId, lvl); }}
                                 className={`py-1.5 rounded-xl text-xs font-bold transition ${cLevel === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
                               >
                                 {lvl}
@@ -1327,11 +1331,11 @@
                     <div key={door.id} className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-xl">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-black text-base text-white">{door.name}</h3>
+                          <h3 className="font-black text-base text-white">{door.name}</h3>{!door.mapped && <p>Location mapping needed</p>}
                           <p className="text-xs text-slate-400">{selectedAdminMap.group} · {selectedAdminMap.label}</p>
                         </div>
                         <button
-                          onClick={() => { window.SafeWayAPI.setExitOpenStatus(door.id, !isOpen); if (door.proxyExitId) window.SafeWayAPI.setExitOpenStatus(door.proxyExitId, !isOpen); }}
+                          disabled={!door.mapped} onClick={() => { window.SafeWayAPI.setExitOpenStatus(door.id, !isOpen); if (door.proxyExitId) window.SafeWayAPI.setExitOpenStatus(door.proxyExitId, !isOpen); }}
                           className={`text-xs font-black px-3 py-1.5 rounded-full transition ${
                             isOpen ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/40" : "bg-red-600 text-white"
                           }`}
@@ -1346,7 +1350,7 @@
                           {["Low", "Medium", "High"].map(lvl => (
                             <button
                               key={lvl}
-                              onClick={() => { window.SafeWayAPI.setExitCrowdLevel(door.id, lvl); if (door.proxyExitId) window.SafeWayAPI.setExitCrowdLevel(door.proxyExitId, lvl); }}
+                              disabled={!door.mapped} onClick={() => { window.SafeWayAPI.setExitCrowdLevel(door.id, lvl); if (door.proxyExitId) window.SafeWayAPI.setExitCrowdLevel(door.proxyExitId, lvl); }}
                               className={`py-2 rounded-xl text-xs font-bold transition ${crowd === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
                             >
                               {lvl}
@@ -1371,9 +1375,9 @@
                     return (
                       <div key={path.id} className={`p-4 rounded-2xl border ${isBlocked ? "bg-red-950/40 border-red-500" : "bg-slate-900/80 border-slate-800"} space-y-3`}>
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-black text-white">{path.from} ↔ {path.to}</div>
+                          <div className="text-xs font-black text-white">{path.from} ↔ {path.to}{!path.mapped && <span> — mapping needed</span>}</div>
                           <button
-                            onClick={() => { window.SafeWayAPI.setCorridorBlockedStatus(path.id, !isBlocked); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorBlockedStatus(path.proxyEdgeId, !isBlocked); }}
+                            disabled={!path.mapped} onClick={() => { window.SafeWayAPI.setCorridorBlockedStatus(path.id, !isBlocked); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorBlockedStatus(path.proxyEdgeId, !isBlocked); }}
                             className={`text-[10px] font-black px-2.5 py-1 rounded transition ${isBlocked ? "bg-red-600 text-white" : "bg-slate-800 text-slate-300"}`}
                           >
                             {isBlocked ? "BLOCKED" : "CLEAR"}
@@ -1385,7 +1389,7 @@
                             {["Low", "Medium", "High"].map(lvl => (
                               <button
                                 key={lvl}
-                                onClick={() => { window.SafeWayAPI.setCorridorCrowdLevel(path.id, lvl); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorCrowdLevel(path.proxyEdgeId, lvl); }}
+                                disabled={!path.mapped} onClick={() => { window.SafeWayAPI.setCorridorCrowdLevel(path.id, lvl); if (path.proxyEdgeId) window.SafeWayAPI.setCorridorCrowdLevel(path.proxyEdgeId, lvl); }}
                                 className={`px-2 py-0.5 rounded text-[10px] font-bold ${cLevel === lvl ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`}
                               >
                                 {lvl}
@@ -1457,7 +1461,7 @@
                                 {s.hazardLevel}
                               </span>
                             </td>
-                            <td className="p-3 font-mono text-[10px] text-slate-400">{new Date(s.lastUpdate).toLocaleTimeString()}</td>
+                            <td className="p-3 font-mono text-[10px] text-slate-400">{s.lastUpdate ? new Date(s.lastUpdate).toLocaleTimeString() : "No sensor reading"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1470,21 +1474,21 @@
                     <div className="flex flex-wrap gap-2">
                       <button
                         disabled={!selectedSensorNodes[0]}
-                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: selectedAdminMapId, smokeDetected: true, flameDetected: true, hazardLevel: "high", occupancy: 12, crowdLevel: "Medium" })}
+                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: controlId("area",selectedAdminMapId,selectedSensorNodes[0].location), smokeDetected: true, flameDetected: true, hazardLevel: "high", occupancy: 12, crowdLevel: "Medium" })}
                         className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-2xl transition"
                       >
                         🔥 Trigger Smoke & Flame — {selectedSensorNodes[0]?.location || "No mapped sensor"}
                       </button>
                       <button
                         disabled={!selectedSensorNodes[1]}
-                        onClick={() => selectedSensorNodes[1] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[1].sensorId, { location: selectedSensorNodes[1].location, zone: selectedAdminMapId, occupancy: 24, crowdLevel: "High" })}
+                        onClick={() => selectedSensorNodes[1] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[1].sensorId, { location: selectedSensorNodes[1].location, zone: controlId("area",selectedAdminMapId,selectedSensorNodes[1].location), occupancy: 24, crowdLevel: "High" })}
                         className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-2xl transition"
                       >
                         👥 Trigger High Crowd — {selectedSensorNodes[1]?.location || "No mapped sensor"}
                       </button>
                       <button
                         disabled={!selectedSensorNodes[0]}
-                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: selectedAdminMapId, smokeDetected: false, flameDetected: false, hazardLevel: "none", occupancy: 4, crowdLevel: "Low" })}
+                        onClick={() => selectedSensorNodes[0] && window.SafeWayAPI.recordSensorReading(selectedSensorNodes[0].sensorId, { location: selectedSensorNodes[0].location, zone: controlId("area",selectedAdminMapId,selectedSensorNodes[0].location), smokeDetected: false, flameDetected: false, hazardLevel: "none", occupancy: 4, crowdLevel: "Low" })}
                         className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-2xl transition"
                       >
                         ✅ Reset Selected Demo Sensor
@@ -1706,5 +1710,6 @@
     const root = ReactDOM.createRoot(container);
     root.render(<AdminApp />);
   </script>
-</body>
+<script>window.addEventListener('safeway-sync-status',function(e){let el=document.getElementById('sync-error');if(!el){el=document.createElement('div');el.id='sync-error';el.setAttribute('role','alert');el.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:99999;background:#991b1b;color:white;padding:12px;text-align:center';document.body.appendChild(el);}el.hidden=e.detail.isLiveCloud;el.textContent=e.detail.isLiveCloud?'':'Changes could not be saved: '+e.detail.badgeText;});</script></body>
 </html>
+
