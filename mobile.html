@@ -1692,7 +1692,7 @@
         setSosSent(true);
         notify(audioClipData ? "🆘 Trapped Distress Beacon + Voice Clip Sent!" : "🆘 Trapped Distress Beacon Sent!");
         speakText("Distress beacon transmitted to emergency operations console.");
-        } catch(error) {setSosSent(false);notify("SOS was not delivered: "+error.message+". Contact emergency services directly.");}
+        } catch(error) {setSosSent(false);notify("SOS delivery is not confirmed: "+error.message+". Retrying when connected; keep this page open. Contact emergency services directly.");}
       };
 
       const campusNodes = bData.nodes.filter(n => n.floor === 1);
@@ -2523,38 +2523,43 @@
                         <text y="4" textAnchor="middle" fill="#ffffff" fontSize="9" fontWeight="900">BACK YARD</text>
                       </g>
 
-                      {activeCampusRoute?.pathNodes?.length > 1 && (
-                        <g id="focus-campus-route">
-                          {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
-                            const nextNode = activeCampusRoute.pathNodes[idx + 1];
-                            return (
-                              <g key={"focus-seg-" + idx}>
-                                <line
-                                  x1={node.x}
-                                  y1={node.y}
-                                  x2={nextNode.x}
-                                  y2={nextNode.y}
-                                  stroke={isEmergency ? "#10b981" : "#6366f1"}
-                                  strokeWidth="9"
-                                  strokeLinecap="round"
-                                  opacity="0.9"
-                                />
-                                <line
-                                  x1={node.x}
-                                  y1={node.y}
-                                  x2={nextNode.x}
-                                  y2={nextNode.y}
-                                  stroke="#ffffff"
-                                  strokeWidth="3.5"
-                                  strokeDasharray="8 6"
-                                  strokeLinecap="round"
-                                  className="route-glow-dash"
-                                />
-                              </g>
-                            );
-                          })}
-                        </g>
-                      )}
+                    {activeCampusRoute?.pathNodes?.length > 1 && (
+                      <g id="focus-campus-route">
+                        {activeCampusRoute.pathNodes.slice(0, -1).map((node, idx) => {
+                          const nextNode = activeCampusRoute.pathNodes[idx + 1];
+                          const edge = bData.edges.find(e => (e.from === node.id && e.to === nextNode.id) || (e.from === nextNode.id && e.to === node.id));
+                          let waypoints = [];
+                          if (edge?.waypoints?.length) {
+                            waypoints = edge.from === node.id ? edge.waypoints.map(w => [w.x, w.y]) : [...edge.waypoints].reverse().map(w => [w.x, w.y]);
+                          }
+                          const pts = [[node.x, node.y], ...waypoints, [nextNode.x, nextNode.y]];
+                          const d = "M " + pts.map(p => p.join(" ")).join(" L ");
+                          return (
+                            <g key={"focus-seg-" + idx}>
+                              <path
+                                d={d}
+                                fill="none"
+                                stroke={isEmergency ? "#10b981" : "#6366f1"}
+                                strokeWidth="9"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                opacity="0.9"
+                              />
+                              <path
+                                d={d}
+                                fill="none"
+                                stroke="#ffffff"
+                                strokeWidth="3.5"
+                                strokeDasharray="8 6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="route-glow-dash"
+                              />
+                            </g>
+                          );
+                        })}
+                      </g>
+                    )}
 
                       {campusNodes.filter(n => ['entrance', 'room', 'lift', 'exit'].includes(n.type)).map(node => {
                         const isUserHere = campusOriginNodeId === node.id;
