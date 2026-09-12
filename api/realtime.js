@@ -27,21 +27,23 @@ export default async function handler(req,res){
   const isAdmin=auth.authenticated&&auth.role==='admin';
   if(!['heartbeat','sos','clear_sos'].includes(action)&&!isAdmin){res.statusCode=401;return res.end(JSON.stringify({error:'Sign in to save admin changes'}));}
   const state=await updateRealtimeState(s=>{
-   s.presence??={};s.distressSignals??={};s.resolvedDistressSignals??={};
+   s.presence??={};s.distressSignals??={};s.resolvedDistressSignals??={};s.deletedDistressSignals??={};
    if(action==='heartbeat'){
     if(p.deviceId)s.presence[p.deviceId]={deviceId:p.deviceId,mapId:p.mapId||'campus',roomName:p.roomName||'Campus',floor:p.floor??1,timestamp:Date.now()};
    }else if(action==='sos'){
     if(!p.signal?.id)throw new Error('Missing incident identifier');
     if(s.distressSignals[p.signal.id] && s.distressSignals[p.signal.id].owner!==owner){const e=new Error('Incident belongs to another reporting device');e.status=403;throw e;}
-    s.distressSignals[p.signal.id]={...p.signal,owner,status:'ACTIVE',rawTimestamp:Date.now()};
+    // A retry must not replace the original report or resurrect a resolved SOS.
+    if(!s.distressSignals[p.signal.id] && !s.resolvedDistressSignals[p.signal.id] && !s.deletedDistressSignals[p.signal.id])
+     s.distressSignals[p.signal.id]={...p.signal,owner,status:'ACTIVE',rawTimestamp:Date.now()};
    }else if(action==='clear_sos'){
     const incident=s.distressSignals[p.id];
     if(!incident || (!isAdmin&&incident.owner!==owner)){const e=new Error('Only the reporting device or an administrator can resolve this incident');e.status=403;throw e;}
     s.resolvedDistressSignals[p.id]={...incident,status:'RESCUED_RESOLVED',resolvedTimestamp:Date.now()};delete s.distressSignals[p.id];
-   }else if(action==='delete_archived_sos'){delete s.resolvedDistressSignals[p.id];
-   }else if(action==='clear_all_audit'){s.resolvedDistressSignals={};
+   }else if(action==='delete_archived_sos'){s.deletedDistressSignals[p.id]=true;delete s.resolvedDistressSignals[p.id];
+   }else if(action==='clear_all_audit'){for(const id of Object.keys(s.resolvedDistressSignals))s.deletedDistressSignals[id]=true;s.resolvedDistressSignals={};
    }else if(action==='reset_all'){
-    const keep={distressSignals:s.distressSignals,presence:s.presence,resolvedDistressSignals:s.resolvedDistressSignals,version:s.version};Object.assign(s,initialRealtimeState(),keep);
+    const keep={distressSignals:s.distressSignals,presence:s.presence,resolvedDistressSignals:s.resolvedDistressSignals,deletedDistressSignals:s.deletedDistressSignals,version:s.version};Object.assign(s,initialRealtimeState(),keep);
    }else if(action==='update_master'){
     const patch=p.patch;
     if(!patch){const e=new Error('Reload this page to use the current control protocol');e.status=409;throw e;}
